@@ -23,6 +23,10 @@ const OperationsPage = () => {
         whatsappStatus: '' // 'verified', 'not-verified', 'not-checked'
     });
     const [whatsappStatus, setWhatsappStatus] = useState({}); // { phone: 'verified'|'not-verified'|'checking' }
+    const [whatsappInitialized, setWhatsappInitialized] = useState(false);
+    const [initializingWhatsApp, setInitializingWhatsApp] = useState(false);
+    const [verificationSessionId, setVerificationSessionId] = useState(null);
+    const [verificationProgress, setVerificationProgress] = useState(null);
     const { user } = useAuth();
 
     // Fetch scraped data
@@ -53,10 +57,104 @@ const OperationsPage = () => {
         if (user) {
             fetchData();
             fetchCategories();
+            checkWhatsAppStatus();
         }
     }, [user]);
 
-    // Listen for WhatsApp verification results from Chrome extension
+    // Check WhatsApp initialization status
+    const checkWhatsAppStatus = async () => {
+        try {
+            const res = await axios.get(`${BASE_URL}/api/whatsapp/status`);
+            if (res.data.success && res.data.isAuthenticated) {
+                setWhatsappInitialized(true);
+            }
+        } catch (error) {
+            console.log('WhatsApp not initialized');
+        }
+    };
+
+    // Initialize WhatsApp (Puppeteer backend)
+    const initializeWhatsApp = async () => {
+        setInitializingWhatsApp(true);
+        try {
+            message.info('Initializing WhatsApp... A browser window will open. Please scan the QR code.');
+
+            const res = await axios.post(`${BASE_URL}/api/whatsapp/initialize`);
+
+            if (res.data.success) {
+                message.success('WhatsApp initialized successfully!');
+                setWhatsappInitialized(true);
+            } else {
+                message.error(res.data.message || 'Failed to initialize WhatsApp');
+            }
+        } catch (error) {
+            console.error('Initialize error:', error);
+            message.error('Failed to initialize WhatsApp: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setInitializingWhatsApp(false);
+        }
+    };
+
+    // Start backend verification
+    const startBackendVerification = async () => {
+        if (!whatsappInitialized) {
+            message.error('Please initialize WhatsApp first');
+            return;
+        }
+
+        try {
+            message.info('Starting verification...');
+
+            const res = await axios.post(`${BASE_URL}/api/whatsapp/verify/${user._id || user.id}`);
+
+            if (res.data.success) {
+                setVerificationSessionId(res.data.sessionId);
+                message.success(`Verification started for ${res.data.total} numbers`);
+
+                // Start polling for progress
+                pollVerificationProgress(res.data.sessionId);
+            } else {
+                message.error(res.data.message || 'Failed to start verification');
+            }
+        } catch (error) {
+            console.error('Verification error:', error);
+            message.error('Failed to start verification: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    // Poll verification progress
+    const pollVerificationProgress = async (sessionId) => {
+        const interval = setInterval(async () => {
+            try {
+                const res = await axios.get(`${BASE_URL}/api/whatsapp/progress/${sessionId}`);
+
+                if (res.data.success) {
+                    setVerificationProgress(res.data);
+
+                    // Update whatsappStatus with results
+                    if (res.data.results && res.data.results.length > 0) {
+                        const statusUpdates = {};
+                        res.data.results.forEach(result => {
+                            statusUpdates[result.phone] = result.exists ? 'verified' : 'not-verified';
+                        });
+                        setWhatsappStatus(prev => ({ ...prev, ...statusUpdates }));
+                    }
+
+                    // Stop polling if complete
+                    if (res.data.status === 'completed') {
+                        clearInterval(interval);
+                        message.success(`Verification complete! ${res.data.verified} verified, ${res.data.notVerified} not verified`);
+                        setVerificationSessionId(null);
+                    }
+                }
+            } catch (error) {
+                console.error('Progress poll error:', error);
+                clearInterval(interval);
+            }
+        }, 2000); // Poll every 2 seconds
+    };
+
+    // Listen for WhatsApp verification results from Chrome extension (legacy)
     useEffect(() => {
         const handleMessage = (event) => {
             // Only accept messages from the extension
@@ -163,6 +261,21 @@ const OperationsPage = () => {
     // Auto-verify when WhatsApp filter is set to 'verified'
     useEffect(() => {
         if (filters.whatsappStatus === 'verified') {
+            // Open WhatsApp Web in a new tab
+            window.open('https://web.whatsapp.com', '_blank');
+
+            // Save current filters to localStorage for extension to access
+            const filterData = {
+                categories: filters.categories.map(catId => {
+                    const category = categories.find(c => c._id === catId);
+                    return category?.name || '';
+                }).filter(Boolean),
+                countries: filters.countries,
+                states: filters.states,
+                cities: filters.cities
+            };
+            localStorage.setItem('whatsappFilters', JSON.stringify(filterData));
+
             // Get all phone numbers from current filtered data (excluding WhatsApp filter)
             const tempFilters = { ...filters, whatsappStatus: '' };
             const currentData = getFlattenedData();
@@ -488,15 +601,61 @@ const OperationsPage = () => {
                     <h1 className="text-2xl font-bold text-gray-800">Operations</h1>
                     <p className="text-gray-600 mt-1">View and manage scraped data</p>
                 </div>
-                <Button
-                    type="primary"
-                    icon={<FiRefreshCw />}
-                    onClick={fetchData}
-                    loading={loading}
-                >
-                    Refresh
-                </Button>
+                <Space>
+                    {!whatsappInitialized && (
+                        <Button
+                            type="default"
+                            icon={<BsWhatsapp />}
+                            onClick={initializeWhatsApp}
+                            loading={initializingWhatsApp}
+                        >
+                            Initialize WhatsApp
+                        </Button>
+                    )}
+                    {whatsappInitialized && (
+                        <Button
+                            type="primary"
+                            icon={<BsWhatsapp />}
+                            onClick={startBackendVerification}
+                            loading={!!verificationSessionId}
+                            disabled={!!verificationSessionId}
+                        >
+                            {verificationSessionId ? 'Verifying...' : 'Verify All Numbers'}
+                        </Button>
+                    )}
+                    <Button
+                        type="primary"
+                        icon={<FiRefreshCw />}
+                        onClick={fetchData}
+                        loading={loading}
+                    >
+                        Refresh
+                    </Button>
+                </Space>
             </div>
+
+            {/* Verification Progress */}
+            {verificationProgress && verificationSessionId && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-blue-800 mb-2">Verifying WhatsApp Numbers</h3>
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span>{verificationProgress.processed} / {verificationProgress.total}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${(verificationProgress.processed / verificationProgress.total) * 100}%` }}
+                            ></div>
+                        </div>
+                        <div className="flex justify-between text-sm mt-2">
+                            <span className="text-green-600">✓ Has WhatsApp: {verificationProgress.verified}</span>
+                            <span className="text-red-600">✗ No WhatsApp: {verificationProgress.notVerified}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Filters */}
             <div className="bg-white rounded-lg shadow-md p-6">
