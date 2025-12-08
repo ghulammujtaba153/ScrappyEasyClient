@@ -11,6 +11,7 @@ import ForgetPassword from "./pages/ForgetPassword";
 import CategoryPage from "./pages/dashboard/CategoryPage";
 import DashboardLayout from "./component/dashboard/DashboardLayout";
 import OperationsPage from "./pages/dashboard/OperationsPage";
+import OperationDetailPage from "./pages/dashboard/OperationDetailPage";
 
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
                         />
                         <Route path="category" element={<CategoryPage />} />
                         <Route path="operations" element={<OperationsPage />} />
+                        <Route path="operations/:operationId" element={<OperationDetailPage />} />
                     </Route>
 
                     {/* 404 Page - Must be last */}
