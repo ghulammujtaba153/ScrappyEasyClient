@@ -24,6 +24,7 @@ import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
 import { QRCodeCanvas } from 'qrcode.react';
 import { BASE_URL } from '../../config/URL';
+import { useAuth } from '../../context/authContext';
 import countries from '../../data/countries';
 import ukCities from '../../data/uk';
 
@@ -58,6 +59,7 @@ const EXPORT_FIELDS = [
 const OperationDetailPage = () => {
   const { operationId } = useParams();
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -91,9 +93,27 @@ const OperationDetailPage = () => {
 
   
 
+  const initializeWhatsApp = async () => {
+    try {
+      const res = await axios.post(`${BASE_URL}/api/verification/initialize`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        console.log('WhatsApp initialization started');
+        return true;
+      }
+    } catch (error) {
+      console.error('WhatsApp initialization failed:', error);
+      message.error(error.response?.data?.error || 'Failed to initialize WhatsApp');
+    }
+    return false;
+  };
+
   const checkWhatsAppStatus = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/verification/status`);
+      const res = await axios.get(`${BASE_URL}/api/verification/status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (res.data.success && res.data.data) {
         const status = res.data.data;
         setWhatsappInitialized(status.isConnected);
@@ -115,13 +135,27 @@ const OperationDetailPage = () => {
   const refreshQrCode = async () => {
     setFetchingQr(true);
     try {
+      // Check current status first
       const status = await checkWhatsAppStatus();
-      if (status?.qrCode) {
-        setQrCodeValue(status.qrCode);
+      
+      // If not initialized, initialize the session
+      if (status && !status.initialized) {
+        await initializeWhatsApp();
+        // Wait a bit for initialization to start
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
+      // Check status again after initialization
+      const updatedStatus = await checkWhatsAppStatus();
+      if (updatedStatus?.qrCode) {
+        setQrCodeValue(updatedStatus.qrCode);
         return;
       }
 
-      const res = await axios.get(`${BASE_URL}/api/verification/qr`);
+      // Try to get QR code
+      const res = await axios.get(`${BASE_URL}/api/verification/qr`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       if (res.data.success && res.data.data?.qrCode) {
         setQrCodeValue(res.data.data.qrCode);
@@ -139,18 +173,46 @@ const OperationDetailPage = () => {
     }
   };
 
+  const disconnectWhatsApp = async () => {
+    try {
+      const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.data.success) {
+        setWhatsappInitialized(false);
+        setQrCodeValue(null);
+        setWhatsappStatus({});
+        message.success('WhatsApp disconnected successfully. You can now link a different device.');
+      }
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      message.error(error.response?.data?.error || 'Failed to disconnect WhatsApp');
+    }
+  };
+
   useEffect(() => {
     fetchRecord();
     
     checkWhatsAppStatus();
 
-    const interval = setInterval(() => {
-      checkWhatsAppStatus();
-    }, 10000);
+    // Poll status frequently when waiting for connection
+    // - Every 3 seconds to catch connection updates quickly
+    // - Also refreshes QR code if it becomes stale
+    const interval = setInterval(async () => {
+      if (!whatsappInitialized) {
+        const status = await checkWhatsAppStatus();
+        
+        // If we have QR displayed but status has new QR, update it
+        if (status?.qrCode && status.qrCode !== qrCodeValue) {
+          setQrCodeValue(status.qrCode);
+        }
+      }
+    }, 3000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operationId]);
+  }, [operationId, whatsappInitialized]);
 
   useEffect(() => {
     if (!whatsappInitialized && !qrCodeValue) {
@@ -199,6 +261,8 @@ const OperationDetailPage = () => {
     try {
       const res = await axios.post(`${BASE_URL}/api/verification/check`, {
         phoneNumbers: [normalized]
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data.success && res.data.data) {
@@ -726,13 +790,24 @@ const OperationDetailPage = () => {
       </div>
 
       {whatsappInitialized ? (
-        <Alert
-          type="success"
-          showIcon
-          message="WhatsApp Connected"
-          description="You can verify phone numbers directly from this table."
-          className="bg-green-50 border-green-100 text-green-800"
-        />
+        <div className="bg-white rounded-lg shadow-md p-6 border border-green-100">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <Alert
+              type="success"
+              showIcon
+              message="WhatsApp Connected"
+              description="You can verify phone numbers directly from this table."
+              className="bg-green-50 border-green-100 text-green-800 flex-1"
+            />
+            <Button
+              danger
+              icon={<FiX />}
+              onClick={disconnectWhatsApp}
+            >
+              Disconnect WhatsApp
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md p-6 border border-yellow-100">
           <div className="flex flex-col md:flex-row gap-6 items-center">

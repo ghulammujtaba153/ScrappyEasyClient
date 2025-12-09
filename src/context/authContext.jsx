@@ -61,7 +61,23 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Logout function
-    const logout = () => {
+    const logout = async () => {
+        // Disconnect WhatsApp session before logging out
+        const currentToken = token || localStorage.getItem("token");
+        if (currentToken) {
+            try {
+                await fetch(`${BASE_URL}/api/verification/disconnect`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${currentToken}`,
+                    },
+                });
+            } catch (error) {
+                console.error("Failed to disconnect WhatsApp:", error);
+                // Continue with logout even if disconnect fails
+            }
+        }
+
         setUser(null);
         setToken(null);
         localStorage.removeItem("token");
