@@ -27,6 +27,7 @@ import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import countries from '../../data/countries';
 import ukCities from '../../data/uk';
+import Notes from '../../component/dashboard/Notes';
 
 const { Option } = Select;
 
@@ -50,6 +51,7 @@ const EXPORT_FIELDS = [
   { key: 'reviews', label: 'Reviews' },
   { key: 'phone', label: 'Phone' },
   { key: 'address', label: 'Address' },
+  { key: 'city', label: 'City/Location' },
   { key: 'website', label: 'Website' },
   { key: 'googleMapsLink', label: 'Google Maps' },
   { key: 'createdAt', label: 'Scraped Date' },
@@ -69,6 +71,174 @@ const OperationDetailPage = () => {
   const [qrCodeValue, setQrCodeValue] = useState(null);
   const [fetchingQr, setFetchingQr] = useState(false);
   const [verifyingAll, setVerifyingAll] = useState(false);
+  const [cityData, setCityData] = useState({});
+  const [extractingCities, setExtractingCities] = useState(false);
+
+  // Extract coordinates from Google Maps URL
+  const extractCoordinates = (url) => {
+    if (!url) return null;
+    
+    const patterns = [
+      /@(-?\d+\.\d+),(-?\d+\.\d+)/,
+      /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        return {
+          lat: parseFloat(match[1]),
+          lon: parseFloat(match[2])
+        };
+      }
+    }
+    
+    return null;
+  };
+
+  // Get city name from coordinates using OpenStreetMap Nominatim
+  const getCityFromCoordinates = async (lat, lon) => {
+    const apiUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+    
+    console.log(`   📍 Querying OpenStreetMap for coordinates: ${lat}, ${lon}`);
+    
+    try {
+      const response = await fetch(apiUrl, {
+        headers: {
+          'User-Agent': 'GoldScraper/1.0'
+        }
+      });
+      
+      if (!response.ok) {
+        console.log(`   ⚠️ API returned status ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.address) {
+        const address = data.address;
+        const city = address.city || 
+                    address.town || 
+                    address.county || 
+                    address.state_district || 
+                    address.state || 
+                    address.country || 
+                    'Unknown';
+        
+        console.log(`   ✓ Resolved to: ${city} (from ${address.city ? 'city' : address.town ? 'town' : address.county ? 'county' : address.state_district ? 'state_district' : address.state ? 'state' : 'country'})`);
+        return city;
+      }
+      
+      console.log(`   ⚠️ No address data in response`);
+      return 'Unknown';
+    } catch (error) {
+      console.error(`   ❌ City lookup error for ${lat}, ${lon}:`, error.message);
+      return 'Unknown';
+    }
+  };
+
+  // Extract city from Google Maps URL
+  const extractCityFromUrl = async (url) => {
+    const coords = extractCoordinates(url);
+    if (!coords) return null;
+    
+    const city = await getCityFromCoordinates(coords.lat, coords.lon);
+    return city;
+  };
+
+  // Extract cities for all items in record
+  const extractCitiesForRecord = async () => {
+    if (!record || !record.data) return;
+
+    setExtractingCities(true);
+    const newCityData = { ...cityData };
+    let updated = false;
+    const totalItems = record.data.length;
+    let processedCount = 0;
+    let skippedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+
+    console.log(`🏙️ Starting city extraction for ${totalItems} items...`);
+
+    try {
+      for (let i = 0; i < record.data.length; i++) {
+        const item = record.data[i];
+        const itemKey = `${record._id}-${i}`;
+        
+        // Skip if city already extracted
+        if (newCityData[itemKey]) {
+          skippedCount++;
+          console.log(`⏭️ [${i + 1}/${totalItems}] Skipping - City already cached: ${newCityData[itemKey]}`);
+          continue;
+        }
+
+        if (item.googleMapsLink) {
+          processedCount++;
+          console.log(`🔍 [${i + 1}/${totalItems}] Extracting city from: ${item.title || 'Unknown business'}`);
+          
+          const city = await extractCityFromUrl(item.googleMapsLink);
+          
+          if (city && city !== 'Unknown') {
+            newCityData[itemKey] = city;
+            updated = true;
+            successCount++;
+            console.log(`✅ [${i + 1}/${totalItems}] Found city: ${city}`);
+            
+            // Update UI immediately to show the extracted city
+            setCityData({ ...newCityData });
+          } else {
+            failedCount++;
+            console.log(`❌ [${i + 1}/${totalItems}] Failed to extract city`);
+          }
+          
+          // Rate limiting: 1.5 second delay between requests
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        } else {
+          skippedCount++;
+          console.log(`⏭️ [${i + 1}/${totalItems}] Skipping - No Google Maps link`);
+        }
+      }
+
+      console.log(`\n📊 City Extraction Summary:`);
+      console.log(`   Total Items: ${totalItems}`);
+      console.log(`   Processed: ${processedCount}`);
+      console.log(`   Skipped (cached): ${skippedCount}`);
+      console.log(`   Success: ${successCount}`);
+      console.log(`   Failed: ${failedCount}`);
+
+      if (updated) {
+        setCityData(newCityData);
+        
+        console.log(`💾 Saving ${Object.keys(newCityData).length} cities to backend...`);
+        
+        // Save to backend
+        const cityDataToSave = {};
+        Object.entries(newCityData).forEach(([key, city]) => {
+          const index = key.split('-')[1];
+          cityDataToSave[index] = city;
+        });
+
+        await axios.post(`${BASE_URL}/api/data/update-city`, {
+          recordId: record._id,
+          cityData: cityDataToSave
+        });
+        
+        console.log(`✅ Successfully saved cities to database`);
+        message.success(`Cities extracted: ${successCount} successful, ${failedCount} failed`);
+      } else {
+        console.log(`ℹ️ No new cities to extract`);
+        message.info('All cities already extracted');
+      }
+    } catch (error) {
+      console.error('❌ Failed to extract cities:', error);
+      message.error('Failed to extract cities: ' + error.message);
+    } finally {
+      setExtractingCities(false);
+      console.log(`🏁 City extraction process completed\n`);
+    }
+  };
 
   const fetchRecord = async () => {
     if (!operationId) {
@@ -80,6 +250,40 @@ const OperationDetailPage = () => {
       const response = await axios.get(`${BASE_URL}/api/data/record/${operationId}`);
       if (response.data?.success) {
         setRecord(response.data.data);
+        
+        // Load cached verification results
+        if (response.data.data?.whatsappVerifications) {
+          const cachedStatus = {};
+          // Handle both object and Map formats from MongoDB
+          const verifications = response.data.data.whatsappVerifications;
+          const entries = verifications instanceof Map ? 
+            Array.from(verifications.entries()) : 
+            Object.entries(verifications);
+          
+          entries.forEach(([phone, verificationData]) => {
+            cachedStatus[phone] = verificationData.isRegistered ? 'verified' : 'not-verified';
+          });
+          
+          setWhatsappStatus(cachedStatus);
+          console.log(`Loaded ${Object.keys(cachedStatus).length} cached verification results`);
+        }
+
+        // Load city data from database
+        if (response.data.data?.cityData) {
+          const cities = {};
+          const cityDataFromDB = response.data.data.cityData;
+          const cityEntries = cityDataFromDB instanceof Map ? 
+            Array.from(cityDataFromDB.entries()) : 
+            Object.entries(cityDataFromDB);
+          
+          cityEntries.forEach(([index, city]) => {
+            const itemKey = `${response.data.data._id}-${index}`;
+            cities[itemKey] = city;
+          });
+          
+          setCityData(cities);
+          console.log(`Loaded ${Object.keys(cities).length} cached city locations`);
+        }
       } else {
         message.error(response.data?.message || 'Failed to load record');
       }
@@ -90,8 +294,6 @@ const OperationDetailPage = () => {
       setLoading(false);
     }
   };
-
-  
 
   const initializeWhatsApp = async () => {
     try {
@@ -260,13 +462,15 @@ const OperationDetailPage = () => {
 
     try {
       const res = await axios.post(`${BASE_URL}/api/verification/check`, {
-        phoneNumbers: [normalized]
+        phoneNumbers: [normalized],
+        operationId: operationId
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data.success && res.data.data) {
-        const isRegistered = res.data.data.isRegistered;
+        const result = res.data.data.results[0];
+        const isRegistered = result?.isRegistered;
         const status = isRegistered ? 'verified' : 'not-verified';
 
         setWhatsappStatus(prev => ({ ...prev, [phone]: status }));
@@ -306,31 +510,56 @@ const OperationDetailPage = () => {
       return;
     }
 
+    // Filter out already verified numbers and format
     const formattedList = [...new Set(phoneNumbers)]
-      .map(phone => ({ original: phone, formatted: formatPhoneNumber(phone) }))
-      .filter(item => !!item.formatted);
+      .filter(phone => {
+        const formatted = formatPhoneNumber(phone);
+        // Skip if already verified in cache
+        return formatted && !whatsappStatus[phone];
+      })
+      .map(phone => formatPhoneNumber(phone))
+      .filter(Boolean);
 
     if (formattedList.length === 0) {
-      message.warning('No valid phone numbers to verify');
+      message.info('All numbers already verified');
       return;
     }
 
     message.info(`Verifying ${formattedList.length} phone numbers...`);
+    setVerifyingAll(true);
 
-    for (const entry of formattedList) {
-      if (whatsappStatus[entry.original] === 'verified') {
-        continue;
-      }
-
-      await verifyWhatsAppNumber(entry.original, {
-        silent: true,
-        formattedNumber: entry.formatted
+    try {
+      // Send batch request with operationId
+      const res = await axios.post(`${BASE_URL}/api/verification/check`, {
+        phoneNumbers: formattedList,
+        operationId: operationId
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      await new Promise(resolve => setTimeout(resolve, 600));
+      if (res.data.success && res.data.data) {
+        const { results, successful, failed } = res.data.data;
+        
+        // Update status for all results
+        const newStatus = {};
+        results.forEach(result => {
+          const phone = result.phoneNumber;
+          if (result.success) {
+            newStatus[phone] = result.isRegistered ? 'verified' : 'not-verified';
+          } else {
+            newStatus[phone] = 'failed';
+          }
+        });
+        
+        setWhatsappStatus(prev => ({ ...prev, ...newStatus }));
+        message.success(`Verified ${successful} numbers successfully. ${failed} failed.`);
+      }
+    } catch (error) {
+      console.error('Batch verification error:', error);
+      message.error('Failed to verify numbers: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setVerifyingAll(false);
     }
-
-    message.success('Verification run completed');
   };
 
   const flattenedData = useMemo(() => {
@@ -346,6 +575,31 @@ const OperationDetailPage = () => {
       ...item
     }));
   }, [record]);
+
+  // Calculate verification statistics
+  const verificationStats = useMemo(() => {
+    const phonesWithNumbers = flattenedData.filter(item => item.phone);
+    const totalPhones = phonesWithNumbers.length;
+    const uniquePhones = new Set(phonesWithNumbers.map(item => formatPhoneNumber(item.phone)).filter(Boolean));
+    
+    let verified = 0;
+    let notVerified = 0;
+    let notChecked = 0;
+
+    uniquePhones.forEach(phone => {
+      const status = whatsappStatus[phone];
+      if (status === 'verified') verified++;
+      else if (status === 'not-verified') notVerified++;
+      else notChecked++;
+    });
+
+    return {
+      total: uniquePhones.size,
+      verified,
+      notVerified,
+      notChecked
+    };
+  }, [flattenedData, whatsappStatus]);
 
   const getAllCountries = () => {
     const countryNames = countries.map(c => c.name);
@@ -509,6 +763,10 @@ const OperationDetailPage = () => {
       return getWhatsappStatusLabel(item.phone);
     }
 
+    if (field.key === 'city') {
+      return cityData[item.key] || '';
+    }
+
     const value = item[field.key];
     if ((field.key === 'createdAt' || field.key === 'updatedAt') && value) {
       const date = new Date(value);
@@ -663,6 +921,18 @@ const OperationDetailPage = () => {
       render: (address) => address || '-',
     },
     {
+      title: 'City/Location',
+      key: 'city',
+      width: 150,
+      render: (_, record) => {
+        const city = cityData[record.key];
+        if (city) {
+          return <Tag color="blue">{city}</Tag>;
+        }
+        return <span className="text-gray-400">-</span>;
+      },
+    },
+    {
       title: 'Website',
       dataIndex: 'website',
       key: 'website',
@@ -692,7 +962,10 @@ const OperationDetailPage = () => {
       render: (phone) => {
         if (!phone) return <Tag color="default">N/A</Tag>;
 
-        const status = whatsappStatus[phone];
+        const formattedPhone = formatPhoneNumber(phone);
+        if (!formattedPhone) return <Tag color="default">Invalid</Tag>;
+
+        const status = whatsappStatus[formattedPhone];
 
         if (status === 'checking') {
           return <Spin size="small" />;
@@ -748,12 +1021,38 @@ const OperationDetailPage = () => {
           </Button>
           <h1 className="text-2xl font-bold text-gray-900">{record?.searchString || 'Operation Detail'}</h1>
           {record && (
-            <p className="text-gray-600">
-              {record.data?.length || 0} records • Last updated {record.updatedAt ? new Date(record.updatedAt).toLocaleString() : 'N/A'}
-            </p>
+            <div className="space-y-1">
+              <p className="text-gray-600">
+                {record.data?.length || 0} records • Last updated {record.updatedAt ? new Date(record.updatedAt).toLocaleString() : 'N/A'}
+              </p>
+              {verificationStats.total > 0 && (
+                <div className="flex gap-3 text-sm">
+                  <span className="text-gray-600">
+                    📞 Total: <span className="font-semibold">{verificationStats.total}</span>
+                  </span>
+                  <span className="text-green-600">
+                    ✓ Verified: <span className="font-semibold">{verificationStats.verified}</span>
+                  </span>
+                  <span className="text-red-600">
+                    ✗ No WhatsApp: <span className="font-semibold">{verificationStats.notVerified}</span>
+                  </span>
+                  <span className="text-orange-600">
+                    ⏳ Not Checked: <span className="font-semibold">{verificationStats.notChecked}</span>
+                  </span>
+                </div>
+              )}
+            </div>
           )}
         </div>
         <Space>
+          <Button
+            type="default"
+            onClick={extractCitiesForRecord}
+            loading={extractingCities}
+            disabled={extractingCities || !record}
+          >
+            {extractingCities ? 'Extracting Cities...' : '📍 Extract Cities'}
+          </Button>
           {whatsappInitialized && (
             <Button
               type="primary"
@@ -1043,6 +1342,8 @@ const OperationDetailPage = () => {
           }}
         />
       </div>
+
+      <Notes operationId={operationId} />
     </div>
   );
 };

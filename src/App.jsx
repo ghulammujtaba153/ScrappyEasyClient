@@ -12,6 +12,8 @@ import CategoryPage from "./pages/dashboard/CategoryPage";
 import DashboardLayout from "./component/dashboard/DashboardLayout";
 import OperationsPage from "./pages/dashboard/OperationsPage";
 import OperationDetailPage from "./pages/dashboard/OperationDetailPage";
+import 'leaflet/dist/leaflet.css';
+import HeatMapPage from "./pages/dashboard/HeatMapPage";
 
 
 function App() {
@@ -41,6 +43,7 @@ function App() {
                         <Route path="category" element={<CategoryPage />} />
                         <Route path="operations" element={<OperationsPage />} />
                         <Route path="operations/:operationId" element={<OperationDetailPage />} />
+                        <Route path="heat-map" element={<HeatMapPage />} />
                     </Route>
 
                     {/* 404 Page - Must be last */}

@@ -12,6 +12,7 @@ const OperationsPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [uniqueSearches, setUniqueSearches] = useState([]);
+    const [uniqueCities, setUniqueCities] = useState([]);
     const [loading, setLoading] = useState(false);
     const [keyword, setKeyword] = useState('');
 
@@ -27,6 +28,12 @@ const OperationsPage = () => {
                 setUniqueSearches(response.data.data || []);
             } else {
                 message.error(response.data?.message || 'Failed to load operations');
+            }
+
+            // Fetch unique cities from getData API
+            const dataResponse = await axios.get(`${BASE_URL}/api/data/${user._id || user.id}?limit=1000`);
+            if (dataResponse.data?.success && dataResponse.data?.uniqueCities) {
+                setUniqueCities(dataResponse.data.uniqueCities || []);
             }
         } catch (error) {
             console.error('Failed to load operations overview:', error);
@@ -113,6 +120,10 @@ const OperationsPage = () => {
                         <p className="text-sm text-gray-500">Total Searches</p>
                         <p className="text-3xl font-semibold">{uniqueSearches.length}</p>
                     </div>
+                    <div>
+                        <p className="text-sm text-gray-500">Unique Cities</p>
+                        <p className="text-3xl font-semibold">{uniqueCities.length}</p>
+                    </div>
                     <Search
                         placeholder="Search by query..."
                         allowClear
@@ -122,6 +133,19 @@ const OperationsPage = () => {
                     />
                 </div>
             </div>
+
+            {uniqueCities.length > 0 && (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Cities & Locations</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {uniqueCities.map((city, index) => (
+                            <Tag key={index} color="blue" className="text-sm py-1 px-3">
+                                {city}
+                            </Tag>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="bg-white rounded-lg shadow-md p-6">
                 <Table

@@ -1,8 +1,40 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/authContext";
+import axios from "axios";
+import { BASE_URL } from "../../config/URL";
+import { Spin } from "antd";
 
 const HomePage = () => {
     const { user } = useAuth();
+    const [stats, setStats] = useState({
+        citiesCovered: 0,
+        totalLeads: 0,
+        whatsappAvailable: 0,
+        lowRated: 0
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            if (!user?._id && !user?.id) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await axios.get(`${BASE_URL}/api/dashboard/stats/${user._id || user.id}`);
+                if (response.data?.success) {
+                    setStats(response.data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch dashboard stats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, [user?._id, user?.id]);
 
     return (
         <div className="space-y-6">
@@ -17,16 +49,21 @@ const HomePage = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-purple-100 text-sm font-medium">Total Scrapes</p>
-                            <p className="text-3xl font-bold mt-2">0</p>
+                            <p className="text-purple-100 text-sm font-medium">📍 Cities Covered</p>
+                            {loading ? (
+                                <Spin size="small" className="mt-2" />
+                            ) : (
+                                <p className="text-3xl font-bold mt-2">{stats.citiesCovered}</p>
+                            )}
                         </div>
                         <div className="bg-white bg-opacity-20 p-3 rounded-lg">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0 2.21 3.582 4 8 4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </div>
                     </div>
@@ -35,8 +72,12 @@ const HomePage = () => {
                 <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-blue-100 text-sm font-medium">Data Points</p>
-                            <p className="text-3xl font-bold mt-2">0</p>
+                            <p className="text-blue-100 text-sm font-medium">📊 Total Leads</p>
+                            {loading ? (
+                                <Spin size="small" className="mt-2" />
+                            ) : (
+                                <p className="text-3xl font-bold mt-2">{stats.totalLeads}</p>
+                            )}
                         </div>
                         <div className="bg-white bg-opacity-20 p-3 rounded-lg">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,12 +90,34 @@ const HomePage = () => {
                 <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-lg shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-green-100 text-sm font-medium">Success Rate</p>
-                            <p className="text-3xl font-bold mt-2">100%</p>
+                            <p className="text-green-100 text-sm font-medium">📱 WhatsApp Available</p>
+                            {loading ? (
+                                <Spin size="small" className="mt-2" />
+                            ) : (
+                                <p className="text-3xl font-bold mt-2">{stats.whatsappAvailable}</p>
+                            )}
                         </div>
                         <div className="bg-white bg-opacity-20 p-3 rounded-lg">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-lg shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-orange-100 text-sm font-medium">⭐ Low Rated (&lt;4.0)</p>
+                            {loading ? (
+                                <Spin size="small" className="mt-2" />
+                            ) : (
+                                <p className="text-3xl font-bold mt-2">{stats.lowRated}</p>
+                            )}
+                        </div>
+                        <div className="bg-white bg-opacity-20 p-3 rounded-lg">
+                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                             </svg>
                         </div>
                     </div>
