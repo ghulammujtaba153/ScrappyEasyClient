@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Spin, message } from 'antd';
 import { BsWhatsapp } from 'react-icons/bs';
-import { BASE_URL } from '../../config/url';
+import { BASE_URL } from '../../config/URL';
 
 const WhatsAppConnectPage = () => {
   const [loading, setLoading] = useState(true);
