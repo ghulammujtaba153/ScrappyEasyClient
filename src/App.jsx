@@ -16,6 +16,7 @@ import 'leaflet/dist/leaflet.css';
 import HeatMapPage from "./pages/dashboard/HeatMapPage";
 import ColdCallerPage from "./pages/dashboard/ColdCallerPage";
 import ColdCallerDetailPage from "./pages/dashboard/ColdCallerDetailPage";
+import WhatsAppConnectPage from "./pages/dashboard/WhatsAppConnectPage";
 
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
                         <Route path="heat-map" element={<HeatMapPage />} />
                         <Route path="cold-caller" element={<ColdCallerPage/>} />
                         <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
+                        <Route path="whatsapp-automation" element={<WhatsAppConnectPage/>} />
                     </Route>
 
                     {/* 404 Page - Must be last */}
