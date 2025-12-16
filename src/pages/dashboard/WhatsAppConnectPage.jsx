@@ -57,6 +57,41 @@ const WhatsAppConnectPage = () => {
     }
   };
 
+  // const launchEmbeddedSignup = () => {
+  //   if (!window.FB) {
+  //     message.error("Facebook SDK not loaded yet.");
+  //     return;
+  //   }
+
+  //   window.FB.login(
+  //     function (response) {
+  //       if (response.authResponse) {
+  //         const code = response.authResponse.code;
+  //         const token = localStorage.getItem('token');
+
+  //         if (code) {
+  //           // Redirect to backend callback
+  //           window.location.href = `${BASE_URL}/api/whatsapp/account/callback?code=${code}&state=${token}`;
+  //         } else {
+  //           message.error("No code received from Meta.");
+  //         }
+  //       } else {
+  //         console.log('User cancelled login or did not fully authorize.');
+  //       }
+  //     },
+  //     {
+  //       config_id: META_CONFIG_ID,
+  //       response_type: 'code',
+  //       override_default_response_type: true,
+  //       extras: {
+  //         setup: {
+  //           business_vertical: "OTHER"
+  //         }
+  //       }
+  //     }
+  //   );
+  // };
+
   const launchEmbeddedSignup = () => {
     if (!window.FB) {
       message.error("Facebook SDK not loaded yet.");
@@ -64,24 +99,37 @@ const WhatsAppConnectPage = () => {
     }
 
     window.FB.login(
-      function (response) {
-        if (response.authResponse) {
-          const code = response.authResponse.code;
-          const token = localStorage.getItem('token');
+      async function (response) {
+        if (!response.authResponse?.code) {
+          console.log("User cancelled login or no code received");
+          return;
+        }
 
-          if (code) {
-            // Redirect to backend callback
-            window.location.href = `${BASE_URL}/api/whatsapp/account/callback?code=${code}&state=${token}`;
-          } else {
-            message.error("No code received from Meta.");
-          }
-        } else {
-          console.log('User cancelled login or did not fully authorize.');
+        try {
+          const token = localStorage.getItem("token");
+
+          await axios.get(
+            `${BASE_URL}/api/whatsapp/account/callback`,
+            {
+              params: {
+                code: response.authResponse.code,
+                state: token
+              }
+            }
+          );
+
+          // Refresh UI state
+          message.success("WhatsApp connected successfully");
+          await checkConnectionStatus();
+
+        } catch (err) {
+          console.error("Embedded signup failed:", err);
+          message.error("WhatsApp connection failed");
         }
       },
       {
         config_id: META_CONFIG_ID,
-        response_type: 'code',
+        response_type: "code",
         override_default_response_type: true,
         extras: {
           setup: {
@@ -91,6 +139,7 @@ const WhatsAppConnectPage = () => {
       }
     );
   };
+
 
   const sendTestMessage = async () => {
     if (!testNumber) {
