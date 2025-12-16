@@ -42,7 +42,7 @@ const WhatsAppConnectPage = () => {
   const checkConnectionStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`${BASE_URL}/whatsapp/account/connected`, {
+      const res = await axios.get(`${BASE_URL}/api/whatsapp/account/connected`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -101,7 +101,7 @@ const WhatsAppConnectPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await axios.post(`${BASE_URL}/whatsapp/account/send`,
+      const res = await axios.post(`${BASE_URL}/api/whatsapp/account/send`,
         {
           to: testNumber,
           templateName: 'hello_world'
