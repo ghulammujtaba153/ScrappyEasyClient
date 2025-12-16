@@ -71,7 +71,7 @@ const WhatsAppConnectPage = () => {
 
           if (code) {
             // Redirect to backend callback
-            window.location.href = `${BASE_URL}/whatsapp/account/callback?code=${code}&state=${token}`;
+            window.location.href = `${BASE_URL}/api/whatsapp/account/callback?code=${code}&state=${token}`;
           } else {
             message.error("No code received from Meta.");
           }
