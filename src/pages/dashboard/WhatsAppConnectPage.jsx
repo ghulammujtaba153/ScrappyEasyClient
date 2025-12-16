@@ -99,33 +99,14 @@ const WhatsAppConnectPage = () => {
     }
 
     window.FB.login(
-      async function (response) {
+      function (response) {
         if (!response.authResponse?.code) {
           console.log("User cancelled login or no code received");
           return;
         }
 
-        try {
-          const token = localStorage.getItem("token");
-
-          await axios.get(
-            `${BASE_URL}/api/whatsapp/account/callback`,
-            {
-              params: {
-                code: response.authResponse.code,
-                state: token
-              }
-            }
-          );
-
-          // Refresh UI state
-          message.success("WhatsApp connected successfully");
-          await checkConnectionStatus();
-
-        } catch (err) {
-          console.error("Embedded signup failed:", err);
-          message.error("WhatsApp connection failed");
-        }
+        // Call async handler separately
+        handleEmbeddedSignup(response.authResponse.code);
       },
       {
         config_id: META_CONFIG_ID,
@@ -139,6 +120,28 @@ const WhatsAppConnectPage = () => {
       }
     );
   };
+
+  // 👇 Async logic lives here
+  const handleEmbeddedSignup = async (code) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.get(`${BASE_URL}/api/whatsapp/account/callback`, {
+        params: {
+          code,
+          state: token
+        }
+      });
+
+      message.success("WhatsApp connected successfully!");
+      await checkConnectionStatus();
+
+    } catch (err) {
+      console.error("Embedded signup failed:", err);
+      message.error("WhatsApp connection failed");
+    }
+  };
+
 
 
   const sendTestMessage = async () => {
