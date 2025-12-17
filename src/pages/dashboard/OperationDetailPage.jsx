@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import WhatsAppConnectModal from '../../component/dashboard/WhatsAppConnectModal';
+import SaveNumbersModal from '../../component/dashboard/SaveNumbersModal';
 import {
   Alert,
   Button,
   InputNumber,
   Select,
   Space,
-  Spin,
   Table,
   Tag,
   message
@@ -18,7 +19,8 @@ import {
   FiExternalLink,
   FiFileText,
   FiRefreshCw,
-  FiX
+  FiX,
+  FiSave
 } from 'react-icons/fi';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
@@ -61,15 +63,16 @@ const EXPORT_FIELDS = [
 const OperationDetailPage = () => {
   const { operationId } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ ...defaultFilters });
   const [whatsappStatus, setWhatsappStatus] = useState({});
+  // WhatsApp Connection State
   const [whatsappInitialized, setWhatsappInitialized] = useState(false);
-  const [qrCodeValue, setQrCodeValue] = useState(null);
-  const [fetchingQr, setFetchingQr] = useState(false);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [verifyingAll, setVerifyingAll] = useState(false);
   const [cityData, setCityData] = useState({});
   const [extractingCities, setExtractingCities] = useState(false);
@@ -77,12 +80,12 @@ const OperationDetailPage = () => {
   // Extract coordinates from Google Maps URL
   const extractCoordinates = (url) => {
     if (!url) return null;
-    
+
     const patterns = [
       /@(-?\d+\.\d+),(-?\d+\.\d+)/,
       /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/
     ];
-    
+
     for (const pattern of patterns) {
       const match = url.match(pattern);
       if (match) {
@@ -92,44 +95,44 @@ const OperationDetailPage = () => {
         };
       }
     }
-    
+
     return null;
   };
 
   // Get city name from coordinates using OpenStreetMap Nominatim
   const getCityFromCoordinates = async (lat, lon) => {
     const apiUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-    
+
     console.log(`   📍 Querying OpenStreetMap for coordinates: ${lat}, ${lon}`);
-    
+
     try {
       const response = await fetch(apiUrl, {
         headers: {
           'User-Agent': 'GoldScraper/1.0'
         }
       });
-      
+
       if (!response.ok) {
         console.log(`   ⚠️ API returned status ${response.status}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data && data.address) {
         const address = data.address;
-        const city = address.city || 
-                    address.town || 
-                    address.county || 
-                    address.state_district || 
-                    address.state || 
-                    address.country || 
-                    'Unknown';
-        
+        const city = address.city ||
+          address.town ||
+          address.county ||
+          address.state_district ||
+          address.state ||
+          address.country ||
+          'Unknown';
+
         console.log(`   ✓ Resolved to: ${city} (from ${address.city ? 'city' : address.town ? 'town' : address.county ? 'county' : address.state_district ? 'state_district' : address.state ? 'state' : 'country'})`);
         return city;
       }
-      
+
       console.log(`   ⚠️ No address data in response`);
       return 'Unknown';
     } catch (error) {
@@ -142,7 +145,7 @@ const OperationDetailPage = () => {
   const extractCityFromUrl = async (url) => {
     const coords = extractCoordinates(url);
     if (!coords) return null;
-    
+
     const city = await getCityFromCoordinates(coords.lat, coords.lon);
     return city;
   };
@@ -166,7 +169,7 @@ const OperationDetailPage = () => {
       for (let i = 0; i < record.data.length; i++) {
         const item = record.data[i];
         const itemKey = `${record._id}-${i}`;
-        
+
         // Skip if city already extracted
         if (newCityData[itemKey]) {
           skippedCount++;
@@ -177,22 +180,22 @@ const OperationDetailPage = () => {
         if (item.googleMapsLink) {
           processedCount++;
           console.log(`🔍 [${i + 1}/${totalItems}] Extracting city from: ${item.title || 'Unknown business'}`);
-          
+
           const city = await extractCityFromUrl(item.googleMapsLink);
-          
+
           if (city && city !== 'Unknown') {
             newCityData[itemKey] = city;
             updated = true;
             successCount++;
             console.log(`✅ [${i + 1}/${totalItems}] Found city: ${city}`);
-            
+
             // Update UI immediately to show the extracted city
             setCityData({ ...newCityData });
           } else {
             failedCount++;
             console.log(`❌ [${i + 1}/${totalItems}] Failed to extract city`);
           }
-          
+
           // Rate limiting: 1.5 second delay between requests
           await new Promise(resolve => setTimeout(resolve, 1500));
         } else {
@@ -210,9 +213,9 @@ const OperationDetailPage = () => {
 
       if (updated) {
         setCityData(newCityData);
-        
+
         console.log(`💾 Saving ${Object.keys(newCityData).length} cities to backend...`);
-        
+
         // Save to backend
         const cityDataToSave = {};
         Object.entries(newCityData).forEach(([key, city]) => {
@@ -224,7 +227,7 @@ const OperationDetailPage = () => {
           recordId: record._id,
           cityData: cityDataToSave
         });
-        
+
         console.log(`✅ Successfully saved cities to database`);
         message.success(`Cities extracted: ${successCount} successful, ${failedCount} failed`);
       } else {
@@ -250,20 +253,20 @@ const OperationDetailPage = () => {
       const response = await axios.get(`${BASE_URL}/api/data/record/${operationId}`);
       if (response.data?.success) {
         setRecord(response.data.data);
-        
+
         // Load cached verification results
         if (response.data.data?.whatsappVerifications) {
           const cachedStatus = {};
           // Handle both object and Map formats from MongoDB
           const verifications = response.data.data.whatsappVerifications;
-          const entries = verifications instanceof Map ? 
-            Array.from(verifications.entries()) : 
+          const entries = verifications instanceof Map ?
+            Array.from(verifications.entries()) :
             Object.entries(verifications);
-          
+
           entries.forEach(([phone, verificationData]) => {
             cachedStatus[phone] = verificationData.isRegistered ? 'verified' : 'not-verified';
           });
-          
+
           setWhatsappStatus(cachedStatus);
           console.log(`Loaded ${Object.keys(cachedStatus).length} cached verification results`);
         }
@@ -272,15 +275,15 @@ const OperationDetailPage = () => {
         if (response.data.data?.cityData) {
           const cities = {};
           const cityDataFromDB = response.data.data.cityData;
-          const cityEntries = cityDataFromDB instanceof Map ? 
-            Array.from(cityDataFromDB.entries()) : 
+          const cityEntries = cityDataFromDB instanceof Map ?
+            Array.from(cityDataFromDB.entries()) :
             Object.entries(cityDataFromDB);
-          
+
           cityEntries.forEach(([index, city]) => {
             const itemKey = `${response.data.data._id}-${index}`;
             cities[itemKey] = city;
           });
-          
+
           setCityData(cities);
           console.log(`Loaded ${Object.keys(cities).length} cached city locations`);
         }
@@ -295,22 +298,6 @@ const OperationDetailPage = () => {
     }
   };
 
-  const initializeWhatsApp = async () => {
-    try {
-      const res = await axios.post(`${BASE_URL}/api/verification/initialize`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
-        console.log('WhatsApp initialization started');
-        return true;
-      }
-    } catch (error) {
-      console.error('WhatsApp initialization failed:', error);
-      message.error(error.response?.data?.error || 'Failed to initialize WhatsApp');
-    }
-    return false;
-  };
-
   const checkWhatsAppStatus = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/api/verification/status`, {
@@ -319,13 +306,6 @@ const OperationDetailPage = () => {
       if (res.data.success && res.data.data) {
         const status = res.data.data;
         setWhatsappInitialized(status.isConnected);
-
-        if (status.qrCode) {
-          setQrCodeValue(status.qrCode);
-        } else if (!status.hasQRCode) {
-          setQrCodeValue(null);
-        }
-
         return status;
       }
     } catch (error) {
@@ -334,56 +314,14 @@ const OperationDetailPage = () => {
     return null;
   };
 
-  const refreshQrCode = async () => {
-    setFetchingQr(true);
-    try {
-      // Check current status first
-      const status = await checkWhatsAppStatus();
-      
-      // If not initialized, initialize the session
-      if (status && !status.initialized) {
-        await initializeWhatsApp();
-        // Wait a bit for initialization to start
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      
-      // Check status again after initialization
-      const updatedStatus = await checkWhatsAppStatus();
-      if (updatedStatus?.qrCode) {
-        setQrCodeValue(updatedStatus.qrCode);
-        return;
-      }
-
-      // Try to get QR code
-      const res = await axios.get(`${BASE_URL}/api/verification/qr`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (res.data.success && res.data.data?.qrCode) {
-        setQrCodeValue(res.data.data.qrCode);
-      } else if (res.data.success && res.data.data?.isConnected) {
-        setWhatsappInitialized(true);
-        message.success('WhatsApp already connected');
-      } else if (res.data.error) {
-        message.info(res.data.error);
-      }
-    } catch (error) {
-      console.error('QR refresh error:', error);
-      message.error(error.response?.data?.error || 'Failed to fetch QR code');
-    } finally {
-      setFetchingQr(false);
-    }
-  };
-
   const disconnectWhatsApp = async () => {
     try {
       const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (res.data.success) {
         setWhatsappInitialized(false);
-        setQrCodeValue(null);
         setWhatsappStatus({});
         message.success('WhatsApp disconnected successfully. You can now link a different device.');
       }
@@ -395,33 +333,11 @@ const OperationDetailPage = () => {
 
   useEffect(() => {
     fetchRecord();
-    
     checkWhatsAppStatus();
-
-    // Poll status frequently when waiting for connection
-    // - Every 3 seconds to catch connection updates quickly
-    // - Also refreshes QR code if it becomes stale
-    const interval = setInterval(async () => {
-      if (!whatsappInitialized) {
-        const status = await checkWhatsAppStatus();
-        
-        // If we have QR displayed but status has new QR, update it
-        if (status?.qrCode && status.qrCode !== qrCodeValue) {
-          setQrCodeValue(status.qrCode);
-        }
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operationId, whatsappInitialized]);
+  }, [operationId]);
 
-  useEffect(() => {
-    if (!whatsappInitialized && !qrCodeValue) {
-      refreshQrCode();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [whatsappInitialized, qrCodeValue]);
+
 
   const formatPhoneNumber = (phone) => {
     if (!phone) return null;
@@ -444,21 +360,22 @@ const OperationDetailPage = () => {
       if (!silent) {
         message.error('Please connect WhatsApp by scanning the QR code first');
       }
-      setWhatsappStatus(prev => ({ ...prev, [phone]: 'unknown' }));
+      setWhatsappStatus(prev => ({ ...prev, [formatPhoneNumber(phone)]: 'unknown' }));
       return;
     }
 
     const normalized = formattedNumber || formatPhoneNumber(phone);
 
+    // Verify WhatsApp Number - use normalized phone as key
     if (!normalized) {
       if (!silent) {
         message.warning('Invalid phone number format');
       }
-      setWhatsappStatus(prev => ({ ...prev, [phone]: 'unknown' }));
+      setWhatsappStatus(prev => ({ ...prev, [formatPhoneNumber(phone)]: 'unknown' }));
       return;
     }
 
-    setWhatsappStatus(prev => ({ ...prev, [phone]: 'checking' }));
+    setWhatsappStatus(prev => ({ ...prev, [normalized]: 'checking' }));
 
     try {
       const res = await axios.post(`${BASE_URL}/api/verification/check`, {
@@ -473,7 +390,7 @@ const OperationDetailPage = () => {
         const isRegistered = result?.isRegistered;
         const status = isRegistered ? 'verified' : 'not-verified';
 
-        setWhatsappStatus(prev => ({ ...prev, [phone]: status }));
+        setWhatsappStatus(prev => ({ ...prev, [normalized]: status }));
 
         if (!silent) {
           if (isRegistered) {
@@ -484,7 +401,7 @@ const OperationDetailPage = () => {
         }
       } else {
         const errorMessage = res.data.error || 'Failed to verify WhatsApp number';
-        setWhatsappStatus(prev => ({ ...prev, [phone]: 'unknown' }));
+        setWhatsappStatus(prev => ({ ...prev, [normalized]: 'unknown' }));
         if (!silent) {
           message.error(errorMessage);
         }
@@ -539,7 +456,7 @@ const OperationDetailPage = () => {
 
       if (res.data.success && res.data.data) {
         const { results, successful, failed } = res.data.data;
-        
+
         // Update status for all results
         const newStatus = {};
         results.forEach(result => {
@@ -550,7 +467,7 @@ const OperationDetailPage = () => {
             newStatus[phone] = 'failed';
           }
         });
-        
+
         setWhatsappStatus(prev => ({ ...prev, ...newStatus }));
         message.success(`Verified ${successful} numbers successfully. ${failed} failed.`);
       }
@@ -581,7 +498,7 @@ const OperationDetailPage = () => {
     const phonesWithNumbers = flattenedData.filter(item => item.phone);
     const totalPhones = phonesWithNumbers.length;
     const uniquePhones = new Set(phonesWithNumbers.map(item => formatPhoneNumber(item.phone)).filter(Boolean));
-    
+
     let verified = 0;
     let notVerified = 0;
     let notChecked = 0;
@@ -648,7 +565,7 @@ const OperationDetailPage = () => {
 
     let filtered = [...flattenedData];
 
-    
+
 
     if (filters.countries.length > 0) {
       filtered = filtered.filter(item =>
@@ -682,7 +599,7 @@ const OperationDetailPage = () => {
 
     if (filters.whatsappStatus) {
       filtered = filtered.filter(item => {
-        const status = whatsappStatus[item.phone];
+        const status = whatsappStatus[formatPhoneNumber(item.phone)];
         if (filters.whatsappStatus === 'verified') {
           return status === 'verified';
         } else if (filters.whatsappStatus === 'not-verified') {
@@ -737,10 +654,10 @@ const OperationDetailPage = () => {
     }
 
     return filtered;
-  }, [ flattenedData, filters, whatsappStatus]);
+  }, [flattenedData, filters, whatsappStatus]);
 
   const getWhatsappStatusLabel = (phone) => {
-    const status = whatsappStatus[phone];
+    const status = whatsappStatus[formatPhoneNumber(phone)];
     if (status === 'verified') return 'Verified';
     if (status === 'not-verified') return 'Not Verified';
     if (status === 'failed') return 'Failed';
@@ -748,11 +665,21 @@ const OperationDetailPage = () => {
     return 'Not Checked';
   };
 
+  const getFilteredPhoneNumbers = () => {
+    return [...new Set(
+      filteredData
+        .map(item => item.phone)
+        .filter(Boolean)
+        .map(phone => formatPhoneNumber(phone))
+        .filter(Boolean)
+    )];
+  };
+
   const getFileBaseName = () => {
     const raw = (record?.searchString || 'operation-data').toString().trim();
-      const sanitized = raw
-        .replace(/[^\u0000-\u007F]+/g, '')
-        .replace(/[^A-Za-z0-9\-\s_]/g, '')
+    const sanitized = raw
+      .replace(/[^\u0000-\u007F]+/g, '')
+      .replace(/[^A-Za-z0-9\-\s_]/g, '')
       .replace(/\s+/g, '-')
       .toLowerCase();
     return sanitized || 'operation-data';
@@ -1053,6 +980,14 @@ const OperationDetailPage = () => {
           >
             {extractingCities ? 'Extracting Cities...' : '📍 Extract Cities'}
           </Button>
+          <Button
+            icon={<FiSave />}
+            onClick={() => setIsSaveModalOpen(true)}
+            disabled={getFilteredPhoneNumbers().length === 0}
+            className="text-purple-600 border-purple-200 hover:text-purple-700 hover:border-purple-300"
+          >
+            Save for Messages
+          </Button>
           {whatsappInitialized && (
             <Button
               type="primary"
@@ -1109,37 +1044,42 @@ const OperationDetailPage = () => {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md p-6 border border-yellow-100">
-          <div className="flex flex-col md:flex-row gap-6 items-center">
+          <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-800">Connect WhatsApp</h3>
               <p className="text-gray-600 mt-2">
-                Scan the QR code with WhatsApp on your phone to link your account. Keep WhatsApp open until the connection completes.
+                Link your WhatsApp account to verify phone numbers.
               </p>
-              <div className="mt-4">
-                <Button
-                  icon={<FiRefreshCw />}
-                  onClick={refreshQrCode}
-                  loading={fetchingQr}
-                >
-                  {fetchingQr ? 'Fetching QR...' : 'Refresh QR'}
-                </Button>
-              </div>
             </div>
-            <div className="flex items-center justify-center w-full md:w-auto">
-              {qrCodeValue ? (
-                <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                  <QRCodeCanvas value={qrCodeValue} size={220} includeMargin />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-gray-500">
-                  <Spin />
-                  <span className="text-sm">Waiting for QR code...</span>
-                </div>
-              )}
-            </div>
+            <Button
+              type="primary"
+              icon={<BsWhatsapp />}
+              onClick={() => setIsConnectModalOpen(true)}
+              size="large"
+              className="bg-[#25D366] hover:bg-[#20bd5a] border-none"
+            >
+              Connect WhatsApp
+            </Button>
           </div>
         </div>
       )}
+
+      <WhatsAppConnectModal
+        visible={isConnectModalOpen}
+        onCancel={() => setIsConnectModalOpen(false)}
+        onConnected={() => {
+          setWhatsappInitialized(true);
+          setIsConnectModalOpen(false); // Close modal on success
+          checkWhatsAppStatus(); // Double check status
+        }}
+      />
+
+      <SaveNumbersModal
+        visible={isSaveModalOpen}
+        onCancel={() => setIsSaveModalOpen(false)}
+        numbers={getFilteredPhoneNumbers()}
+        userId={user?._id || user?.id}
+      />
 
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Filters</h3>
