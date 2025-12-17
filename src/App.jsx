@@ -17,6 +17,7 @@ import HeatMapPage from "./pages/dashboard/HeatMapPage";
 import ColdCallerPage from "./pages/dashboard/ColdCallerPage";
 import ColdCallerDetailPage from "./pages/dashboard/ColdCallerDetailPage";
 import WhatsAppConnectPage from "./pages/dashboard/WhatsAppConnectPage";
+import MessageAutomationPage from "./pages/dashboard/MessageAutomationPage";
 
 
 function App() {
@@ -47,9 +48,10 @@ function App() {
                         <Route path="operations" element={<OperationsPage />} />
                         <Route path="operations/:operationId" element={<OperationDetailPage />} />
                         <Route path="heat-map" element={<HeatMapPage />} />
-                        <Route path="cold-caller" element={<ColdCallerPage/>} />
+                        <Route path="cold-caller" element={<ColdCallerPage />} />
                         <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
-                        <Route path="whatsapp-automation" element={<WhatsAppConnectPage/>} />
+                        <Route path="whatsapp-automation" element={<WhatsAppConnectPage />} />
+                        <Route path="message-automation" element={<MessageAutomationPage />} />
                     </Route>
 
                     {/* 404 Page - Must be last */}
