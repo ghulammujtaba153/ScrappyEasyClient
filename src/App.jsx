@@ -18,6 +18,7 @@ import ColdCallerPage from "./pages/dashboard/ColdCallerPage";
 import ColdCallerDetailPage from "./pages/dashboard/ColdCallerDetailPage";
 import WhatsAppConnectPage from "./pages/dashboard/WhatsAppConnectPage";
 import MessageAutomationPage from "./pages/dashboard/MessageAutomationPage";
+import CallPage from "./pages/dashboard/CallPage";
 
 
 function App() {
@@ -52,6 +53,7 @@ function App() {
                         <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
                         <Route path="whatsapp-automation" element={<WhatsAppConnectPage />} />
                         <Route path="message-automation" element={<MessageAutomationPage />} />
+                        <Route path="call" element={<CallPage />} />
                     </Route>
 
                     {/* 404 Page - Must be last */}
