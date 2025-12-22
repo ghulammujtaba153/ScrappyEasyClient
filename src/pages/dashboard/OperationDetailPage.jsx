@@ -13,15 +13,15 @@ import {
   message
 } from 'antd';
 import {
-  FiArrowLeft,
-  FiCheck,
-  FiDownload,
-  FiExternalLink,
-  FiFileText,
-  FiRefreshCw,
-  FiX,
-  FiSave
-} from 'react-icons/fi';
+  MdArrowBack,
+  MdCheckCircle,
+  MdDownload,
+  MdOpenInNew,
+  MdDescription,
+  MdRefresh,
+  MdClose,
+  MdSave
+} from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -821,7 +821,7 @@ const OperationDetailPage = () => {
       key: 'rating',
       width: 140,
       render: (rating) => rating ? (
-        <Tag color="gold">⭐ {rating}</Tag>
+        <Tag color="green">⭐ {rating}</Tag>
       ) : '-',
       sorter: (a, b) => (parseFloat(a.rating) || 0) - (parseFloat(b.rating) || 0),
     },
@@ -854,7 +854,7 @@ const OperationDetailPage = () => {
       render: (_, record) => {
         const city = cityData[record.key];
         if (city) {
-          return <Tag color="blue">{city}</Tag>;
+          return <Tag color="green">{city}</Tag>;
         }
         return <span className="text-gray-400">-</span>;
       },
@@ -865,8 +865,8 @@ const OperationDetailPage = () => {
       key: 'website',
       width: 120,
       render: (website) => website ? (
-        <a href={website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-          <FiExternalLink className="inline" /> Link
+        <a href={website} target="_blank" rel="noopener noreferrer" className="text-[#0F792C] hover:text-[#0a5a20]">
+          <MdOpenInNew className="inline" /> Link
         </a>
       ) : '-',
     },
@@ -876,8 +876,8 @@ const OperationDetailPage = () => {
       key: 'googleMapsLink',
       width: 120,
       render: (link) => link ? (
-        <a href={link} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800">
-          <FiExternalLink className="inline" /> View
+        <a href={link} target="_blank" rel="noopener noreferrer" className="text-[#0F792C] hover:text-[#0a5a20]">
+          <MdOpenInNew className="inline" /> View
         </a>
       ) : '-',
     },
@@ -901,7 +901,7 @@ const OperationDetailPage = () => {
         if (status === 'verified') {
           return (
             <Space>
-              <Tag color="success" icon={<FiCheck />}>Verified</Tag>
+              <Tag color="success" icon={<MdCheckCircle />}>Verified</Tag>
             </Space>
           );
         }
@@ -909,7 +909,7 @@ const OperationDetailPage = () => {
         if (status === 'not-verified') {
           return (
             <Space>
-              <Tag color="error" icon={<FiX />}>No WhatsApp</Tag>
+              <Tag color="error" icon={<MdClose />}>No WhatsApp</Tag>
             </Space>
           );
         }
@@ -940,7 +940,7 @@ const OperationDetailPage = () => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <Button
-            icon={<FiArrowLeft />}
+            icon={<MdArrowBack />}
             onClick={() => navigate('/dashboard/operations')}
             className="mb-2"
           >
@@ -981,15 +981,16 @@ const OperationDetailPage = () => {
             {extractingCities ? 'Extracting Cities...' : '📍 Extract Cities'}
           </Button>
           <Button
-            icon={<FiSave />}
+            icon={<MdSave />}
             onClick={() => setIsSaveModalOpen(true)}
             disabled={getFilteredPhoneNumbers().length === 0}
-            className="text-purple-600 border-purple-200 hover:text-purple-700 hover:border-purple-300"
+            className="bg-white text-[#0F792C] border-[#0F792C] hover:bg-[#0F792C] hover:text-white transition-all"
           >
             Save for Messages
           </Button>
           {whatsappInitialized && (
             <Button
+              className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C] text-white"
               type="primary"
               icon={<BsWhatsapp />}
               onClick={handleVerifyAllClick}
@@ -1000,21 +1001,21 @@ const OperationDetailPage = () => {
             </Button>
           )}
           <Button
-            icon={<FiDownload />}
+            icon={<MdDownload />}
             onClick={exportToCSV}
             disabled={filteredData.length === 0}
           >
             Export CSV
           </Button>
           <Button
-            icon={<FiFileText />}
+            icon={<MdDescription />}
             onClick={exportToXLS}
             disabled={filteredData.length === 0}
           >
             Export XLS
           </Button>
           <Button
-            icon={<FiRefreshCw />}
+            icon={<MdRefresh />}
             onClick={fetchRecord}
             loading={loading}
           >
@@ -1035,7 +1036,7 @@ const OperationDetailPage = () => {
             />
             <Button
               danger
-              icon={<FiX />}
+              icon={<MdClose />}
               onClick={disconnectWhatsApp}
             >
               Disconnect WhatsApp
@@ -1056,7 +1057,7 @@ const OperationDetailPage = () => {
               icon={<BsWhatsapp />}
               onClick={() => setIsConnectModalOpen(true)}
               size="large"
-              className="bg-[#25D366] hover:bg-[#20bd5a] border-none"
+              className="bg-[#0F792C] hover:bg-[#0a5a20] border-none"
             >
               Connect WhatsApp
             </Button>

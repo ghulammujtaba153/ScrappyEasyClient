@@ -188,7 +188,10 @@ const RegisterPage = () => {
                 />
             )}
 
+
             <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md animate-slideUp">
+                <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" />
+
                 {/* Step 1: Registration Form */}
                 {step === 1 && (
                     <>
@@ -315,7 +318,7 @@ const RegisterPage = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-6"
+                                className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-6"
                             >
                                 {loading ? "Sending OTP..." : "Continue"}
                             </button>
@@ -324,7 +327,7 @@ const RegisterPage = () => {
                         <div className="text-center mt-6 pt-6 border-t border-gray-200">
                             <p className="text-sm text-gray-600">
                                 Already have an account?{" "}
-                                <Link to="/login" className="text-purple-600 font-semibold hover:text-purple-800 transition-colors">
+                                <Link to="/login" className="text-primary font-semibold hover:text-primary/80 transition-colors">
                                     Sign In
                                 </Link>
                             </p>
@@ -345,7 +348,7 @@ const RegisterPage = () => {
                         <div className="text-center mt-6 pt-6 border-t border-gray-200">
                             <button
                                 onClick={() => setStep(1)}
-                                className="text-sm text-purple-600 font-semibold hover:text-purple-800 transition-colors"
+                                className="text-sm text-primary font-semibold hover:text-primary/80 transition-colors"
                             >
                                 ← Change Email
                             </button>

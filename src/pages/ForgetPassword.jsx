@@ -164,14 +164,18 @@ const ForgetPassword = () => {
                 />
             )}
 
+
+
             <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md animate-slideUp">
+                <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" />
+
                 {/* Progress Indicator */}
                 <div className="flex items-center justify-center mb-8">
                     {[1, 2, 3].map((s) => (
                         <React.Fragment key={s}>
                             <div
                                 className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${step >= s
-                                    ? "bg-purple-600 text-white"
+                                    ? "bg-primary text-white"
                                     : "bg-gray-200 text-gray-500"
                                     }`}
                             >
@@ -179,7 +183,7 @@ const ForgetPassword = () => {
                             </div>
                             {s < 3 && (
                                 <div
-                                    className={`w-12 h-1 transition-all ${step > s ? "bg-purple-600" : "bg-gray-200"
+                                    className={`w-12 h-1 transition-all ${step > s ? "bg-primary" : "bg-gray-200"
                                         }`}
                                 />
                             )}
@@ -211,7 +215,7 @@ const ForgetPassword = () => {
                                         setErrors({});
                                     }}
                                     placeholder="Enter your email"
-                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.email ? "border-red-500" : "border-gray-300"
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.email ? "border-red-500" : "border-gray-300"
                                         }`}
                                 />
                                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -220,14 +224,14 @@ const ForgetPassword = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                className="w-full bg-primary text-white py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
                                 {loading ? "Sending..." : "Send OTP"}
                             </button>
                         </form>
 
                         <div className="text-center mt-6 pt-6 border-t border-gray-200">
-                            <Link to="/login" className="text-sm text-purple-600 font-semibold hover:text-purple-800 transition-colors">
+                            <Link to="/login" className="text-sm text-primary font-semibold hover:text-primary transition-colors">
                                 ← Back to Login
                             </Link>
                         </div>
@@ -247,7 +251,7 @@ const ForgetPassword = () => {
                         <div className="text-center mt-6 pt-6 border-t border-gray-200">
                             <button
                                 onClick={() => setStep(1)}
-                                className="text-sm text-purple-600 font-semibold hover:text-purple-800 transition-colors"
+                                className="text-sm text-primary font-semibold hover:text-primary transition-colors"
                             >
                                 ← Change Email
                             </button>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, Button, Empty, Space, Popconfirm, message as antMessage, Timeline } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { MdEdit, MdDelete, MdAdd, MdAccessTime } from "react-icons/md";
 import NotesEditor from "./NotesEditor";
 import { BASE_URL } from "../../config/URL";
 import axios from "axios";
@@ -85,8 +85,9 @@ const Notes = ({ operationId }) => {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-semibold text-gray-700">Notes</h3>
         <Button
+          className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C] text-white"
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<MdAdd />}
           onClick={openAddPopup}
         >
           Add Note
@@ -112,11 +113,11 @@ const Notes = ({ operationId }) => {
             .slice()
             .reverse()
             .map((note) => ({
-              dot: <ClockCircleOutlined className="text-lg" />,
-              color: 'blue',
+              dot: <MdAccessTime className="text-lg text-[#0F792C]" />,
+              color: 'green',
               children: (
                 <Card
-                  className="shadow-sm hover:shadow-md transition-shadow"
+                  className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-[#0F792C]"
                   size="small"
                   title={
                     <span className="text-sm font-medium text-gray-600">
@@ -134,10 +135,11 @@ const Notes = ({ operationId }) => {
                       <Button
                         type="text"
                         size="small"
-                        icon={<EditOutlined />}
+                        icon={<MdEdit className="text-[#0F792C]" />}
                         onClick={() => openEditPopup(note)}
+                        className="hover:bg-green-50"
                       >
-                        Edit
+                        <span className="text-[#0F792C]">Edit</span>
                       </Button>
                       <Popconfirm
                         title="Delete this note?"
@@ -150,7 +152,8 @@ const Notes = ({ operationId }) => {
                           type="text"
                           size="small"
                           danger
-                          icon={<DeleteOutlined />}
+                          icon={<MdDelete />}
+                          className="hover:bg-red-50"
                         >
                           Delete
                         </Button>
