@@ -50,15 +50,16 @@ const HomePage = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg shadow-lg p-6 text-white">
+                <div className="bg-primary rounded-lg shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-purple-100 text-sm font-medium">📍 Cities Covered</p>
                             {loading ? (
                                 <Spin size="small" className="mt-2" />
                             ) : (
                                 <p className="text-3xl font-bold mt-2">{stats.citiesCovered}</p>
                             )}
+                            <p className="text-purple-100 text-sm font-medium">Cities Covered</p>
+
                         </div>
                         <div className="bg-white bg-opacity-20 p-3 rounded-lg">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,15 +70,16 @@ const HomePage = () => {
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg shadow-lg p-6 text-white">
+                <div className="bg-primary rounded-lg shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-blue-100 text-sm font-medium">📊 Total Leads</p>
                             {loading ? (
                                 <Spin size="small" className="mt-2" />
                             ) : (
                                 <p className="text-3xl font-bold mt-2">{stats.totalLeads}</p>
                             )}
+                            <p className="text-blue-100 text-sm font-medium">Total Leads</p>
+
                         </div>
                         <div className="bg-white bg-opacity-20 p-3 rounded-lg">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,15 +89,16 @@ const HomePage = () => {
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-lg shadow-lg p-6 text-white">
+                <div className="bg-primary rounded-lg shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-green-100 text-sm font-medium">📱 WhatsApp Available</p>
                             {loading ? (
                                 <Spin size="small" className="mt-2" />
                             ) : (
                                 <p className="text-3xl font-bold mt-2">{stats.whatsappAvailable}</p>
                             )}
+                            <p className="text-green-100 text-sm font-medium">WhatsApp Available</p>
+
                         </div>
                         <div className="bg-white bg-opacity-20 p-3 rounded-lg">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -105,15 +108,16 @@ const HomePage = () => {
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-lg shadow-lg p-6 text-white">
+                <div className="bg-primary rounded-lg shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-orange-100 text-sm font-medium">⭐ Low Rated (&lt;4.0)</p>
                             {loading ? (
                                 <Spin size="small" className="mt-2" />
                             ) : (
                                 <p className="text-3xl font-bold mt-2">{stats.lowRated}</p>
                             )}
+                            <p className="text-orange-100 text-sm font-medium">Low Rated (&lt;4.0)</p>
+
                         </div>
                         <div className="bg-white bg-opacity-20 p-3 rounded-lg">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -63,10 +63,10 @@ const OperationsPage = () => {
             render: (_, __, index) => index + 1,
         },
         {
-            title: 'Search String',
+            title: 'Name',
             dataIndex: 'searchString',
             key: 'searchString',
-            render: (value) => <Tag color="purple">{value}</Tag>,
+            render: (value) => <span className="text-gray-800 font-medium">{value}</span>,
         },
         {
             title: 'Results Collected',
@@ -78,7 +78,21 @@ const OperationsPage = () => {
             title: 'Last Updated',
             dataIndex: 'updatedAt',
             key: 'updatedAt',
-            render: (value) => value ? new Date(value).toLocaleString() : '-',
+            render: (value) => {
+                if (!value) return '-';
+                const date = new Date(value);
+                const options = {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                };
+                const formattedDate = date.toLocaleString('en-US', options);
+                // Format: "December 10, 2025, 11:38 AM" -> "December 10, 2025 at 11:38 AM"
+                return formattedDate.replace(/, (\d{4}), /, ', $1 at ');
+            },
             sorter: (a, b) => new Date(a.updatedAt) - new Date(b.updatedAt),
         },
         {
@@ -86,6 +100,7 @@ const OperationsPage = () => {
             key: 'action',
             render: (_, record) => (
                 <Button
+                    className="bg-primary hover:bg-primary border-[#0F792C] rounded-full"
                     type="primary"
                     icon={<FiArrowRightCircle />}
                     onClick={() => navigate(`/dashboard/operations/${record.id}`)}
@@ -115,23 +130,24 @@ const OperationsPage = () => {
             </div>
 
             <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
                     <div>
                         <p className="text-sm text-gray-500">Total Searches</p>
-                        <p className="text-3xl font-semibold">{uniqueSearches.length}</p>
+                        <p className="text-3xl font-semibold text-[#0F792C]">{uniqueSearches.length}</p>
                     </div>
                     <div>
                         <p className="text-sm text-gray-500">Unique Cities</p>
-                        <p className="text-3xl font-semibold">{uniqueCities.length}</p>
+                        <p className="text-3xl font-semibold text-[#0F792C]">{uniqueCities.length}</p>
                     </div>
-                    <Search
-                        placeholder="Search by query..."
-                        allowClear
-                        onSearch={setKeyword}
-                        onChange={(e) => setKeyword(e.target.value)}
-                        style={{ maxWidth: 320 }}
-                    />
                 </div>
+                <Search
+                    placeholder="Search by query..."
+                    allowClear
+                    onSearch={setKeyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    className="w-full md:w-96"
+                    size="large"
+                />
             </div>
 
             {uniqueCities.length > 0 && (
@@ -139,7 +155,7 @@ const OperationsPage = () => {
                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Cities & Locations</h3>
                     <div className="flex flex-wrap gap-2">
                         {uniqueCities.map((city, index) => (
-                            <Tag key={index} color="blue" className="text-sm py-1 px-3">
+                            <Tag key={index} color="green" className="text-sm py-1 px-3">
                                 {city}
                             </Tag>
                         ))}
@@ -148,12 +164,73 @@ const OperationsPage = () => {
             )}
 
             <div className="bg-white rounded-lg shadow-md p-6">
+                <style>{`
+                    .ant-pagination {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    }
+                    .ant-pagination-prev,
+                    .ant-pagination-next {
+                        border-radius: 20px !important;
+                        background: #0F792C !important;
+                        border: none !important;
+                        height: 36px !important;
+                        min-width: 90px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                    }
+                    .ant-pagination-prev button,
+                    .ant-pagination-next button {
+                        color: white !important;
+                        font-weight: 500 !important;
+                    }
+                    .ant-pagination-prev:hover,
+                    .ant-pagination-next:hover {
+                        background: #0a5a20 !important;
+                    }
+                    .ant-pagination-disabled {
+                        background: #d1d5db !important;
+                        opacity: 0.5 !important;
+                    }
+                    .ant-pagination-item {
+                        border-radius: 50% !important;
+                        border: none !important;
+                        background: white !important;
+                        width: 36px !important;
+                        height: 36px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        font-weight: 500 !important;
+                    }
+                    .ant-pagination-item:hover {
+                        background: #f3f4f6 !important;
+                    }
+                    .ant-pagination-item-active {
+                        background: #0F792C !important;
+                        border: none !important;
+                    }
+                    .ant-pagination-item-active a {
+                        color: white !important;
+                    }
+                    .ant-pagination-item a {
+                        color: #374151 !important;
+                    }
+                `}</style>
                 <Table
                     rowKey={(record) => record.id || record._id}
                     columns={columns}
                     dataSource={filteredSearches}
                     loading={loading}
-                    pagination={{ pageSize: 10, showSizeChanger: true }}
+                    pagination={{
+                        pageSize: 10,
+                        showSizeChanger: true,
+                        showQuickJumper: false,
+                        showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                    }}
                 />
             </div>
         </div>

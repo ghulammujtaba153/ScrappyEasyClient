@@ -4,6 +4,19 @@ import axios from "axios";
 import { BASE_URL } from "../../config/URL";
 import countries from "../../data/countries";
 import ukCities from "../../data/uk";
+import {
+    MdDashboard,
+    MdCategory,
+    MdSettings,
+    MdMessage,
+    MdMap,
+    MdPhone,
+    MdWhatsapp,
+    MdChevronLeft,
+    MdChevronRight,
+    MdFolder,
+    MdLocationOn
+} from "react-icons/md";
 
 const Sidebar = () => {
     const location = useLocation();
@@ -35,80 +48,42 @@ const Sidebar = () => {
         {
             name: "Dashboard",
             path: "/dashboard",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-            ),
+            icon: <MdDashboard className="w-5 h-5" />,
         },
         {
             name: "Manage Categories",
             path: "/dashboard/category",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                </svg>
-            ),
+            icon: <MdCategory className="w-5 h-5" />,
         },
         {
             name: "Operations",
             path: "/dashboard/operations",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            ),
+            icon: <MdSettings className="w-5 h-5" />,
         },
         {
             name: "Message Automation",
             path: "/dashboard/message-automation",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            ),
+            icon: <MdMessage className="w-5 h-5" />,
         },
         {
             name: "Map",
             path: "/dashboard/heat-map",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            ),
+            icon: <MdMap className="w-5 h-5" />,
         },
         {
             name: "Hire Cold Caller",
             path: "/dashboard/cold-caller",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            ),
+            icon: <MdPhone className="w-5 h-5" />,
         },
         {
             name: "WhatsApp Automation",
             path: "/dashboard/whatsapp-automation",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            ),
+            icon: <MdWhatsapp className="w-5 h-5" />,
         },
         {
             name: "Call Automation",
             path: "/dashboard/call",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            ),
+            icon: <MdPhone className="w-5 h-5" />,
         }
     ];
 
@@ -149,26 +124,40 @@ const Sidebar = () => {
     return (
         <aside
             className={`text-black h-screen fixed left-0 top-0 transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"
-                } shadow-2xl z-50 overflow-y-auto bg-gray-50`}
+                } shadow-2xl z-50 overflow-y-auto bg-gray-50 custom-scrollbar`}
+            style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#0F792C #f3f4f6'
+            }}
         >
-            <div className="flex items-center justify-between p-6 border-b border-purple-600 bg-white">
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f3f4f6;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #0F792C;
+                    border-radius: 2px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #0a5a20;
+                }
+            `}</style>
+            <div className="flex items-center justify-between p-6 bg-white">
                 {!isCollapsed && (
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        🗺️ Scraper
-                    </h2>
+                    <img src="/logo.png" alt="" />
                 )}
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-[#0F792C] hover:text-white rounded-lg transition-colors"
                 >
-                    <svg
-                        className={`w-5 h-5 transition-transform ${isCollapsed ? "rotate-180" : ""}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                    </svg>
+                    {isCollapsed ? (
+                        <MdChevronRight className="w-5 h-5" />
+                    ) : (
+                        <MdChevronLeft className="w-5 h-5" />
+                    )}
                 </button>
             </div>
 
@@ -179,12 +168,12 @@ const Sidebar = () => {
                         <Link
                             key={item.path}
                             to={item.path}
-                            className={`flex items-center gap-4 px-6 py-3 transition-all ${isActive
-                                ? "bg-white text-purple-700 border-r-4 border-purple-700"
-                                : "hover:bg-white hover:text-purple-700 text-gray-700"
+                            className={`flex items-center gap-4 px-6 py-3 transition-all mx-3 ${isActive
+                                ? "bg-[#0F792C] text-white rounded-[30px]"
+                                : "hover:bg-white hover:text-[#0F792C] text-gray-700 rounded-[30px]"
                                 }`}
                         >
-                            <span className={isActive ? "text-purple-700" : ""}>{item.icon}</span>
+                            <span className={isActive ? "text-white" : ""}>{item.icon}</span>
                             {!isCollapsed && (
                                 <span className="font-medium">{item.name}</span>
                             )}
@@ -214,18 +203,12 @@ const Sidebar = () => {
                                         className="w-full flex items-center justify-between px-6 py-3 hover:bg-white transition-colors text-left"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <span className="text-lg">📁</span>
+                                            <MdFolder className="text-lg" />
                                             <span className="font-medium text-gray-700">{category.name}</span>
                                         </div>
-                                        <svg
-                                            className={`w-4 h-4 transition-transform ${expandedCategories[category._id] ? 'rotate-90' : ''
-                                                }`}
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
+                                        <MdChevronRight
+                                            className={`w-4 h-4 transition-transform ${expandedCategories[category._id] ? 'rotate-90' : ''}`}
+                                        />
                                     </button>
 
                                     {/* Countries under this category */}
@@ -242,15 +225,9 @@ const Sidebar = () => {
                                                             <span className="text-xl">{countryFlags[country.name] || '🌍'}</span>
                                                             <span className="text-sm text-gray-600">{country.name}</span>
                                                         </div>
-                                                        <svg
-                                                            className={`w-3 h-3 transition-transform ${expandedCountries[`${category._id}-${country.name}`] ? 'rotate-90' : ''
-                                                                }`}
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                        </svg>
+                                                        <MdChevronRight
+                                                            className={`w-3 h-3 transition-transform ${expandedCountries[`${category._id}-${country.name}`] ? 'rotate-90' : ''}`}
+                                                        />
                                                     </button>
 
                                                     {/* States */}
@@ -261,15 +238,9 @@ const Sidebar = () => {
                                                                 className="w-full flex items-center justify-between px-6 py-2 hover:bg-blue-50 transition-colors text-left"
                                                             >
                                                                 <span className="text-xs text-gray-500">{state.name}</span>
-                                                                <svg
-                                                                    className={`w-3 h-3 transition-transform ${expandedStates[`${category._id}-${country.name}-${state.name}`] ? 'rotate-90' : ''
-                                                                        }`}
-                                                                    fill="none"
-                                                                    viewBox="0 0 24 24"
-                                                                    stroke="currentColor"
-                                                                >
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                                </svg>
+                                                                <MdChevronRight
+                                                                    className={`w-3 h-3 transition-transform ${expandedStates[`${category._id}-${country.name}-${state.name}`] ? 'rotate-90' : ''}`}
+                                                                />
                                                             </button>
 
                                                             {/* Cities */}
@@ -279,9 +250,9 @@ const Sidebar = () => {
                                                                         <button
                                                                             key={city}
                                                                             onClick={() => handleCityClick(category.name, country.name, state.name, city)}
-                                                                            className="w-full text-left px-6 py-1.5 text-xs text-gray-400 hover:bg-green-50 hover:text-green-700 transition-colors"
+                                                                            className="w-full text-left px-6 py-1.5 text-xs text-gray-400 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center gap-2"
                                                                         >
-                                                                            📍 {city}
+                                                                            <MdLocationOn className="text-sm" /> {city}
                                                                         </button>
                                                                     ))}
                                                                 </div>
@@ -301,15 +272,9 @@ const Sidebar = () => {
                                                         <span className="text-xl">🇬🇧</span>
                                                         <span className="text-sm text-gray-600">United Kingdom</span>
                                                     </div>
-                                                    <svg
-                                                        className={`w-3 h-3 transition-transform ${expandedCountries[`${category._id}-United Kingdom`] ? 'rotate-90' : ''
-                                                            }`}
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                    </svg>
+                                                    <MdChevronRight
+                                                        className={`w-3 h-3 transition-transform ${expandedCountries[`${category._id}-United Kingdom`] ? 'rotate-90' : ''}`}
+                                                    />
                                                 </button>
 
                                                 {/* UK Cities (no states) */}
@@ -319,9 +284,9 @@ const Sidebar = () => {
                                                             <button
                                                                 key={city}
                                                                 onClick={() => handleCityClick(category.name, 'United Kingdom', 'UK', city)}
-                                                                className="w-full text-left px-6 py-1.5 text-xs text-gray-400 hover:bg-green-50 hover:text-green-700 transition-colors"
+                                                                className="w-full text-left px-6 py-1.5 text-xs text-gray-400 hover:bg-green-50 hover:text-green-700 transition-colors flex items-center gap-2"
                                                             >
-                                                                📍 {city}
+                                                                <MdLocationOn className="text-sm" /> {city}
                                                             </button>
                                                         ))}
                                                     </div>

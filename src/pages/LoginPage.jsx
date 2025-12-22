@@ -115,7 +115,9 @@ const LoginPage = () => {
                 />
             )}
             <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md animate-slideUp">
+
                 <div className="text-center mb-8">
+                    <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" />
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
                     <p className="text-gray-600 text-sm">Sign in to your account</p>
                 </div>
@@ -132,7 +134,7 @@ const LoginPage = () => {
                             value={form.email}
                             onChange={handleChange}
                             placeholder="Enter your email"
-                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.email ? "border-red-500" : "border-gray-300"
+                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.email ? "border-red-500" : "border-gray-300"
                                 }`}
                         />
                         {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -150,7 +152,7 @@ const LoginPage = () => {
                                 value={form.password}
                                 onChange={handleChange}
                                 placeholder="Enter your password"
-                                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.password ? "border-red-500" : "border-gray-300"
+                                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.password ? "border-red-500" : "border-gray-300"
                                     }`}
                             />
                             <button
@@ -170,13 +172,13 @@ const LoginPage = () => {
                                 type="checkbox"
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
-                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
                             />
                             <span className="text-sm text-gray-700">Remember me</span>
                         </label>
                         <Link
                             to="/forgot-password"
-                            className="text-sm text-purple-600 font-medium hover:text-purple-800 transition-colors"
+                            className="text-sm text-primary font-medium hover:text-primary/80 transition-colors"
                         >
                             Forgot Password?
                         </Link>
@@ -185,7 +187,7 @@ const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-6"
+                        className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-6"
                     >
                         {loading ? "Signing In..." : "Sign In"}
                     </button>
@@ -194,7 +196,7 @@ const LoginPage = () => {
                 <div className="text-center mt-6 pt-6 border-t border-gray-200">
                     <p className="text-sm text-gray-600">
                         Don't have an account?{" "}
-                        <Link to="/register" className="text-purple-600 font-semibold hover:text-purple-800 transition-colors">
+                        <Link to="/register" className="text-primary font-semibold hover:text-primary/80 transition-colors">
                             Sign Up
                         </Link>
                     </p>
