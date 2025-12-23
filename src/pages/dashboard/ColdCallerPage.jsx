@@ -1,112 +1,238 @@
-import React, { useState } from 'react';
-import coldCallerData from '../../data/coldCaller';
-import ColdCallerCard from '../../component/dashboard/ColdCallerCard';
-import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Table, Button, message, Popconfirm, Space, Input, Card, Statistic, Progress, Tooltip } from 'antd';
+import { SearchOutlined, ReloadOutlined, PlayCircleOutlined, DeleteOutlined, PhoneOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import axios from 'axios';
+import { useAuth } from '../../context/authContext';
+import { BASE_URL } from '../../config/URL';
+import { useNavigate } from 'react-router-dom';
 
 const ColdCallerPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [performanceFilter, setPerformanceFilter] = useState('all');
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState([]);
+  const [searchText, setSearchText] = useState('');
 
-  const filteredCallers = coldCallerData.filter(caller => {
-    const matchesSearch = caller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         caller.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         caller.position.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || caller.status === statusFilter;
-    const matchesPerformance = performanceFilter === 'all' || caller.performance === performanceFilter;
-    
-    return matchesSearch && matchesStatus && matchesPerformance;
-  });
-
-  const stats = {
-    total: coldCallerData.length,
-    active: coldCallerData.filter(c => c.status === 'active').length,
-    totalCalls: coldCallerData.reduce((sum, c) => sum + c.callsMade, 0),
-    avgSuccessRate: (coldCallerData.reduce((sum, c) => sum + c.successRate, 0) / coldCallerData.length).toFixed(1)
+  const fetchData = async () => {
+    if (!user?._id && !user?.id) return;
+    setLoading(true);
+    try {
+      const userId = user._id || user.id;
+      const res = await axios.get(`${BASE_URL}/api/coldcall/all/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        setData(res.data.data);
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
+      message.error('Failed to load cold call lists');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cold Callers</h1>
-          <p className="text-gray-600">Manage and monitor your sales team performance</p>
-        </div>
-      </div>
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, token]);
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
-          <div className="text-sm text-gray-600 mb-1">Total Callers</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
-          <div className="text-sm text-gray-600 mb-1">Active Now</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.active}</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
-          <div className="text-sm text-gray-600 mb-1">Total Calls</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.totalCalls.toLocaleString()}</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-orange-500">
-          <div className="text-sm text-gray-600 mb-1">Avg Success Rate</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.avgSuccessRate}%</div>
-        </div>
-      </div>
+  const handleDelete = async (id) => {
+    try {
+      const res = await axios.delete(`${BASE_URL}/api/coldcall/delete/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        message.success('List deleted successfully');
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      message.error('Failed to delete list');
+    }
+  };
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <SearchOutlined className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, email, or position..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+  const getListStats = (numbers) => {
+    if (!numbers || !Array.isArray(numbers)) return { total: 0, success: 0, failed: 0, pending: 0 };
+    const total = numbers.length;
+    const success = numbers.filter(n => n.status === 'successful').length;
+    const failed = numbers.filter(n => n.status === 'failed').length;
+    const pending = numbers.filter(n => n.status === 'pending').length;
+    return { total, success, failed, pending };
+  };
+
+  const filteredData = data.filter(item =>
+    item.name.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  // Calculate Global Stats
+  const globalStats = data.reduce((acc, curr) => {
+    const stats = getListStats(curr.numbers);
+    acc.totalLists += 1;
+    acc.totalNumbers += stats.total;
+    acc.totalSuccess += stats.success;
+    acc.totalFailed += stats.failed;
+    return acc;
+  }, { totalLists: 0, totalNumbers: 0, totalSuccess: 0, totalFailed: 0 });
+
+  const columns = [
+    {
+      title: 'Campaign Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text) => <span className="font-semibold text-gray-800">{text}</span>,
+    },
+    {
+      title: 'Progress',
+      key: 'progress',
+      render: (_, record) => {
+        const { total, success } = getListStats(record.numbers);
+        const percent = total > 0 ? Math.round((success / total) * 100) : 0;
+        return (
+          <div style={{ width: 150 }}>
+            <Progress
+              percent={percent}
+              size="small"
+              strokeColor="#0F792C"
+              format={() => `${success}/${total}`}
             />
           </div>
-          
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        );
+      }
+    },
+    {
+      title: 'Status Breakdown',
+      key: 'breakdown',
+      render: (_, record) => {
+        const { success, failed, pending } = getListStats(record.numbers);
+        return (
+          <Space size="middle">
+            <Tooltip title="Successful">
+              <span className="text-green-600 flex items-center gap-1"><CheckCircleOutlined /> {success}</span>
+            </Tooltip>
+            <Tooltip title="Failed">
+              <span className="text-red-600 flex items-center gap-1"><CloseCircleOutlined /> {failed}</span>
+            </Tooltip>
+            <Tooltip title="Pending">
+              <span className="text-blue-600 flex items-center gap-1"><ClockCircleOutlined /> {pending}</span>
+            </Tooltip>
+          </Space>
+        );
+      }
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date) => new Date(date).toLocaleDateString(),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="primary"
+            icon={<PlayCircleOutlined />}
+            size="small"
+            onClick={() => navigate(`/dashboard/cold-caller/${record._id}`)}
+            style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
           >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="on-break">On Break</option>
-            <option value="inactive">Inactive</option>
-          </select>
+            Open
+          </Button>
+          <Popconfirm
+            title="Delete this campaign?"
+            onConfirm={() => handleDelete(record._id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              size="small"
+            />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
-          <select
-            value={performanceFilter}
-            onChange={(e) => setPerformanceFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Performance</option>
-            <option value="excellent">Excellent</option>
-            <option value="good">Good</option>
-            <option value="average">Average</option>
-            <option value="needs-improvement">Needs Improvement</option>
-          </select>
+  return (
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Cold Call Dashboard</h1>
+          <p className="text-gray-500 text-sm">Manage and monitor your automated cold call campaigns.</p>
         </div>
+        <Space>
+          <Input
+            placeholder="Search campaigns..."
+            prefix={<SearchOutlined className="text-gray-400" />}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="rounded-lg w-64"
+            size="large"
+          />
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={fetchData}
+            loading={loading}
+            size="large"
+            className="rounded-lg"
+            style={{ color: '#0F792C', borderColor: '#0F792C' }}
+          >
+            Refresh
+          </Button>
+        </Space>
       </div>
 
-      {/* Callers Grid */}
-      {filteredCallers.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-12 text-center">
-          <div className="text-gray-400 text-lg mb-2">No callers found</div>
-          <p className="text-gray-500 text-sm">Try adjusting your filters</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCallers.map(caller => (
-            <ColdCallerCard key={caller.id} caller={caller} />
-          ))}
-        </div>
-      )}
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card bordered={false} className="shadow-sm border-l-4 border-blue-500">
+          <Statistic
+            title="Total Campaigns"
+            value={globalStats.totalLists}
+            prefix={<PhoneOutlined className="text-blue-500" />}
+          />
+        </Card>
+        <Card bordered={false} className="shadow-sm border-l-4 border-gray-500">
+          <Statistic
+            title="Total Leads"
+            value={globalStats.totalNumbers}
+            prefix={<ClockCircleOutlined className="text-gray-500" />}
+          />
+        </Card>
+        <Card bordered={false} className="shadow-sm border-l-4 border-green-600">
+          <Statistic
+            title="Success Cases"
+            value={globalStats.totalSuccess}
+            valueStyle={{ color: '#0F792C' }}
+            prefix={<CheckCircleOutlined className="text-green-600" />}
+          />
+        </Card>
+        <Card bordered={false} className="shadow-sm border-l-4 border-red-500">
+          <Statistic
+            title="Failed Calls"
+            value={globalStats.totalFailed}
+            valueStyle={{ color: '#cf1322' }}
+            prefix={<CloseCircleOutlined className="text-red-500" />}
+          />
+        </Card>
+      </div>
+
+      {/* Main Table */}
+      <Card className="shadow-sm rounded-xl">
+        <Table
+          columns={columns}
+          dataSource={filteredData}
+          rowKey="_id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50']
+          }}
+        />
+      </Card>
     </div>
   );
 };

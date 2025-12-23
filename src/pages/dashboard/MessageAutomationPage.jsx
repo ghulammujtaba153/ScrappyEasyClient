@@ -19,6 +19,7 @@ const MessageAutomationPage = () => {
     const [messageContent, setMessageContent] = useState('');
     const [connectModalOpen, setConnectModalOpen] = useState(false);
     const [whatsappInitialized, setWhatsappInitialized] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
     const checkWhatsAppStatus = async () => {
         try {
@@ -155,6 +156,10 @@ const MessageAutomationPage = () => {
         return { total, sent, failed, pending };
     };
 
+    const filteredData = data.filter(item =>
+        item.name?.toLowerCase().includes(searchText.toLowerCase())
+    );
+
     const columns = [
         {
             title: 'List Name',
@@ -170,7 +175,12 @@ const MessageAutomationPage = () => {
                 const percent = Math.round((stats.sent / stats.total) * 100) || 0;
                 return (
                     <div className="w-32">
-                        <Progress percent={percent} size="small" showInfo={false} />
+                        <Progress
+                            percent={percent}
+                            size="small"
+                            showInfo={false}
+                            strokeColor="#0F792C"
+                        />
                         <div className="text-xs text-gray-500 mt-1">
                             {stats.sent} / {stats.total} Sent
                         </div>
@@ -194,6 +204,7 @@ const MessageAutomationPage = () => {
                         icon={<FiPlay />}
                         size="small"
                         onClick={() => handleOpenDetail(record)}
+                        style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
                     >
                         Open / Send
                     </Button>
@@ -246,18 +257,34 @@ const MessageAutomationPage = () => {
                     <h1 className="text-2xl font-bold text-gray-900">Message Automation</h1>
                     <p className="text-gray-500">Manage and run your bulk messaging campaigns.</p>
                 </div>
-                <Button icon={<FiRefreshCw />} onClick={fetchData} loading={loading}>
-                    Refresh
-                </Button>
+                <Space>
+                    <Input.Search
+                        placeholder="Search lists..."
+                        onChange={(e) => setSearchText(e.target.value)}
+                        style={{ width: 250 }}
+                    />
+                    <Button
+                        icon={<FiRefreshCw />}
+                        onClick={fetchData}
+                        loading={loading}
+                        style={{ color: '#0F792C', borderColor: '#0F792C' }}
+                    >
+                        Refresh
+                    </Button>
+                </Space>
             </div>
 
             <div className="bg-white rounded-lg shadow-md p-6">
                 <Table
                     columns={columns}
-                    dataSource={data}
+                    dataSource={filteredData}
                     rowKey="_id"
                     loading={loading}
-                    pagination={{ pageSize: 10 }}
+                    pagination={{
+                        pageSize: 10,
+                        showSizeChanger: true,
+                        pageSizeOptions: ['10', '20', '50']
+                    }}
                 />
             </div>
 
@@ -301,7 +328,13 @@ const MessageAutomationPage = () => {
                                     onChange={(e) => setMessageContent(e.target.value)}
                                     placeholder="Type your message here..."
                                 />
-                                <Button onClick={handleSaveMessage} icon={<FiEdit2 />}>Save</Button>
+                                <Button
+                                    onClick={handleSaveMessage}
+                                    icon={<FiEdit2 />}
+                                    style={{ color: '#0F792C', borderColor: '#0F792C' }}
+                                >
+                                    Save
+                                </Button>
                             </div>
                         </div>
 
@@ -319,7 +352,7 @@ const MessageAutomationPage = () => {
                                 <Button
                                     icon={<BsWhatsapp />}
                                     onClick={() => setConnectModalOpen(true)}
-                                    className="text-green-600 border-green-600 hover:text-green-700 hover:border-green-700"
+                                    style={{ color: '#0F792C', borderColor: '#0F792C' }}
                                 >
                                     Connect WhatsApp
                                 </Button>
@@ -332,6 +365,7 @@ const MessageAutomationPage = () => {
                                 onClick={handleSendBatch}
                                 loading={sending}
                                 disabled={getStats(currentList.numbers).pending === 0}
+                                style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
                             >
                                 {sending ? 'Sending...' : 'Send Batch (10)'}
                             </Button>

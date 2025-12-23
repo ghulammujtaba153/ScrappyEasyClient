@@ -20,7 +20,8 @@ import {
   MdDescription,
   MdRefresh,
   MdClose,
-  MdSave
+  MdSave,
+  MdPhone
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
@@ -30,6 +31,7 @@ import { useAuth } from '../../context/authContext';
 import countries from '../../data/countries';
 import ukCities from '../../data/uk';
 import Notes from '../../component/dashboard/Notes';
+import SaveColdCallsModal from '../../component/dashboard/SaveColdCallsModal';
 
 const { Option } = Select;
 
@@ -73,6 +75,7 @@ const OperationDetailPage = () => {
   const [whatsappInitialized, setWhatsappInitialized] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isColdCallModalOpen, setIsColdCallModalOpen] = useState(false);
   const [verifyingAll, setVerifyingAll] = useState(false);
   const [cityData, setCityData] = useState({});
   const [extractingCities, setExtractingCities] = useState(false);
@@ -496,7 +499,6 @@ const OperationDetailPage = () => {
   // Calculate verification statistics
   const verificationStats = useMemo(() => {
     const phonesWithNumbers = flattenedData.filter(item => item.phone);
-    const totalPhones = phonesWithNumbers.length;
     const uniquePhones = new Set(phonesWithNumbers.map(item => formatPhoneNumber(item.phone)).filter(Boolean));
 
     let verified = 0;
@@ -678,7 +680,7 @@ const OperationDetailPage = () => {
   const getFileBaseName = () => {
     const raw = (record?.searchString || 'operation-data').toString().trim();
     const sanitized = raw
-      .replace(/[^\u0000-\u007F]+/g, '')
+      .replace(/[^\x20-\x7E]+/g, '')
       .replace(/[^A-Za-z0-9\-\s_]/g, '')
       .replace(/\s+/g, '-')
       .toLowerCase();
@@ -971,57 +973,71 @@ const OperationDetailPage = () => {
             </div>
           )}
         </div>
-        <Space>
-          <Button
-            type="default"
-            onClick={extractCitiesForRecord}
-            loading={extractingCities}
-            disabled={extractingCities || !record}
-          >
-            {extractingCities ? 'Extracting Cities...' : '📍 Extract Cities'}
-          </Button>
-          <Button
-            icon={<MdSave />}
-            onClick={() => setIsSaveModalOpen(true)}
-            disabled={getFilteredPhoneNumbers().length === 0}
-            className="bg-white text-[#0F792C] border-[#0F792C] hover:bg-[#0F792C] hover:text-white transition-all"
-          >
-            Save for Messages
-          </Button>
-          {whatsappInitialized && (
+
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2 justify-end">
             <Button
-              className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C] text-white"
-              type="primary"
-              icon={<BsWhatsapp />}
-              onClick={handleVerifyAllClick}
-              loading={verifyingAll}
-              disabled={verifyingAll || filteredData.length === 0}
+              type="default"
+              onClick={extractCitiesForRecord}
+              loading={extractingCities}
+              disabled={extractingCities || !record}
             >
-              {verifyingAll ? 'Verifying...' : 'Verify Visible Numbers'}
+              {extractingCities ? 'Extracting Cities...' : '📍 Extract Cities'}
             </Button>
-          )}
-          <Button
-            icon={<MdDownload />}
-            onClick={exportToCSV}
-            disabled={filteredData.length === 0}
-          >
-            Export CSV
-          </Button>
-          <Button
-            icon={<MdDescription />}
-            onClick={exportToXLS}
-            disabled={filteredData.length === 0}
-          >
-            Export XLS
-          </Button>
-          <Button
-            icon={<MdRefresh />}
-            onClick={fetchRecord}
-            loading={loading}
-          >
-            Refresh Data
-          </Button>
-        </Space>
+            <Button
+              icon={<MdSave />}
+              onClick={() => setIsSaveModalOpen(true)}
+              disabled={getFilteredPhoneNumbers().length === 0}
+              className="bg-white text-[#0F792C] border-[#0F792C] hover:bg-[#0F792C] hover:text-white transition-all"
+            >
+              Save for Messages
+            </Button>
+            <Button
+              icon={<MdPhone />}
+              onClick={() => setIsColdCallModalOpen(true)}
+              disabled={getFilteredPhoneNumbers().length === 0}
+              className="bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white transition-all"
+            >
+              Save for Cold Calls
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 justify-end">
+            {whatsappInitialized && (
+              <Button
+                className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C] text-white"
+                type="primary"
+                icon={<BsWhatsapp />}
+                onClick={handleVerifyAllClick}
+                loading={verifyingAll}
+                disabled={verifyingAll || filteredData.length === 0}
+              >
+                {verifyingAll ? 'Verifying...' : 'Verify Visible Numbers'}
+              </Button>
+            )}
+            <Button
+              icon={<MdDownload />}
+              onClick={exportToCSV}
+              disabled={filteredData.length === 0}
+            >
+              Export CSV
+            </Button>
+            <Button
+              icon={<MdDescription />}
+              onClick={exportToXLS}
+              disabled={filteredData.length === 0}
+            >
+              Export XLS
+            </Button>
+            <Button
+              icon={<MdRefresh />}
+              onClick={fetchRecord}
+              loading={loading}
+            >
+              Refresh Data
+            </Button>
+          </div>
+        </div>
       </div>
 
       {whatsappInitialized ? (
@@ -1078,6 +1094,13 @@ const OperationDetailPage = () => {
       <SaveNumbersModal
         visible={isSaveModalOpen}
         onCancel={() => setIsSaveModalOpen(false)}
+        numbers={getFilteredPhoneNumbers()}
+        userId={user?._id || user?.id}
+      />
+
+      <SaveColdCallsModal
+        visible={isColdCallModalOpen}
+        onCancel={() => setIsColdCallModalOpen(false)}
         numbers={getFilteredPhoneNumbers()}
         userId={user?._id || user?.id}
       />

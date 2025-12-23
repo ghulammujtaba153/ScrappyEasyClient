@@ -1,175 +1,304 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import coldCallerData from '../../data/coldCaller';
-import { ArrowLeftOutlined, PhoneOutlined, MailOutlined, ClockCircleOutlined, TrophyOutlined, LineChartOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, PhoneOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Tag, Progress, Card, Statistic, message, Tooltip, Empty, Modal, Radio } from 'antd';
+import axios from 'axios';
+import { useAuth } from '../../context/authContext';
+import { BASE_URL } from '../../config/URL';
+import Dialer from '../../components/Dialer';
 
 const ColdCallerDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const caller = coldCallerData.find(c => c.id === parseInt(id));
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [campaign, setCampaign] = useState(null);
 
-  if (!caller) {
+  // Dialer & Status States
+  const [showDialer, setShowDialer] = useState(false);
+  const [dialerNumber, setDialerNumber] = useState("");
+  const [callingLeadId, setCallingLeadId] = useState(null);
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("successful");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const fetchCampaignData = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/coldcall/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        setCampaign(res.data.data);
+      }
+    } catch (error) {
+      console.error('Fetch detail error:', error);
+      message.error('Failed to load campaign details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) fetchCampaignData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const handleCall = (record) => {
+    setDialerNumber(record.number);
+    setCallingLeadId(record._id);
+    setShowDialer(true);
+  };
+
+  const onCallEnd = () => {
+    // When call ends, show the status selection modal
+    if (callingLeadId) {
+      setStatusModalVisible(true);
+    }
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!callingLeadId) return;
+    setUpdatingStatus(true);
+    try {
+      const res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
+        numbers: campaign.numbers.map(n =>
+          n._id === callingLeadId
+            ? { ...n, status: selectedStatus, lastCalled: new Date() }
+            : n
+        )
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.data.success) {
+        message.success('Lead status updated');
+        setCampaign(res.data.data);
+        setStatusModalVisible(false);
+        setCallingLeadId(null);
+      }
+    } catch (error) {
+      console.error('Update status error:', error);
+      message.error('Failed to update lead status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="text-gray-400 text-xl mb-4">Caller not found</div>
-        <button
-          onClick={() => navigate('/dashboard/cold-caller')}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Back to Callers
-        </button>
+      <div className="flex flex-col items-center justify-center py-20 bg-gray-50 min-h-screen">
+        <LoadingOutlined style={{ fontSize: 40, color: '#0F792C' }} spin />
+        <p className="mt-4 text-gray-500">Loading campaign details...</p>
       </div>
     );
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'on-break': return 'bg-yellow-100 text-yellow-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-blue-100 text-blue-800';
-    }
-  };
+  if (!campaign) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 bg-gray-50 min-h-screen">
+        <Empty description="Campaign not found" />
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/dashboard/cold-caller')}
+          className="mt-4"
+        >
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
 
-  const getPerformanceBadge = (performance) => {
-    switch (performance) {
-      case 'excellent': return 'bg-green-500 text-white';
-      case 'good': return 'bg-blue-500 text-white';
-      case 'average': return 'bg-yellow-500 text-white';
-      case 'needs-improvement': return 'bg-red-500 text-white';
-      default: return 'bg-gray-500 text-white';
+  const numbers = campaign.numbers || [];
+  const total = numbers.length;
+  const success = numbers.filter(n => n.status === 'successful').length;
+  const pending = numbers.filter(n => n.status === 'pending').length;
+  const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
+
+  const columns = [
+    {
+      title: 'Phone Number',
+      dataIndex: 'number',
+      key: 'number',
+      render: (text) => <span className="font-mono font-medium">{text}</span>,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        let color = 'blue';
+        let icon = <ClockCircleOutlined />;
+        if (status === 'successful') { color = 'success'; icon = <CheckCircleOutlined />; }
+        if (status === 'failed') { color = 'error'; icon = <CloseCircleOutlined />; }
+        return (
+          <Tag icon={icon} color={color}>
+            {status.toUpperCase()}
+          </Tag>
+        );
+      }
+    },
+    {
+      title: 'Last Contact',
+      dataIndex: 'lastCalled',
+      key: 'lastCalled',
+      render: (date) => date ? new Date(date).toLocaleString() : <span className="text-gray-400">Not called yet</span>,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Button
+          type="primary"
+          icon={<PhoneOutlined />}
+          size="small"
+          onClick={() => handleCall(record)}
+          style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
+        >
+          Call
+        </Button>
+      )
     }
-  };
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 pb-20 space-y-6 bg-gray-50 min-h-screen">
+      {/* Dialer Overlay */}
+      {showDialer && (
+        <Dialer
+          phoneNumber={dialerNumber}
+          onClose={() => setShowDialer(false)}
+          onCallEnd={onCallEnd}
+        />
+      )}
+
+      {/* Status Update Modal */}
+      <Modal
+        title="Update Call Status"
+        open={statusModalVisible}
+        onOk={handleUpdateStatus}
+        confirmLoading={updatingStatus}
+        onCancel={() => setStatusModalVisible(false)}
+      >
+        <p className="mb-4 text-gray-600">How did the call with <span className="font-bold text-gray-800">{campaign.numbers.find(n => n._id === callingLeadId)?.number}</span> go?</p>
+        <Radio.Group onChange={(e) => setSelectedStatus(e.target.value)} value={selectedStatus}>
+          <Space direction="vertical">
+            <Radio value="successful" className="text-green-600 font-medium">
+              <CheckCircleOutlined /> Successful (Lead Interested)
+            </Radio>
+            <Radio value="failed" className="text-red-500 font-medium">
+              <CloseCircleOutlined /> Failed (No Answer / Not Interested)
+            </Radio>
+            <Radio value="pending" className="text-blue-500 font-medium">
+              <ClockCircleOutlined /> Still Pending (Try Again Later)
+            </Radio>
+          </Space>
+        </Radio.Group>
+      </Modal>
+
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button
+        <Button
+          icon={<ArrowLeftOutlined />}
           onClick={() => navigate('/dashboard/cold-caller')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeftOutlined className="text-xl" />
-        </button>
+          shape="circle"
+        />
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Caller Details</h1>
-          <p className="text-gray-600">View complete information and performance metrics</p>
+          <h1 className="text-2xl font-bold text-gray-900">{campaign.name}</h1>
+          <p className="text-gray-500 text-sm">Campaign ID: {campaign._id}</p>
         </div>
       </div>
 
-      {/* Profile Card */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex flex-col md:flex-row gap-6">
-          <img
-            src={caller.avatar}
-            alt={caller.name}
-            className="w-32 h-32 rounded-full object-cover border-4 border-blue-100"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <h2 className="text-3xl font-bold text-gray-900">{caller.name}</h2>
-              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(caller.status)}`}>
-                {caller.status.replace('-', ' ').toUpperCase()}
-              </span>
-              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getPerformanceBadge(caller.performance)}`}>
-                {caller.performance.replace('-', ' ').toUpperCase()}
-              </span>
-            </div>
-            <p className="text-lg text-gray-700 mb-2">{caller.position}</p>
-            <p className="text-gray-600 mb-4">{caller.department}</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                <PhoneOutlined className="text-blue-600 text-lg" />
-                <span className="text-gray-700">{caller.phone}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MailOutlined className="text-green-600 text-lg" />
-                <span className="text-gray-700">{caller.email}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ClockCircleOutlined className="text-purple-600 text-lg" />
-                <span className="text-gray-700">{caller.shift}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <TrophyOutlined className="text-orange-600 text-lg" />
-                <span className="text-gray-700">{caller.experience} experience</span>
-              </div>
-            </div>
+      <div className="flex justify-end gap-2 mb-8">
+        <Button
+          icon={<PhoneOutlined />}
+          onClick={() => {
+            Modal.confirm({
+              title: 'Add New Lead',
+              content: (
+                <div className="mt-4">
+                  <p className="mb-2 text-gray-500">Enter phone number to add to this campaign:</p>
+                  <input
+                    id="new-lead-number"
+                    className="w-full p-2 border rounded-md font-mono"
+                    placeholder="+923001234567"
+                  />
+                </div>
+              ),
+              onOk: async () => {
+                const number = document.getElementById('new-lead-number')?.value;
+                if (!number) {
+                  message.error('Number is required');
+                  return;
+                }
+                try {
+                  const res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
+                    numbers: [...campaign.numbers, { number, status: 'pending' }]
+                  }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  if (res.data.success) {
+                    message.success('Lead added successfully');
+                    setCampaign(res.data.data);
+                  }
+                } catch {
+                  message.error('Failed to add lead');
+                }
+              }
+            });
+          }}
+          style={{ backgroundColor: '#0F792C', borderColor: '#0F792C', color: 'white' }}
+        >
+          Add Lead
+        </Button>
+      </div>
 
-            <div className="flex gap-2">
-              {caller.language.map((lang, idx) => (
-                <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
-                  {lang}
-                </span>
-              ))}
-            </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Card bordered={false} className="shadow-sm">
+          <Statistic title="Total Leads" value={total} prefix={<PhoneOutlined />} />
+        </Card>
+        <Card bordered={false} className="shadow-sm">
+          <Statistic
+            title="Success Rate"
+            value={successRate}
+            suffix="%"
+            valueStyle={{ color: '#0F792C' }}
+          />
+          <Progress percent={successRate} size="small" strokeColor="#0F792C" showInfo={false} />
+        </Card>
+        <Card bordered={false} className="shadow-sm">
+          <Statistic title="Successful" value={success} valueStyle={{ color: '#0F792C' }} />
+        </Card>
+        <Card bordered={false} className="shadow-sm">
+          <Statistic title="Pending" value={pending} valueStyle={{ color: '#1890ff' }} />
+        </Card>
+      </div>
+
+      {/* Numbers Table */}
+      <Card title="Lead Details" className="shadow-sm rounded-xl mb-10">
+        <Table
+          columns={columns}
+          dataSource={numbers}
+          rowKey={(record, idx) => record._id || idx}
+          pagination={{ pageSize: 15 }}
+        />
+      </Card>
+
+      {/* Campaign Info */}
+      <Card className="bg-blue-50 border-blue-100">
+        <div className="flex gap-3">
+          <InfoCircleOutlined className="text-blue-500 text-xl mt-1" />
+          <div>
+            <h4 className="font-semibold text-blue-900">Campaign Insights</h4>
+            <p className="text-blue-700 text-sm">
+              This campaign was created on {new Date(campaign.createdAt).toLocaleDateString()}.
+              Currently, {pending} leads are waiting to be called.
+              The success rate is {successRate}% based on {success} completions.
+            </p>
           </div>
         </div>
-      </div>
-
-      {/* Performance Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-          <div className="text-sm text-gray-600 mb-2">Total Calls Made</div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">{caller.callsMade.toLocaleString()}</div>
-          <div className="text-xs text-gray-500">All time</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-          <div className="text-sm text-gray-600 mb-2">Success Rate</div>
-          <div className="text-3xl font-bold text-green-600 mb-1">{caller.successRate}%</div>
-          <div className="text-xs text-gray-500">Conversion rate</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-          <div className="text-sm text-gray-600 mb-2">Avg Call Duration</div>
-          <div className="text-3xl font-bold text-purple-600 mb-1">{caller.avgCallDuration}</div>
-          <div className="text-xs text-gray-500">Per call</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
-          <div className="text-sm text-gray-600 mb-2">Total Revenue</div>
-          <div className="text-3xl font-bold text-orange-600 mb-1">{caller.totalRevenue}</div>
-          <div className="text-xs text-gray-500">Generated</div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <LineChartOutlined className="text-xl text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Calls Made</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Conversions</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Success Rate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {caller.recentActivity.map((activity, idx) => {
-                const rate = ((activity.conversions / activity.calls) * 100).toFixed(1);
-                return (
-                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 text-sm text-gray-900">{activity.date}</td>
-                    <td className="py-3 px-4 text-sm text-gray-900">{activity.calls}</td>
-                    <td className="py-3 px-4 text-sm text-green-600 font-semibold">{activity.conversions}</td>
-                    <td className="py-3 px-4 text-sm text-blue-600 font-semibold">{rate}%</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Notes */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">Notes & Comments</h3>
-        <p className="text-gray-700 leading-relaxed">{caller.notes}</p>
-      </div>
+      </Card>
     </div>
   );
 };
