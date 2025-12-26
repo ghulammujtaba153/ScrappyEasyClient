@@ -163,11 +163,36 @@ export const OperationsProvider = ({ children }) => {
     const updateOperationCache = useCallback((operationId, updates) => {
         setOperationCache(prev => {
             const currentCache = prev[operationId] || {};
+
+            // Check if we are updating nested objects that need merging
+            let processedUpdates = { ...updates };
+
+            if (updates.screenshotData && currentCache.screenshotData) {
+                processedUpdates.screenshotData = {
+                    ...currentCache.screenshotData,
+                    ...updates.screenshotData
+                };
+            }
+
+            if (updates.whatsappStatus && currentCache.whatsappStatus) {
+                processedUpdates.whatsappStatus = {
+                    ...currentCache.whatsappStatus,
+                    ...updates.whatsappStatus
+                };
+            }
+
+            if (updates.cityData && currentCache.cityData) {
+                processedUpdates.cityData = {
+                    ...currentCache.cityData,
+                    ...updates.cityData
+                };
+            }
+
             return {
                 ...prev,
                 [operationId]: {
                     ...currentCache,
-                    ...updates
+                    ...processedUpdates
                 }
             };
         });
