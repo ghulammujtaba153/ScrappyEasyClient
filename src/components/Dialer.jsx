@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Device } from "@twilio/voice-sdk";
-import { MdCall, MdCallEnd, MdDialpad, MdClose } from "react-icons/md";
+import { MdCall, MdDialpad, MdMic, MdMicOff, MdCallEnd, MdClose, MdFiberManualRecord } from "react-icons/md";
 import axios from "axios";
 import { BASE_URL } from "../config/URL";
 
@@ -9,6 +9,7 @@ const Dialer = ({ onClose, phoneNumber, onCallEnd }) => {
     const [callStatus, setCallStatus] = useState("Idle"); // Idle, Connecting, In Progress
     const [device, setDevice] = useState(null);
     const [activeCall, setActiveCall] = useState(null);
+    const [isRecording, setIsRecording] = useState(false);
 
     // Track the last prop value to detect actual changes from the parent
     const [prevPhoneNumber, setPrevPhoneNumber] = useState(phoneNumber);
@@ -19,10 +20,22 @@ const Dialer = ({ onClose, phoneNumber, onCallEnd }) => {
         setNumber(phoneNumber || "");
     }
 
+    const [error, setError] = useState("");
+
     useEffect(() => {
         const init = async () => {
             try {
-                const response = await axios.get(`${BASE_URL}/api/call/token`);
+                const saved = localStorage.getItem("twilio_config");
+                const config = saved ? JSON.parse(saved) : {};
+
+                if (!config.accountSid) {
+                    setError("Twilio not configured locally. Please visit settings.");
+                    return;
+                }
+
+                const response = await axios.get(`${BASE_URL}/api/call/token`, {
+                    params: config
+                });
                 const { token } = response.data;
 
                 const newDevice = new Device(token, {
@@ -36,39 +49,49 @@ const Dialer = ({ onClose, phoneNumber, onCallEnd }) => {
                 await newDevice.register();
                 setDevice(newDevice);
             } catch (error) {
-                console.error("Failed to initialize Twilio Device:", error);
+                console.error("Failed to initialize Twilio device:", error);
             }
         };
-        init();
-    }, []); // Only on mount
 
-    useEffect(() => {
+        init();
+
         return () => {
             if (device) {
                 device.destroy();
             }
         };
-    }, [device]);
+    }, []);
 
     const handleCall = async () => {
         if (!device || !number) return;
 
+        const saved = localStorage.getItem("twilio_config");
+        const config = saved ? JSON.parse(saved) : {};
+
         setCallStatus("Connecting");
+        setIsRecording(false);
         try {
             const call = await device.connect({
-                params: { To: number }
+                params: {
+                    To: number,
+                    accountSid: config.accountSid,
+                    authToken: config.authToken,
+                    phoneNumber: config.phoneNumber
+                }
             });
 
             call.on("accept", () => setCallStatus("In Progress"));
             call.on("disconnect", () => {
                 setCallStatus("Idle");
                 setActiveCall(null);
+                setIsRecording(false);
                 if (onCallEnd) onCallEnd();
             });
             call.on("error", (error) => {
                 console.error("Call Error:", error);
                 setCallStatus("Idle");
                 setActiveCall(null);
+                setIsRecording(false);
                 if (onCallEnd) onCallEnd();
             });
 
@@ -83,6 +106,42 @@ const Dialer = ({ onClose, phoneNumber, onCallEnd }) => {
     const handleHangup = () => {
         if (activeCall) {
             activeCall.disconnect();
+        }
+    };
+
+    const handleRecordingToggle = async () => {
+        if (!activeCall) return;
+
+        // Try to get CallSid from parameters. It might vary by SDK version/connection type.
+        // For outgoing calls, activeCall.parameters.CallSid is standard.
+        const callSid = activeCall.parameters.CallSid || activeCall.parameters.callSid;
+
+        if (!callSid) {
+            setError("Cannot record: Call ID missing.");
+            return;
+        }
+
+        const saved = localStorage.getItem("twilio_config");
+        const config = saved ? JSON.parse(saved) : {};
+
+        try {
+            const action = isRecording ? 'stop' : 'start';
+            const res = await axios.post(`${BASE_URL}/api/call/recording/toggle`, {
+                callSid,
+                action,
+                number: number ? number.trim() : "",
+                accountSid: config.accountSid,
+                authToken: config.authToken
+            });
+
+            if (res.data.success) {
+                setIsRecording(!isRecording);
+            } else {
+                setError("Failed to toggle recording.");
+            }
+        } catch (err) {
+            console.error("Recording error:", err);
+            setError("Error toggling recording.");
         }
     };
 
@@ -110,23 +169,49 @@ const Dialer = ({ onClose, phoneNumber, onCallEnd }) => {
             </div>
 
             <div className="mb-6">
-                <div className="bg-gray-50 rounded-xl p-4 min-h-[64px] flex flex-col justify-center items-center relative group">
-                    <span className="text-2xl font-semibold text-gray-800 tracking-wider">
-                        {number || "Enter Number"}
-                    </span>
-                    {number && callStatus === "Idle" && (
-                        <button
-                            onClick={backspace}
-                            className="absolute right-3 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                            ⌫
-                        </button>
-                    )}
-                    <span className="text-xs font-medium text-blue-500 mt-1 uppercase tracking-widest">
-                        {callStatus}
-                    </span>
-                </div>
+                {error ? (
+                    <div className="bg-red-50 border border-red-100 p-4 rounded-xl mb-4">
+                        <p className="text-red-600 text-xs font-bold leading-relaxed">
+                            {error}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="bg-gray-50 rounded-xl p-4 min-h-[64px] flex flex-col justify-center items-center relative group">
+                        <span className="text-2xl font-semibold text-gray-800 tracking-wider">
+                            {number || "Enter Number"}
+                        </span>
+                        {number && callStatus === "Idle" && (
+                            <button
+                                onClick={backspace}
+                                className="absolute right-3 text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                                ⌫
+                            </button>
+                        )}
+                        <span className="text-xs font-medium text-blue-500 mt-1 uppercase tracking-widest flex items-center gap-2">
+                            {callStatus}
+                            {isRecording && (
+                                <span className="flex items-center gap-1 text-red-500 animate-pulse font-black ml-2">
+                                    <MdFiberManualRecord /> REC
+                                </span>
+                            )}
+                        </span>
+                    </div>
+                )}
             </div>
+
+            {callStatus === "In Progress" && (
+                <div className="flex justify-center mb-6">
+                    <button
+                        onClick={handleRecordingToggle}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all 
+                            ${isRecording ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                    >
+                        <MdFiberManualRecord className={isRecording ? "animate-pulse" : ""} />
+                        {isRecording ? "Stop Recording" : "Record Call"}
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-3 gap-3 mb-4">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, "*", 0, "#"].map((digit) => (

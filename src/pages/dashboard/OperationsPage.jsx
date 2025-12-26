@@ -1,66 +1,48 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Button, Input, Space, Table, Tag, message } from 'antd';
 import { FiRefreshCw, FiArrowRightCircle } from 'react-icons/fi';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
+import { useOperations } from '../../context/operationsContext';
 
 const { Search } = Input;
 
 const OperationsPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [uniqueSearches, setUniqueSearches] = useState([]);
-    const [uniqueCities, setUniqueCities] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [keyword, setKeyword] = useState('');
 
-    const fetchUniqueSearches = async () => {
-        if (!user?._id && !user?.id) {
-            return;
+    const {
+        uniqueSearches,
+        uniqueCities,
+        loading,
+        pagination,
+        fetchUniqueSearches,
+        setKeyword,
+        isDataLoaded
+    } = useOperations();
+
+    // Initial Fetch if not loaded
+    useEffect(() => {
+        if (user && !isDataLoaded) {
+            fetchUniqueSearches();
         }
+    }, [user, isDataLoaded, fetchUniqueSearches]);
 
-        setLoading(true);
-        try {
-            const response = await axios.get(`${BASE_URL}/api/data/unique/${user._id || user.id}`);
-            if (response.data?.success) {
-                setUniqueSearches(response.data.data || []);
-            } else {
-                message.error(response.data?.message || 'Failed to load operations');
-            }
-
-            // Fetch unique cities from getData API
-            const dataResponse = await axios.get(`${BASE_URL}/api/data/${user._id || user.id}?limit=1000`);
-            if (dataResponse.data?.success && dataResponse.data?.uniqueCities) {
-                setUniqueCities(dataResponse.data.uniqueCities || []);
-            }
-        } catch (error) {
-            console.error('Failed to load operations overview:', error);
-            message.error(error.response?.data?.message || 'Unable to fetch operations');
-        } finally {
-            setLoading(false);
-        }
+    // Handle Table Change (Pagination)
+    const handleTableChange = (newPagination) => {
+        fetchUniqueSearches(newPagination.current, newPagination.pageSize);
     };
 
-    useEffect(() => {
-        fetchUniqueSearches();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?._id, user?.id]);
-
-    const filteredSearches = useMemo(() => {
-        if (!keyword.trim()) {
-            return uniqueSearches;
-        }
-        const lower = keyword.toLowerCase();
-        return uniqueSearches.filter(item => item.searchString?.toLowerCase().includes(lower));
-    }, [keyword, uniqueSearches]);
+    // Handle Search
+    const handleSearch = (value) => {
+        fetchUniqueSearches(1, pagination.pageSize, value);
+    };
 
     const columns = [
         {
             title: '#',
             width: 60,
-            render: (_, __, index) => index + 1,
+            render: (_, __, index) => (pagination.current - 1) * pagination.pageSize + index + 1,
         },
         {
             title: 'Name',
@@ -121,7 +103,7 @@ const OperationsPage = () => {
                 <Space>
                     <Button
                         icon={<FiRefreshCw />}
-                        onClick={fetchUniqueSearches}
+                        onClick={() => fetchUniqueSearches(pagination.current, pagination.pageSize)}
                         loading={loading}
                     >
                         Refresh
@@ -143,8 +125,13 @@ const OperationsPage = () => {
                 <Search
                     placeholder="Search by query..."
                     allowClear
-                    onSearch={setKeyword}
-                    onChange={(e) => setKeyword(e.target.value)}
+                    onSearch={handleSearch}
+                    onChange={(e) => {
+                        setKeyword(e.target.value);
+                        if (e.target.value === '') {
+                            handleSearch('');
+                        }
+                    }}
                     className="w-full md:w-96"
                     size="large"
                 />
@@ -223,10 +210,13 @@ const OperationsPage = () => {
                 <Table
                     rowKey={(record) => record.id || record._id}
                     columns={columns}
-                    dataSource={filteredSearches}
+                    dataSource={uniqueSearches}
                     loading={loading}
+                    onChange={handleTableChange}
                     pagination={{
-                        pageSize: 10,
+                        current: pagination.current,
+                        pageSize: pagination.pageSize,
+                        total: pagination.total,
                         showSizeChanger: true,
                         showQuickJumper: false,
                         showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,

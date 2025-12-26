@@ -6,10 +6,13 @@ import {
   Alert,
   Button,
   InputNumber,
+  Input,
   Select,
   Space,
   Table,
   Tag,
+  Modal,
+  Spin,
   message
 } from 'antd';
 import {
@@ -21,17 +24,21 @@ import {
   MdRefresh,
   MdClose,
   MdSave,
-  MdPhone
+  MdPhone,
+  MdCameraAlt,
+  MdImage,
+  MdSearch
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
 import { QRCodeCanvas } from 'qrcode.react';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
-import countries from '../../data/countries';
-import ukCities from '../../data/uk';
+import { useOperations } from '../../context/operationsContext';
 import Notes from '../../component/dashboard/Notes';
 import SaveColdCallsModal from '../../component/dashboard/SaveColdCallsModal';
+import { captureWebsite } from '../../api/screenshotApi';
+import ScreenshotViewer from '../../component/dashboard/ScreenshotViewer';
 
 const { Option } = Select;
 
@@ -67,18 +74,45 @@ const OperationDetailPage = () => {
   const navigate = useNavigate();
   const { token, user } = useAuth();
 
-  const [record, setRecord] = useState(null);
+  // Use context for data persistence
+  const { fetchOperationDetails, updateOperationCache, operationCache } = useOperations();
+
+  const cachedData = operationCache[operationId] || {};
+  const record = cachedData.record || null;
+  const cityData = cachedData.cityData || {};
+  const screenshotData = cachedData.screenshotData || {};
+  const whatsappStatus = cachedData.whatsappStatus || {};
+
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ ...defaultFilters });
-  const [whatsappStatus, setWhatsappStatus] = useState({});
+
   // WhatsApp Connection State
   const [whatsappInitialized, setWhatsappInitialized] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isColdCallModalOpen, setIsColdCallModalOpen] = useState(false);
   const [verifyingAll, setVerifyingAll] = useState(false);
-  const [cityData, setCityData] = useState({});
+
   const [extractingCities, setExtractingCities] = useState(false);
+  const [capturing, setCapturing] = useState({});
+  const [capturingBulk, setCapturingBulk] = useState(false);
+  const [captureProgress, setCaptureProgress] = useState({ current: 0, total: 0 });
+
+  // Wrapper setters to update cache (mimicking local state setters)
+  const setCityData = (newData) => {
+    const data = typeof newData === 'function' ? newData(cityData) : newData;
+    updateOperationCache(operationId, { cityData: data });
+  };
+
+  const setScreenshotData = (newData) => {
+    const data = typeof newData === 'function' ? newData(screenshotData) : newData;
+    updateOperationCache(operationId, { screenshotData: data });
+  };
+
+  const setWhatsappStatus = (newData) => {
+    const data = typeof newData === 'function' ? newData(whatsappStatus) : newData;
+    updateOperationCache(operationId, { whatsappStatus: data });
+  };
 
   // Extract coordinates from Google Maps URL
   const extractCoordinates = (url) => {
@@ -132,7 +166,7 @@ const OperationDetailPage = () => {
           address.country ||
           'Unknown';
 
-        console.log(`   ✓ Resolved to: ${city} (from ${address.city ? 'city' : address.town ? 'town' : address.county ? 'county' : address.state_district ? 'state_district' : address.state ? 'state' : 'country'})`);
+        console.log(`   ✓ Resolved to: ${city} (from ${address.city ? 'city' : address.town ? 'town' : address.county ? 'county' : address.state_district ? 'state' : address.state ? 'state' : 'country'})`);
         return city;
       }
 
@@ -192,7 +226,7 @@ const OperationDetailPage = () => {
             successCount++;
             console.log(`✅ [${i + 1}/${totalItems}] Found city: ${city}`);
 
-            // Update UI immediately to show the extracted city
+            // Update UI immediately (via context cache)
             setCityData({ ...newCityData });
           } else {
             failedCount++;
@@ -215,10 +249,6 @@ const OperationDetailPage = () => {
       console.log(`   Failed: ${failedCount}`);
 
       if (updated) {
-        setCityData(newCityData);
-
-        console.log(`💾 Saving ${Object.keys(newCityData).length} cities to backend...`);
-
         // Save to backend
         const cityDataToSave = {};
         Object.entries(newCityData).forEach(([key, city]) => {
@@ -230,6 +260,9 @@ const OperationDetailPage = () => {
           recordId: record._id,
           cityData: cityDataToSave
         });
+
+        // Final update to cache
+        setCityData(newCityData);
 
         console.log(`✅ Successfully saved cities to database`);
         message.success(`Cities extracted: ${successCount} successful, ${failedCount} failed`);
@@ -252,53 +285,8 @@ const OperationDetailPage = () => {
     }
 
     setLoading(true);
-    try {
-      const response = await axios.get(`${BASE_URL}/api/data/record/${operationId}`);
-      if (response.data?.success) {
-        setRecord(response.data.data);
-
-        // Load cached verification results
-        if (response.data.data?.whatsappVerifications) {
-          const cachedStatus = {};
-          // Handle both object and Map formats from MongoDB
-          const verifications = response.data.data.whatsappVerifications;
-          const entries = verifications instanceof Map ?
-            Array.from(verifications.entries()) :
-            Object.entries(verifications);
-
-          entries.forEach(([phone, verificationData]) => {
-            cachedStatus[phone] = verificationData.isRegistered ? 'verified' : 'not-verified';
-          });
-
-          setWhatsappStatus(cachedStatus);
-          console.log(`Loaded ${Object.keys(cachedStatus).length} cached verification results`);
-        }
-
-        // Load city data from database
-        if (response.data.data?.cityData) {
-          const cities = {};
-          const cityDataFromDB = response.data.data.cityData;
-          const cityEntries = cityDataFromDB instanceof Map ?
-            Array.from(cityDataFromDB.entries()) :
-            Object.entries(cityDataFromDB);
-
-          cityEntries.forEach(([index, city]) => {
-            const itemKey = `${response.data.data._id}-${index}`;
-            cities[itemKey] = city;
-          });
-
-          setCityData(cities);
-          console.log(`Loaded ${Object.keys(cities).length} cached city locations`);
-        }
-      } else {
-        message.error(response.data?.message || 'Failed to load record');
-      }
-    } catch (error) {
-      console.error('Failed to load record details:', error);
-      message.error(error.response?.data?.message || 'Unable to fetch record');
-    } finally {
-      setLoading(false);
-    }
+    await fetchOperationDetails(operationId);
+    setLoading(false);
   };
 
   const checkWhatsAppStatus = async () => {
@@ -520,45 +508,7 @@ const OperationDetailPage = () => {
     };
   }, [flattenedData, whatsappStatus]);
 
-  const getAllCountries = () => {
-    const countryNames = countries.map(c => c.name);
-    countryNames.push('United Kingdom');
-    return countryNames;
-  };
 
-  const getAllStates = () => {
-    const states = new Set();
-    countries.forEach(country => {
-      if (filters.countries.length === 0 || filters.countries.includes(country.name)) {
-        if (country.states) {
-          country.states.forEach(state => states.add(state.name));
-        }
-      }
-    });
-    return Array.from(states);
-  };
-
-  const getAllCities = () => {
-    const cities = new Set();
-
-    countries.forEach(country => {
-      if (filters.countries.length === 0 || filters.countries.includes(country.name)) {
-        if (country.states) {
-          country.states.forEach(state => {
-            if (filters.states.length === 0 || filters.states.includes(state.name)) {
-              state.cities.forEach(city => cities.add(city));
-            }
-          });
-        }
-      }
-    });
-
-    if (filters.countries.length === 0 || filters.countries.includes('United Kingdom')) {
-      ukCities.forEach(city => cities.add(city));
-    }
-
-    return Array.from(cities);
-  };
 
   const filteredData = useMemo(() => {
     if (!flattenedData.length) {
@@ -784,6 +734,139 @@ const OperationDetailPage = () => {
     message.success('XLS export ready');
   };
 
+  const handleCapture = async (url, key) => {
+    if (!url) return;
+
+    // Ensure URL has protocol
+    const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+
+    setCapturing(prev => ({ ...prev, [key]: true }));
+    try {
+      const res = await captureWebsite(fullUrl);
+      if (res.success) {
+        // Store relative path in state/DB
+        const newUrl = res.screenshotUrl;
+
+        // Update local screenshot data (store as returned by backend)
+        const newScreenshotData = { ...screenshotData, [key]: newUrl };
+        setScreenshotData(newScreenshotData);
+
+        // Save to backend
+        const index = key.split('-')[1];
+        await axios.post(`${BASE_URL}/api/data/update-screenshots`, {
+          recordId: record._id,
+          screenshotData: { [index]: newUrl }
+        });
+
+        message.success('Website captured successfully!');
+
+        // Note: The ScreenshotViewer in the table will automatically update 
+        // because its 'url' prop (screenshotData[key]) has changed.
+      } else {
+        message.error(res.message || 'Failed to capture website');
+      }
+    } catch (error) {
+      console.error('Capture error:', error);
+      message.error('Failed to capture website: ' + error.message);
+    } finally {
+      setCapturing(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const captureAllScreenshots = async (onlyFiltered = true) => {
+    const dataToProcess = onlyFiltered ? filteredData : flattenedData;
+    const websitesToCapture = dataToProcess.filter(item => item.website);
+
+    if (websitesToCapture.length === 0) {
+      message.warning('No websites available to capture');
+      return;
+    }
+
+    setCapturingBulk(true);
+    setCaptureProgress({ current: 0, total: websitesToCapture.length });
+
+    let successCount = 0;
+    const newScreenshotEntries = {};
+
+    try {
+      for (let i = 0; i < websitesToCapture.length; i++) {
+        const item = websitesToCapture[i];
+        const key = item.key;
+
+        setCaptureProgress({ current: i + 1, total: websitesToCapture.length });
+
+        // Skip if already captured
+        if (screenshotData[key]) {
+          console.log(`Skipping already captured screenshot for: ${item.title}`);
+          continue;
+        }
+
+        const fullUrl = item.website.startsWith('http') ? item.website : `https://${item.website}`;
+        try {
+          const res = await captureWebsite(fullUrl);
+          if (res.success) {
+            newScreenshotEntries[key] = res.screenshotUrl;
+            successCount++;
+
+            // Update UI immediately (optional, or wait for batch)
+            // setScreenshotData(prev => ({ ...prev, [key]: res.screenshotUrl })); 
+            // We do batch update below, but could do incremental if needed.
+            // But setScreenshotData now updates CONTEXT, which causes rerender.
+            // Let's rely on final update or periodic update to avoid too many context updates.
+
+            // Save to backend every 3 captures to avoid data loss if interrupted
+            if (Object.keys(newScreenshotEntries).length >= 3) {
+              const batchToSave = {};
+              Object.entries(newScreenshotEntries).forEach(([k, url]) => {
+                const index = k.split('-')[1];
+                batchToSave[index] = url;
+              });
+
+              await axios.post(`${BASE_URL}/api/data/update-screenshots`, {
+                recordId: record._id,
+                screenshotData: batchToSave
+              });
+
+              // Flush to context
+              setScreenshotData(prev => ({ ...prev, ...newScreenshotEntries }));
+              // clear locally processed keys from this object to avoid re-adding
+              // actually we just keep adding to context, that's fine.
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to capture ${item.website}:`, err);
+        }
+
+        // Delay to avoid overwhelming server or being blocked
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Final save for any remaining entries
+      if (Object.keys(newScreenshotEntries).length > 0) {
+        const batchToSave = {};
+        Object.entries(newScreenshotEntries).forEach(([k, url]) => {
+          const index = k.split('-')[1];
+          batchToSave[index] = url;
+        });
+
+        await axios.post(`${BASE_URL}/api/data/update-screenshots`, {
+          recordId: record._id,
+          screenshotData: batchToSave
+        });
+
+        setScreenshotData(prev => ({ ...prev, ...newScreenshotEntries }));
+      }
+
+      message.success(`Successfully captured ${successCount} new screenshots`);
+    } catch (error) {
+      console.error('Bulk capture error:', error);
+      message.error('Bulk capture failed: ' + error.message);
+    } finally {
+      setCapturingBulk(false);
+      setCaptureProgress({ current: 0, total: 0 });
+    }
+  };
+
   const handleVerifyAllClick = async () => {
     const numbers = [...new Set(
       filteredData
@@ -865,11 +948,28 @@ const OperationDetailPage = () => {
       title: 'Website',
       dataIndex: 'website',
       key: 'website',
-      width: 120,
-      render: (website) => website ? (
-        <a href={website} target="_blank" rel="noopener noreferrer" className="text-[#0F792C] hover:text-[#0a5a20]">
-          <MdOpenInNew className="inline" /> Link
-        </a>
+      width: 200,
+      render: (website, record) => website ? (
+        <Space direction="vertical" size={2}>
+          <a href={website} target="_blank" rel="noopener noreferrer" className="text-[#0F792C] hover:text-[#0a5a20] whitespace-nowrap">
+            <MdOpenInNew className="inline" /> Link
+          </a>
+          <div className="flex items-center gap-2">
+            {screenshotData[record.key] && (
+              <ScreenshotViewer url={screenshotData[record.key]} title={record.title} />
+            )}
+            <Button
+              size="small"
+              type="text"
+              icon={<MdCameraAlt className="text-blue-500" />}
+              onClick={() => handleCapture(website, record.key)}
+              loading={capturing[record.key]}
+              className="flex items-center gap-1 hover:bg-blue-50 transition-colors"
+            >
+              {screenshotData[record.key] ? 'Recapture' : 'Capture'}
+            </Button>
+          </div>
+        </Space>
       ) : '-',
     },
     {
@@ -983,6 +1083,15 @@ const OperationDetailPage = () => {
               disabled={extractingCities || !record}
             >
               {extractingCities ? 'Extracting Cities...' : '📍 Extract Cities'}
+            </Button>
+            <Button
+              type="default"
+              icon={<MdCameraAlt />}
+              onClick={() => captureAllScreenshots(true)}
+              loading={capturingBulk}
+              disabled={capturingBulk || filteredData.length === 0}
+            >
+              {capturingBulk ? `Capturing... (${captureProgress.current}/${captureProgress.total})` : '📸 Capture Filtered Websites'}
             </Button>
             <Button
               icon={<MdSave />}
@@ -1105,65 +1214,31 @@ const OperationDetailPage = () => {
         userId={user?._id || user?.id}
       />
 
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">Filters</h3>
+      <div className="bg-white rounded-lg shadow-md p-6 border border-gray-100 table-container">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <span className="bg-primary/10 p-1 rounded-full"><MdSearch className="text-primary" /></span>
+          Filters
+        </h3>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
+                Location Search (Country, State, City)
               </label>
-              <Select
-                mode="multiple"
-                placeholder="Select countries"
-                style={{ width: '100%' }}
-                value={filters.countries}
-                onChange={(value) => setFilters({ ...filters, countries: value, states: [], cities: [] })}
-              >
-                {getAllCountries().map(country => (
-                  <Option key={country} value={country}>{country}</Option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                State
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Select states"
-                style={{ width: '100%' }}
-                value={filters.states}
-                onChange={(value) => setFilters({ ...filters, states: value, cities: [] })}
-                disabled={filters.countries.length === 0}
-              >
-                {getAllStates().map(state => (
-                  <Option key={state} value={state}>{state}</Option>
-                ))}
-              </Select>
+              <Input
+                placeholder="Search by city, state, or country..."
+                value={filters.locationSearch}
+                onChange={(e) => setFilters({ ...filters, locationSearch: e.target.value })}
+                prefix={<MdSearch className="text-gray-600" />}
+                allowClear
+                className=" border-primary/20 focus:bg-primary/50 placeholder-gray-600 font-medium"
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                City
-              </label>
-              <Select
-                mode="multiple"
-                placeholder="Select cities"
-                style={{ width: '100%' }}
-                value={filters.cities}
-                onChange={(value) => setFilters({ ...filters, cities: value })}
-                disabled={filters.countries.length === 0}
-              >
-                {getAllCities().map(city => (
-                  <Option key={city} value={city}>{city}</Option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 WhatsApp status
               </label>
               <Select
@@ -1172,17 +1247,35 @@ const OperationDetailPage = () => {
                 value={filters.whatsappStatus || undefined}
                 onChange={(value) => setFilters({ ...filters, whatsappStatus: value || '' })}
                 allowClear
+                className="custom-select-primary"
+                popupClassName="bg-white"
               >
                 <Option value="verified">Has WhatsApp</Option>
                 <Option value="not-verified">No WhatsApp</Option>
                 <Option value="not-checked">Not checked</Option>
               </Select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-2">
+                Has website
+              </label>
+              <Select
+                placeholder="Filter by website"
+                style={{ width: '100%' }}
+                value={filters.hasWebsite || undefined}
+                onChange={(value) => setFilters({ ...filters, hasWebsite: value || '' })}
+                allowClear
+                className="custom-select-primary"
+              >
+                <Option value="yes">Has website</Option>
+                <Option value="no">No website</Option>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Rating (min)
               </label>
               <InputNumber
@@ -1193,10 +1286,11 @@ const OperationDetailPage = () => {
                 value={filters.ratingMin}
                 placeholder="e.g. 3.5"
                 onChange={(value) => setFilters({ ...filters, ratingMin: value ?? null })}
+                className="border-primary/20 w-full rounded-md"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Rating (max)
               </label>
               <InputNumber
@@ -1207,13 +1301,14 @@ const OperationDetailPage = () => {
                 value={filters.ratingMax}
                 placeholder="e.g. 4.8"
                 onChange={(value) => setFilters({ ...filters, ratingMax: value ?? null })}
+                className=" border-primary/20 w-full rounded-md"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Reviews (min)
               </label>
               <InputNumber
@@ -1222,10 +1317,11 @@ const OperationDetailPage = () => {
                 value={filters.reviewsMin}
                 placeholder="e.g. 50"
                 onChange={(value) => setFilters({ ...filters, reviewsMin: value ?? null })}
+                className=" border-primary/20 w-full rounded-md"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Reviews (max)
               </label>
               <InputNumber
@@ -1234,28 +1330,14 @@ const OperationDetailPage = () => {
                 value={filters.reviewsMax}
                 placeholder="e.g. 500"
                 onChange={(value) => setFilters({ ...filters, reviewsMax: value ?? null })}
+                className=" border-primary/20 w-full rounded-md"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Has website
-              </label>
-              <Select
-                placeholder="Filter by website"
-                style={{ width: '100%' }}
-                value={filters.hasWebsite || undefined}
-                onChange={(value) => setFilters({ ...filters, hasWebsite: value || '' })}
-                allowClear
-              >
-                <Option value="yes">Has website</Option>
-                <Option value="no">No website</Option>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Has phone number
               </label>
               <Select
@@ -1264,6 +1346,7 @@ const OperationDetailPage = () => {
                 value={filters.hasPhone || undefined}
                 onChange={(value) => setFilters({ ...filters, hasPhone: value || '' })}
                 allowClear
+                className="custom-select-primary"
               >
                 <Option value="yes">Has phone</Option>
                 <Option value="no">No phone</Option>
@@ -1272,9 +1355,7 @@ const OperationDetailPage = () => {
           </div>
         </div>
 
-        {(filters.countries.length > 0 ||
-          filters.states.length > 0 ||
-          filters.cities.length > 0 ||
+        {(filters.locationSearch ||
           filters.whatsappStatus ||
           filters.ratingMin !== null ||
           filters.ratingMax !== null ||
@@ -1286,6 +1367,7 @@ const OperationDetailPage = () => {
               <Button
                 onClick={() => setFilters({ ...defaultFilters })}
                 size="small"
+                className="bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               >
                 Clear All Filters
               </Button>
