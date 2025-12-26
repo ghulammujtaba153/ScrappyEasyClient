@@ -21,6 +21,7 @@ import MessageAutomationPage from "./pages/dashboard/MessageAutomationPage";
 import CallPage from "./pages/dashboard/CallPage";
 import TwilioSettingsPage from "./pages/dashboard/TwilioSettingsPage";
 import { OperationsProvider } from "./context/operationsContext";
+import { ScreenshotProvider } from "./context/screenshotContext";
 
 
 function App() {
@@ -28,41 +29,43 @@ function App() {
         <Router>
             <AuthProvider>
                 <OperationsProvider>
-                    <Routes>
-                        <Route path="/" element={<AuthRedirect />} />
-                        <Route path="/register" element={<RegisterPage />} />
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/forgot-password" element={<ForgetPassword />} />
+                    <ScreenshotProvider>
+                        <Routes>
+                            <Route path="/" element={<AuthRedirect />} />
+                            <Route path="/register" element={<RegisterPage />} />
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/forgot-password" element={<ForgetPassword />} />
 
-                        {/* Protected Routes */}
-                        <Route
-                            path="/dashboard"
-                            element={
-                                <ProtectedRoute>
-                                    <DashboardLayout />
-                                </ProtectedRoute>
-                            }
-                        >
-                            <Route index element={<HomePage />} />
+                            {/* Protected Routes */}
                             <Route
-                                path="location/:category/:country/:state/:city?"
-                                element={<LocationDetails />}
-                            />
-                            <Route path="category" element={<CategoryPage />} />
-                            <Route path="operations" element={<OperationsPage />} />
-                            <Route path="operations/:operationId" element={<OperationDetailPage />} />
-                            <Route path="heat-map" element={<HeatMapPage />} />
-                            <Route path="cold-caller" element={<ColdCallerPage />} />
-                            <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
-                            <Route path="whatsapp-automation" element={<WhatsAppConnectPage />} />
-                            <Route path="message-automation" element={<MessageAutomationPage />} />
-                            <Route path="call" element={<CallPage />} />
-                            <Route path="twilio-settings" element={<TwilioSettingsPage />} />
-                        </Route>
+                                path="/dashboard"
+                                element={
+                                    <ProtectedRoute>
+                                        <DashboardLayout />
+                                    </ProtectedRoute>
+                                }
+                            >
+                                <Route index element={<HomePage />} />
+                                <Route
+                                    path="location/:category/:country/:state/:city?"
+                                    element={<LocationDetails />}
+                                />
+                                <Route path="category" element={<CategoryPage />} />
+                                <Route path="operations" element={<OperationsPage />} />
+                                <Route path="operations/:operationId" element={<OperationDetailPage />} />
+                                <Route path="heat-map" element={<HeatMapPage />} />
+                                <Route path="cold-caller" element={<ColdCallerPage />} />
+                                <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
+                                <Route path="whatsapp-automation" element={<WhatsAppConnectPage />} />
+                                <Route path="message-automation" element={<MessageAutomationPage />} />
+                                <Route path="call" element={<CallPage />} />
+                                <Route path="twilio-settings" element={<TwilioSettingsPage />} />
+                            </Route>
 
-                        {/* 404 Page - Must be last */}
-                        <Route path="*" element={<NotFoundPage />} />
-                    </Routes>
+                            {/* 404 Page - Must be last */}
+                            <Route path="*" element={<NotFoundPage />} />
+                        </Routes>
+                    </ScreenshotProvider>
                 </OperationsProvider>
             </AuthProvider>
         </Router>

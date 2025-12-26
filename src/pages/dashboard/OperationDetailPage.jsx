@@ -27,7 +27,8 @@ import {
   MdPhone,
   MdCameraAlt,
   MdImage,
-  MdSearch
+  MdSearch,
+  MdLocationOn
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
@@ -35,9 +36,9 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import { useOperations } from '../../context/operationsContext';
+import { useScreenshot } from '../../context/screenshotContext';
 import Notes from '../../component/dashboard/Notes';
 import SaveColdCallsModal from '../../component/dashboard/SaveColdCallsModal';
-import { captureWebsite } from '../../api/screenshotApi';
 import ScreenshotViewer from '../../component/dashboard/ScreenshotViewer';
 
 const { Option } = Select;
@@ -83,6 +84,8 @@ const OperationDetailPage = () => {
   const screenshotData = cachedData.screenshotData || {};
   const whatsappStatus = cachedData.whatsappStatus || {};
 
+  const { addToQueue, queue, progress } = useScreenshot();
+
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ ...defaultFilters });
 
@@ -94,19 +97,11 @@ const OperationDetailPage = () => {
   const [verifyingAll, setVerifyingAll] = useState(false);
 
   const [extractingCities, setExtractingCities] = useState(false);
-  const [capturing, setCapturing] = useState({});
-  const [capturingBulk, setCapturingBulk] = useState(false);
-  const [captureProgress, setCaptureProgress] = useState({ current: 0, total: 0 });
 
   // Wrapper setters to update cache (mimicking local state setters)
   const setCityData = (newData) => {
     const data = typeof newData === 'function' ? newData(cityData) : newData;
     updateOperationCache(operationId, { cityData: data });
-  };
-
-  const setScreenshotData = (newData) => {
-    const data = typeof newData === 'function' ? newData(screenshotData) : newData;
-    updateOperationCache(operationId, { screenshotData: data });
   };
 
   const setWhatsappStatus = (newData) => {
@@ -737,134 +732,35 @@ const OperationDetailPage = () => {
   const handleCapture = async (url, key) => {
     if (!url) return;
 
-    // Ensure URL has protocol
-    const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+    addToQueue([{
+      url,
+      key,
+      recordId: record._id,
+      title: record.title // or item title if available, but key usually maps to index so title is harder to get here without looking up item?
+      // Actually handleCapture is called with website and key. We'll rely on context logic.
+    }], record._id);
 
-    setCapturing(prev => ({ ...prev, [key]: true }));
-    try {
-      const res = await captureWebsite(fullUrl);
-      if (res.success) {
-        // Store relative path in state/DB
-        const newUrl = res.screenshotUrl;
-
-        // Update local screenshot data (store as returned by backend)
-        const newScreenshotData = { ...screenshotData, [key]: newUrl };
-        setScreenshotData(newScreenshotData);
-
-        // Save to backend
-        const index = key.split('-')[1];
-        await axios.post(`${BASE_URL}/api/data/update-screenshots`, {
-          recordId: record._id,
-          screenshotData: { [index]: newUrl }
-        });
-
-        message.success('Website captured successfully!');
-
-        // Note: The ScreenshotViewer in the table will automatically update 
-        // because its 'url' prop (screenshotData[key]) has changed.
-      } else {
-        message.error(res.message || 'Failed to capture website');
-      }
-    } catch (error) {
-      console.error('Capture error:', error);
-      message.error('Failed to capture website: ' + error.message);
-    } finally {
-      setCapturing(prev => ({ ...prev, [key]: false }));
-    }
+    message.success('Added to capture queue');
   };
 
   const captureAllScreenshots = async (onlyFiltered = true) => {
     const dataToProcess = onlyFiltered ? filteredData : flattenedData;
-    const websitesToCapture = dataToProcess.filter(item => item.website);
+    const websitesToCapture = dataToProcess.filter(item => item.website && !screenshotData[item.key]);
 
     if (websitesToCapture.length === 0) {
-      message.warning('No websites available to capture');
+      message.warning('No new websites to capture');
       return;
     }
 
-    setCapturingBulk(true);
-    setCaptureProgress({ current: 0, total: websitesToCapture.length });
+    const items = websitesToCapture.map(item => ({
+      url: item.website,
+      key: item.key,
+      recordId: record._id,
+      title: item.title
+    }));
 
-    let successCount = 0;
-    const newScreenshotEntries = {};
-
-    try {
-      for (let i = 0; i < websitesToCapture.length; i++) {
-        const item = websitesToCapture[i];
-        const key = item.key;
-
-        setCaptureProgress({ current: i + 1, total: websitesToCapture.length });
-
-        // Skip if already captured
-        if (screenshotData[key]) {
-          console.log(`Skipping already captured screenshot for: ${item.title}`);
-          continue;
-        }
-
-        const fullUrl = item.website.startsWith('http') ? item.website : `https://${item.website}`;
-        try {
-          const res = await captureWebsite(fullUrl);
-          if (res.success) {
-            newScreenshotEntries[key] = res.screenshotUrl;
-            successCount++;
-
-            // Update UI immediately (optional, or wait for batch)
-            // setScreenshotData(prev => ({ ...prev, [key]: res.screenshotUrl })); 
-            // We do batch update below, but could do incremental if needed.
-            // But setScreenshotData now updates CONTEXT, which causes rerender.
-            // Let's rely on final update or periodic update to avoid too many context updates.
-
-            // Save to backend every 3 captures to avoid data loss if interrupted
-            if (Object.keys(newScreenshotEntries).length >= 3) {
-              const batchToSave = {};
-              Object.entries(newScreenshotEntries).forEach(([k, url]) => {
-                const index = k.split('-')[1];
-                batchToSave[index] = url;
-              });
-
-              await axios.post(`${BASE_URL}/api/data/update-screenshots`, {
-                recordId: record._id,
-                screenshotData: batchToSave
-              });
-
-              // Flush to context
-              setScreenshotData(prev => ({ ...prev, ...newScreenshotEntries }));
-              // clear locally processed keys from this object to avoid re-adding
-              // actually we just keep adding to context, that's fine.
-            }
-          }
-        } catch (err) {
-          console.error(`Failed to capture ${item.website}:`, err);
-        }
-
-        // Delay to avoid overwhelming server or being blocked
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
-      // Final save for any remaining entries
-      if (Object.keys(newScreenshotEntries).length > 0) {
-        const batchToSave = {};
-        Object.entries(newScreenshotEntries).forEach(([k, url]) => {
-          const index = k.split('-')[1];
-          batchToSave[index] = url;
-        });
-
-        await axios.post(`${BASE_URL}/api/data/update-screenshots`, {
-          recordId: record._id,
-          screenshotData: batchToSave
-        });
-
-        setScreenshotData(prev => ({ ...prev, ...newScreenshotEntries }));
-      }
-
-      message.success(`Successfully captured ${successCount} new screenshots`);
-    } catch (error) {
-      console.error('Bulk capture error:', error);
-      message.error('Bulk capture failed: ' + error.message);
-    } finally {
-      setCapturingBulk(false);
-      setCaptureProgress({ current: 0, total: 0 });
-    }
+    addToQueue(items, record._id);
+    message.success(`Added ${items.length} websites to capture queue`);
   };
 
   const handleVerifyAllClick = async () => {
@@ -963,7 +859,7 @@ const OperationDetailPage = () => {
               type="text"
               icon={<MdCameraAlt className="text-blue-500" />}
               onClick={() => handleCapture(website, record.key)}
-              loading={capturing[record.key]}
+              loading={queue.some(i => i.key === record.key && (i.status === 'pending' || i.status === 'processing'))}
               className="flex items-center gap-1 hover:bg-blue-50 transition-colors"
             >
               {screenshotData[record.key] ? 'Recapture' : 'Capture'}
@@ -1078,20 +974,21 @@ const OperationDetailPage = () => {
           <div className="flex flex-wrap gap-2 justify-end">
             <Button
               type="default"
+              icon={<MdLocationOn />}
               onClick={extractCitiesForRecord}
               loading={extractingCities}
               disabled={extractingCities || !record}
             >
-              {extractingCities ? 'Extracting Cities...' : '📍 Extract Cities'}
+              {extractingCities ? 'Extracting Cities...' : 'Extract Cities'}
             </Button>
             <Button
               type="default"
               icon={<MdCameraAlt />}
               onClick={() => captureAllScreenshots(true)}
-              loading={capturingBulk}
-              disabled={capturingBulk || filteredData.length === 0}
+              loading={progress.isProcessing && progress.operationId === record?._id}
+              disabled={progress.isProcessing || filteredData.length === 0}
             >
-              {capturingBulk ? `Capturing... (${captureProgress.current}/${captureProgress.total})` : '📸 Capture Filtered Websites'}
+              {progress.isProcessing ? 'Capture Pending...' : 'Capture Filtered Websites'}
             </Button>
             <Button
               icon={<MdSave />}
