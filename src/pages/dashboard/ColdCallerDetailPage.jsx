@@ -62,18 +62,16 @@ const ColdCallerDetailPage = () => {
     setUpdatingStatus(true);
     try {
       const res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
-        numbers: campaign.numbers.map(n =>
-          n._id === callingLeadId
-            ? { ...n, status: selectedStatus, lastCalled: new Date() }
-            : n
-        )
+        leadId: callingLeadId,
+        status: selectedStatus
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data.success) {
         message.success('Lead status updated');
-        setCampaign(res.data.data);
+        // Refresh full data to get any new recordings that might have been saved by webhook
+        fetchCampaignData();
         setStatusModalVisible(false);
         setCallingLeadId(null);
       }
@@ -143,6 +141,18 @@ const ColdCallerDetailPage = () => {
       dataIndex: 'lastCalled',
       key: 'lastCalled',
       render: (date) => date ? new Date(date).toLocaleString() : <span className="text-gray-400">Not called yet</span>,
+    },
+    {
+      title: 'Recording',
+      dataIndex: 'recordingUrl',
+      key: 'recording',
+      render: (url) => url ? (
+        <audio
+          controls
+          src={`${BASE_URL}/api/call/recording-stream?recordingUrl=${encodeURIComponent(url)}`}
+          className="h-8 w-60"
+        />
+      ) : <span className="text-gray-400 text-xs">No Rec</span>,
     },
     {
       title: 'Actions',
@@ -233,7 +243,7 @@ const ColdCallerDetailPage = () => {
                 }
                 try {
                   const res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
-                    numbers: [...campaign.numbers, { number, status: 'pending' }]
+                    newNumber: number
                   }, {
                     headers: { Authorization: `Bearer ${token}` }
                   });

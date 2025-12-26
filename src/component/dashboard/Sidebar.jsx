@@ -84,6 +84,11 @@ const Sidebar = () => {
             name: "Call Automation",
             path: "/dashboard/call",
             icon: <MdPhone className="w-5 h-5" />,
+        },
+        {
+            name: "Twilio Settings",
+            path: "/dashboard/twilio-settings",
+            icon: <MdSettings className="w-5 h-5" />,
         }
     ];
 
