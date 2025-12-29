@@ -1,7 +1,40 @@
-import React from 'react';
-import { FaCheck, FaArrowRight } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaCheck, FaArrowRight, FaSpinner } from 'react-icons/fa';
+import { BASE_URL } from '../../config/URL';
 
 const SubscriptionCard = ({ plan }) => {
+    const [loading, setLoading] = useState(false);
+
+    const handleSubscribe = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`${BASE_URL}/api/stripe/create-checkout-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    planName: plan.name,
+                    price: plan.price,
+                    packageId: plan.id || null,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.url) {
+                // Redirect to Stripe Checkout
+                window.location.href = data.url;
+            } else {
+                console.error('Failed to create checkout session');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div
             className={`rounded-2xl shadow-xl overflow-hidden transition-transform hover:scale-105 ${
@@ -57,14 +90,25 @@ const SubscriptionCard = ({ plan }) => {
 
                 {/* CTA Button */}
                 <button
+                    onClick={handleSubscribe}
+                    disabled={loading}
                     className={`w-full py-3 px-6 rounded-full font-semibold flex items-center justify-center gap-2 transition-all mb-8 ${
                         plan.featured
-                            ? 'bg-white text-green-700 hover:bg-gray-50'
-                            : 'bg-gray-100 text-green-700 hover:bg-green-50'
+                            ? 'bg-white text-green-700 hover:bg-gray-50 disabled:opacity-70'
+                            : 'bg-gray-100 text-green-700 hover:bg-green-50 disabled:opacity-70'
                     }`}
                 >
-                    Get Started Now
-                    <FaArrowRight className="text-sm" />
+                    {loading ? (
+                        <>
+                            <FaSpinner className="animate-spin text-sm" />
+                            Processing...
+                        </>
+                    ) : (
+                        <>
+                            Get Started Now
+                            <FaArrowRight className="text-sm" />
+                        </>
+                    )}
                 </button>
 
                 {/* Features */}

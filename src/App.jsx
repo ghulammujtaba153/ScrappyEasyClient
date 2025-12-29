@@ -25,6 +25,7 @@ import { ScreenshotProvider } from "./context/screenshotContext";
 import SupportPage from "./pages/dashboard/SupportPage";
 import ProfilePage from "./pages/dashboard/ProfilePage";
 import SubscriptionPage from "./pages/dashboard/SubscriptionPage";
+import SubscriptionSuccessPage from "./pages/dashboard/SubscriptionSuccessPage";
 
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
                                 <Route path="support" element={<SupportPage />} />
                                 <Route path="profile-settings" element={<ProfilePage />} />
                                 <Route path="subscription" element={<SubscriptionPage />} />
+                                <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
                             </Route>
 
                             {/* 404 Page - Must be last */}
