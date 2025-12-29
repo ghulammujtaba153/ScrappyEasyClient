@@ -36,7 +36,13 @@ const Dialer = ({ onClose, phoneNumber, onCallEnd }) => {
                 const response = await axios.get(`${BASE_URL}/api/call/token`, {
                     params: config
                 });
-                const { token } = response.data;
+                const { token, apiKeySid, apiKeySecret } = response.data;
+
+                // Save generated keys to avoid creating new ones every time
+                if (apiKeySid && apiKeySecret && (!config.apiKeySid || !config.apiKeySecret)) {
+                    const newConfig = { ...config, apiKeySid, apiKeySecret };
+                    localStorage.setItem("twilio_config", JSON.stringify(newConfig));
+                }
 
                 const newDevice = new Device(token, {
                     logLevel: 1,
@@ -44,18 +50,26 @@ const Dialer = ({ onClose, phoneNumber, onCallEnd }) => {
                 });
 
                 newDevice.on("registered", () => console.log("Twilio Device Registered"));
-                newDevice.on("error", (error) => console.error("Twilio Device Error:", error));
+                newDevice.on("error", (error) => {
+                    console.error("Twilio Device Error:", error);
+                    if (error.code === 20101) {
+                        setError("Critical Error: Invalid Access Token. Please verify in Settings that your TwiML App SID belongs to your Account SID.");
+                    } else {
+                        setError("Twilio Error: " + error.message);
+                    }
+                });
 
                 await newDevice.register();
                 setDevice(newDevice);
             } catch (error) {
                 console.error("Failed to initialize Twilio device:", error);
+                setError(error.response?.data?.message || "Failed to connect to Twilio service");
             }
         };
 
-        init();
-
+        const timer = setTimeout(init, 1000); // Small delay to ensure clean state
         return () => {
+            clearTimeout(timer);
             if (device) {
                 device.destroy();
             }

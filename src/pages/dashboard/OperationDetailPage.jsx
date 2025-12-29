@@ -28,6 +28,7 @@ import {
   MdCameraAlt,
   MdImage,
   MdSearch,
+  MdWeb,
   MdLocationOn
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
@@ -40,6 +41,7 @@ import { useScreenshot } from '../../context/screenshotContext';
 import Notes from '../../component/dashboard/Notes';
 import SaveColdCallsModal from '../../component/dashboard/SaveColdCallsModal';
 import ScreenshotViewer from '../../component/dashboard/ScreenshotViewer';
+import WebsiteCarouselViewer from '../../component/dashboard/WebsiteCarouselViewer';
 
 const { Option } = Select;
 
@@ -94,6 +96,9 @@ const OperationDetailPage = () => {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isColdCallModalOpen, setIsColdCallModalOpen] = useState(false);
+  // Carousel State
+  const [isCarouselOpen, setIsCarouselOpen] = useState(false);
+
   const [verifyingAll, setVerifyingAll] = useState(false);
 
   const [extractingCities, setExtractingCities] = useState(false);
@@ -983,6 +988,14 @@ const OperationDetailPage = () => {
             </Button>
             <Button
               type="default"
+              icon={<MdWeb />}
+              onClick={() => setIsCarouselOpen(true)}
+              disabled={filteredData.filter(item => item.website).length === 0}
+            >
+              Show in iFrame
+            </Button>
+            <Button
+              type="default"
               icon={<MdCameraAlt />}
               onClick={() => captureAllScreenshots(true)}
               loading={progress.isProcessing && progress.operationId === record?._id}
@@ -1285,6 +1298,18 @@ const OperationDetailPage = () => {
           }}
         />
       </div>
+
+      <WebsiteCarouselViewer
+        isOpen={isCarouselOpen}
+        onClose={() => setIsCarouselOpen(false)}
+        websites={filteredData
+          .filter(item => item.website)
+          .map(item => ({
+            title: item.title,
+            url: item.website,
+            screenshotUrl: screenshotData[item.key] // Pass stored screenshot
+          }))}
+      />
 
       <Notes operationId={operationId} />
     </div>
