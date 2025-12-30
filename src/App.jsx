@@ -26,6 +26,7 @@ import SupportPage from "./pages/dashboard/SupportPage";
 import ProfilePage from "./pages/dashboard/ProfilePage";
 import SubscriptionPage from "./pages/dashboard/SubscriptionPage";
 import SubscriptionSuccessPage from "./pages/dashboard/SubscriptionSuccessPage";
+import LocationPage from "./pages/dashboard/LocationPage";
 
 
 function App() {
@@ -68,6 +69,7 @@ function App() {
                                 <Route path="profile-settings" element={<ProfilePage />} />
                                 <Route path="subscription" element={<SubscriptionPage />} />
                                 <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
+                                <Route path="location" element={<LocationPage />} />
                             </Route>
 
                             {/* 404 Page - Must be last */}

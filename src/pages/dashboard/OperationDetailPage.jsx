@@ -103,6 +103,11 @@ const OperationDetailPage = () => {
 
   const [extractingCities, setExtractingCities] = useState(false);
 
+  // Recommend Cities State
+  const [recommendedCities, setRecommendedCities] = useState([]);
+  const [isRecommendModalOpen, setIsRecommendModalOpen] = useState(false);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+
   // Wrapper setters to update cache (mimicking local state setters)
   const setCityData = (newData) => {
     const data = typeof newData === 'function' ? newData(cityData) : newData;
@@ -185,6 +190,63 @@ const OperationDetailPage = () => {
 
     const city = await getCityFromCoordinates(coords.lat, coords.lon);
     return city;
+  };
+
+  // Get recommended nearby cities based on Google Maps coordinates in data
+  const getRecommendedCities = async () => {
+    if (!record || !record.data) {
+      message.warning('No data available to analyze');
+      return;
+    }
+
+    setLoadingRecommendations(true);
+    
+    try {
+      // Collect all coordinates from Google Maps links
+      const allCoords = [];
+      record.data.forEach((item) => {
+        if (item.googleMapsLink) {
+          const coords = extractCoordinates(item.googleMapsLink);
+          if (coords) {
+            allCoords.push(coords);
+          }
+        }
+      });
+
+      if (allCoords.length === 0) {
+        message.warning('No Google Maps coordinates found in your data');
+        setLoadingRecommendations(false);
+        return;
+      }
+
+      // Calculate average/center coordinates
+      const avgLat = allCoords.reduce((sum, c) => sum + c.lat, 0) / allCoords.length;
+      const avgLon = allCoords.reduce((sum, c) => sum + c.lon, 0) / allCoords.length;
+
+      console.log(`📍 Center coordinates: ${avgLat}, ${avgLon} (from ${allCoords.length} locations)`);
+
+      // Call API to get neighboring cities
+      const res = await axios.get(`${BASE_URL}/api/location/city-neighbors`, {
+        params: {
+          lat: avgLat,
+          lng: avgLon,
+          limit: 5
+        }
+      });
+
+      if (res.data.success && res.data.neighbors?.length > 0) {
+        setRecommendedCities(res.data.neighbors);
+        setIsRecommendModalOpen(true);
+        message.success(`Found ${res.data.neighbors.length} nearby cities to explore`);
+      } else {
+        message.info('No nearby cities found');
+      }
+    } catch (error) {
+      console.error('Error getting recommended cities:', error);
+      message.error('Failed to get city recommendations');
+    }
+    
+    setLoadingRecommendations(false);
   };
 
   // Extract cities for all items in record
@@ -987,6 +1049,16 @@ const OperationDetailPage = () => {
               {extractingCities ? 'Extracting Cities...' : 'Extract Cities'}
             </Button>
             <Button
+              type="primary"
+              icon={<MdLocationOn />}
+              onClick={getRecommendedCities}
+              loading={loadingRecommendations}
+              disabled={loadingRecommendations || !record}
+              className="bg-blue-600 hover:bg-blue-700 border-blue-600"
+            >
+              {loadingRecommendations ? 'Finding...' : 'Recommend Cities'}
+            </Button>
+            <Button
               type="default"
               icon={<MdWeb />}
               onClick={() => setIsCarouselOpen(true)}
@@ -1123,6 +1195,58 @@ const OperationDetailPage = () => {
         numbers={getFilteredPhoneNumbers()}
         userId={user?._id || user?.id}
       />
+
+      {/* Recommended Cities Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <MdLocationOn className="text-blue-600 text-xl" />
+            <span>Recommended Cities to Explore</span>
+          </div>
+        }
+        open={isRecommendModalOpen}
+        onCancel={() => setIsRecommendModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsRecommendModalOpen(false)}>
+            Close
+          </Button>
+        ]}
+        width={600}
+      >
+        <p className="text-gray-600 mb-4">
+          Based on your current data locations, here are 5 nearby cities you should consider searching for more leads:
+        </p>
+        <div className="space-y-3">
+          {recommendedCities.map((city, index) => (
+            <div
+              key={city.id || index}
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors"
+            >
+              <div className="flex-1">
+                <div className="font-semibold text-gray-800">
+                  {index + 1}. {city.city}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {city.admin_name && `${city.admin_name}, `}{city.country}
+                </div>
+                {city.population && (
+                  <div className="text-xs text-gray-500">
+                    Population: {city.population.toLocaleString()}
+                  </div>
+                )}
+              </div>
+              <div className="text-right">
+                <Tag color="green">{city.distance_km} km away</Tag>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Tip:</strong> Search for businesses in these cities using the same keywords to expand your reach!
+          </p>
+        </div>
+      </Modal>
 
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-100 table-container">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">

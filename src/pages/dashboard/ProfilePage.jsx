@@ -235,7 +235,7 @@ const ProfilePage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
             {notification && (
                 <Notification
                     message={notification.message}
