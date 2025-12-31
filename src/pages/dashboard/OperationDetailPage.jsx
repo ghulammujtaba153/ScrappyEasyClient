@@ -29,7 +29,9 @@ import {
   MdImage,
   MdSearch,
   MdWeb,
-  MdLocationOn
+  MdLocationOn,
+  MdFavorite,
+  MdFavoriteBorder
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
@@ -55,7 +57,8 @@ const defaultFilters = {
   reviewsMin: null,
   reviewsMax: null,
   hasWebsite: '',
-  hasPhone: ''
+  hasPhone: '',
+  favorite: ''
 };
 
 const EXPORT_FIELDS = [
@@ -384,6 +387,29 @@ const OperationDetailPage = () => {
     }
   };
 
+  // Toggle favorite status for a data item
+  const toggleFavorite = async (itemIndex, favorite) => {
+    try {
+      const res = await axios.post(`${BASE_URL}/api/data/toggle-favorite`, {
+        recordId: record._id,
+        itemIndex,
+        favorite
+      });
+
+      if (res.data.success) {
+        // Update the local cache
+        const updatedRecord = { ...record };
+        updatedRecord.data = [...record.data];
+        updatedRecord.data[itemIndex] = { ...updatedRecord.data[itemIndex], favorite };
+        updateOperationCache(operationId, { record: updatedRecord });
+        message.success(favorite ? 'Added to favorites' : 'Removed from favorites');
+      }
+    } catch (error) {
+      console.error('Toggle favorite error:', error);
+      message.error('Failed to update favorite status');
+    }
+  };
+
   useEffect(() => {
     fetchRecord();
     checkWhatsAppStatus();
@@ -540,6 +566,7 @@ const OperationDetailPage = () => {
     return record.data.map((item, index) => ({
       key: `${record._id}-${index}`,
       recordId: record._id,
+      itemIndex: index,
       searchString: record.searchString,
       createdAt: record.createdAt,
       ...item
@@ -664,6 +691,13 @@ const OperationDetailPage = () => {
       filtered = filtered.filter(item => {
         const hasPhone = !!item.phone;
         return filters.hasPhone === 'yes' ? hasPhone : !hasPhone;
+      });
+    }
+
+    if (filters.favorite) {
+      filtered = filtered.filter(item => {
+        const isFavorite = !!item.favorite;
+        return filters.favorite === 'yes' ? isFavorite : !isFavorite;
       });
     }
 
@@ -1386,6 +1420,26 @@ const OperationDetailPage = () => {
                 <Option value="no">No phone</Option>
               </Select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-2">
+                Favorites
+              </label>
+              <Select
+                placeholder="Filter by favorites"
+                style={{ width: '100%' }}
+                value={filters.favorite || undefined}
+                onChange={(value) => setFilters({ ...filters, favorite: value || '' })}
+                allowClear
+                className="custom-select-primary"
+              >
+                <Option value="yes">
+                  <span className="flex items-center gap-2">
+                    <MdFavorite className="text-red-500" /> Favorites only
+                  </span>
+                </Option>
+                <Option value="no">Not favorites</Option>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -1396,7 +1450,8 @@ const OperationDetailPage = () => {
           filters.reviewsMin !== null ||
           filters.reviewsMax !== null ||
           filters.hasWebsite ||
-          filters.hasPhone) && (
+          filters.hasPhone ||
+          filters.favorite) && (
             <div className="mt-4">
               <Button
                 onClick={() => setFilters({ ...defaultFilters })}
@@ -1431,9 +1486,19 @@ const OperationDetailPage = () => {
           .map(item => ({
             title: item.title,
             url: item.website,
-            screenshotUrl: screenshotData[item.key] // Pass stored screenshot
+            screenshotUrl: screenshotData[item.key],
+            favorite: item.favorite,
+            itemIndex: item.itemIndex
           }))}
+        onToggleFavorite={(carouselIndex, favorite) => {
+          const websitesWithIndex = filteredData.filter(item => item.website);
+          const item = websitesWithIndex[carouselIndex];
+          if (item) {
+            toggleFavorite(item.itemIndex, favorite);
+          }
+        }}
       />
+
 
       <Notes operationId={operationId} />
     </div>
