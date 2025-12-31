@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../config/URL";
 import { useAuth } from "../context/authContext";
-import Notification from "../component/common/Notification";
+import Notification from "../components/common/Notification";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const LoginPage = () => {

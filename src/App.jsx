@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";
-import ProtectedRoute from "./component/common/ProtectedRoute";
-import AuthRedirect from "./component/common/AuthRedirect";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+import AuthRedirect from "./components/common/AuthRedirect";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/dashboard/HomePage";
@@ -9,7 +9,7 @@ import LocationDetails from "./pages/dashboard/LocationDetails";
 import NotFoundPage from "./pages/404Page";
 import ForgetPassword from "./pages/ForgetPassword";
 import CategoryPage from "./pages/dashboard/CategoryPage";
-import DashboardLayout from "./component/dashboard/DashboardLayout";
+import DashboardLayout from "./components/dashboard/DashboardLayout";
 import OperationsPage from "./pages/dashboard/OperationsPage";
 import OperationDetailPage from "./pages/dashboard/OperationDetailPage";
 import 'leaflet/dist/leaflet.css';

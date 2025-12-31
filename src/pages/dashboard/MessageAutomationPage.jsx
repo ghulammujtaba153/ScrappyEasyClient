@@ -5,7 +5,7 @@ import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
 import { useAuth } from '../../context/authContext';
 import { BASE_URL } from '../../config/URL';
-import WhatsAppConnectModal from '../../component/dashboard/WhatsAppConnectModal';
+import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 
 const MessageAutomationPage = () => {
     const { user, token } = useAuth();

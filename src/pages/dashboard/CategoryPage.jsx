@@ -3,7 +3,7 @@ import { Table, Button, Space, Popconfirm, message } from 'antd';
 import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
-import CategoryModal from '../../component/dashboard/CategoryModal';
+import CategoryModal from '../../components/dashboard/CategoryModal';
 
 const CategoryPage = () => {
     const [categories, setCategories] = useState([]);
