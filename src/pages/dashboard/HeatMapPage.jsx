@@ -59,7 +59,8 @@ const HeatMapPage = () => {
           clusters.push({
             lat: point.lat,
             lon: point.lon,
-            city: point.city
+            city: point.city,
+            density: point.density
           });
         }
       });
@@ -71,13 +72,33 @@ const HeatMapPage = () => {
           .filter(c => c && c !== 'unknown')
       );
 
-      // Also create a set of explored coordinate areas to filter nearby duplicates
+      // Create a set of explored coordinate areas to filter nearby duplicates
       const exploredCoordAreas = new Set(
         exploredPoints.map(p => `${p.lat.toFixed(2)}-${p.lon.toFixed(2)}`)
       );
 
+      // Identify HIGH DENSITY areas (density >= 3) - these are already well explored
+      const highDensityPoints = exploredPoints.filter(p => p.density >= 3);
+      
+      // Function to check if a point is too close to high density areas
+      const isNearHighDensityArea = (lat, lng, minDistanceKm = 20) => {
+        for (const hdPoint of highDensityPoints) {
+          // Haversine-like distance approximation
+          const latDiff = Math.abs(lat - hdPoint.lat);
+          const lonDiff = Math.abs(lng - hdPoint.lon);
+          // Rough km conversion (1 degree ≈ 111km)
+          const distanceKm = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) * 111;
+          if (distanceKm < minDistanceKm) {
+            return true;
+          }
+        }
+        return false;
+      };
+
       // Fetch nearby cities for up to 5 coordinate clusters
-      const clustersToCheck = clusters.slice(0, 5);
+      // Prioritize LOW density clusters for recommendations
+      const sortedClusters = clusters.sort((a, b) => (a.density || 1) - (b.density || 1));
+      const clustersToCheck = sortedClusters.slice(0, 5);
       const allNearbyCities = [];
 
       for (const cluster of clustersToCheck) {
@@ -103,7 +124,10 @@ const HeatMapPage = () => {
                                  exploredCityNames.has(cityAsciiLower) ||
                                  exploredCoordAreas.has(coordArea);
               
-              if (!isExplored) {
+              // Check if it's near a high density area
+              const nearHighDensity = isNearHighDensityArea(nearbyCity.lat, nearbyCity.lng, 15);
+              
+              if (!isExplored && !nearHighDensity) {
                 allNearbyCities.push({
                   ...nearbyCity,
                   sourceCity: cluster.city || 'Explored Area'
@@ -130,7 +154,7 @@ const HeatMapPage = () => {
           }
         });
 
-      setRecommendedCities(uniqueNeighbors.slice(0, 4)); // Limit to top 4 nearest recommendations
+      setRecommendedCities(uniqueNeighbors.slice(0, 8)); // Limit to top 4 nearest recommendations
     } catch (error) {
       console.error('Error fetching recommended cities:', error);
     } finally {
