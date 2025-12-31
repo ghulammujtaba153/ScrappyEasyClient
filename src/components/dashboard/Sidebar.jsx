@@ -20,7 +20,8 @@ import {
     MdCall,
     MdCardMembership,
     MdAccountCircle,
-    MdLogout
+    MdLogout,
+    MdMeetingRoom
 } from "react-icons/md";
 import { useAuth } from "../../context/authContext";
 
@@ -82,16 +83,16 @@ const Sidebar = () => {
             path: "/dashboard/cold-caller",
             icon: <MdPhone className="w-5 h-5" />,
         },
-        // {
-        //     name: "WhatsApp Automation",
-        //     path: "/dashboard/whatsapp-automation",
-        //     icon: <MdWhatsapp className="w-5 h-5" />,
-        // },
         {
-            name: "Call Automation",
-            path: "/dashboard/call",
-            icon: <MdCall className="w-5 h-5" />,
+            name: "Collabortion",
+            path: "/dashboard/collaboration",
+            icon: <MdMeetingRoom className="w-5 h-5" />,
         },
+        // {
+        //     name: "Call Automation",
+        //     path: "/dashboard/call",
+        //     icon: <MdCall className="w-5 h-5" />,
+        // },
         {
             name: "Subscription",
             path: "/dashboard/subscription",

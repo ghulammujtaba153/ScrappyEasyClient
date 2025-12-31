@@ -5,11 +5,13 @@ import {
     MdKeyboardArrowLeft,
     MdKeyboardArrowRight,
     MdOpenInNew,
-    MdWeb
+    MdWeb,
+    MdFavorite,
+    MdFavoriteBorder
 } from 'react-icons/md';
 import { BASE_URL } from '../../config/URL';
 
-const WebsiteCarouselViewer = ({ isOpen, onClose, websites = [], initialIndex = 0 }) => {
+const WebsiteCarouselViewer = ({ isOpen, onClose, websites = [], initialIndex = 0, onToggleFavorite }) => {
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [loading, setLoading] = useState(true);
 
@@ -60,6 +62,7 @@ const WebsiteCarouselViewer = ({ isOpen, onClose, websites = [], initialIndex = 
         ? currentSite.url
         : `https://${currentSite.url}`;
 
+
     // Use proxy to bypass X-Frame-Options
     const proxyUrl = `${BASE_URL}/api/proxy?url=${encodeURIComponent(siteUrl)}`;
 
@@ -87,6 +90,21 @@ const WebsiteCarouselViewer = ({ isOpen, onClose, websites = [], initialIndex = 
                 </div>
 
                 <div className="flex items-center gap-4 shrink-0">
+                    {onToggleFavorite && (
+                        <Tooltip title={currentSite?.favorite ? "Remove from favorites" : "Add to favorites"}>
+                            <button
+                                onClick={() => onToggleFavorite(currentIndex, !currentSite?.favorite)}
+                                className={`p-2 rounded-full transition-all text-xl ${
+                                    currentSite?.favorite 
+                                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                                        : 'hover:bg-white/10 text-gray-300 hover:text-red-400'
+                                }`}
+                            >
+                                {currentSite?.favorite ? <MdFavorite /> : <MdFavoriteBorder />}
+                            </button>
+                        </Tooltip>
+                    )}
+
                     <div className="px-3 py-1 bg-black/40 rounded-full text-xs font-mono text-gray-300 border border-white/10">
                         {currentIndex + 1} / {websites.length}
                     </div>
