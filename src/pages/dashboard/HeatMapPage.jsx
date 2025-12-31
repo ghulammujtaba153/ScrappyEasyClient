@@ -2,12 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import axios from 'axios';
-import * as d3 from 'd3';
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "leaflet.markercluster/dist/MarkerCluster.css";
-import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import "leaflet.markercluster";
+import "leaflet.heat/dist/leaflet-heat.js";
 
 const HeatMapPage = () => {
   const { user } = useAuth();
@@ -18,6 +15,8 @@ const HeatMapPage = () => {
   const [recommendedCities, setRecommendedCities] = useState([]);
   const [showRecommendations, setShowRecommendations] = useState(true);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [heatIntensity, setHeatIntensity] = useState(1.0);
+  const [heatRadius, setHeatRadius] = useState(40);
 
   const extractCoordinates = (url) => {
     if (!url) return null;
@@ -38,11 +37,6 @@ const HeatMapPage = () => {
     }
     return null;
   };
-
-  const heatColor = d3
-    .scaleLinear()
-    .domain([1, 3, 6, 10, 20])
-    .range(["#ffff00", "#ffae00", "#ff5e00", "#ff0000", "#8b0000"]);
 
   // Fetch recommended neighboring cities using coordinates
   const fetchRecommendedCities = async (exploredPoints) => {
@@ -244,17 +238,35 @@ const HeatMapPage = () => {
       attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
 
-    // Add circle markers with density-based colors (explored areas)
+    // Create heat map data points with intensity based on density
+    const heatData = mapData.map(p => [p.lat, p.lon, Math.max(p.density, 1) * heatIntensity]);
+
+    // Add heat layer with gradient colors (green -> yellow -> orange -> red -> dark red)
+    const heat = L.heatLayer(heatData, {
+      radius: heatRadius,
+      blur: 20,
+      maxZoom: 18,
+      max: 1.0,
+      minOpacity: 0.4,
+      gradient: {
+        0.0: '#00ff00',
+        0.25: '#ffff00',
+        0.5: '#ffae00',
+        0.75: '#ff5e00',
+        0.9: '#ff0000',
+        1.0: '#8b0000'
+      }
+    }).addTo(map);
+
+    // Add clickable markers for data points (smaller, semi-transparent)
     mapData.forEach(p => {
-      const color = heatColor(p.density);
-      
       L.circleMarker([p.lat, p.lon], {
-        radius: 8 + (p.density * 0.5),
-        fillColor: color,
-        color: '#fff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
+        radius: 4,
+        fillColor: 'transparent',
+        color: 'transparent',
+        weight: 0,
+        opacity: 0,
+        fillOpacity: 0
       }).bindPopup(`
         <div style="min-width: 200px;">
           <b style="font-size: 14px;">${p.title}</b><br/>
@@ -271,15 +283,15 @@ const HeatMapPage = () => {
     if (showRecommendations && recommendedCities.length > 0) {
       recommendedCities.forEach(city => {
         // Calculate marker size based on population
-        const popSize = city.population ? Math.min(Math.log10(city.population) * 3, 15) : 8;
+        const popSize = city.population ? Math.min(Math.log10(city.population) * 3, 15) : 10;
         
         L.circleMarker([parseFloat(city.lat), parseFloat(city.lng)], {
           radius: popSize,
-          fillColor: '#10B981', // Green color
+          fillColor: '#10B981',
           color: '#059669',
-          weight: 2,
+          weight: 3,
           opacity: 1,
-          fillOpacity: 0.7
+          fillOpacity: 0.8
         }).bindPopup(`
           <div style="min-width: 220px;">
             <div style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 8px; margin: -8px -8px 8px -8px; border-radius: 4px 4px 0 0;">
@@ -303,7 +315,7 @@ const HeatMapPage = () => {
     return () => {
       map.remove();
     };
-  }, [mapData, recommendedCities, showRecommendations]);
+  }, [mapData, recommendedCities, showRecommendations, heatIntensity, heatRadius]);
 
   const handleOperationChange = (value) => {
     setSelectedOperation(value);
@@ -364,29 +376,39 @@ const HeatMapPage = () => {
           </div>
         ) : (
           <div className="relative overflow-hidden">
-            <div className="absolute top-4 right-4 z-[1000] bg-white p-3 rounded-lg shadow-md">
-              <div className="text-sm font-semibold mb-2">Heat Legend</div>
+            <div className="absolute top-4 right-4 z-[1000] bg-white p-3 rounded-lg shadow-md" style={{ maxWidth: '200px' }}>
+              <div className="text-sm font-semibold mb-2">Heat Intensity</div>
               <div className="flex flex-col gap-1 text-xs mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#8b0000' }}></div>
-                  <span>Very High (20+)</span>
+                <div className="h-4 rounded" style={{ background: 'linear-gradient(to right, #00ff00, #ffff00, #ffae00, #ff5e00, #ff0000, #8b0000)' }}></div>
+                <div className="flex justify-between text-gray-500">
+                  <span>Low</span>
+                  <span>High</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#ff0000' }}></div>
-                  <span>High (10-20)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#ff5e00' }}></div>
-                  <span>Medium (6-10)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#ffae00' }}></div>
-                  <span>Low (3-6)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#ffff00' }}></div>
-                  <span>Very Low (1-3)</span>
-                </div>
+              </div>
+              
+              {/* Heat Controls */}
+              <div className="mb-3 pt-2 border-t">
+                <label className="text-xs text-gray-600 block mb-1">Radius: {heatRadius}px</label>
+                <input 
+                  type="range" 
+                  min="20" 
+                  max="80" 
+                  value={heatRadius}
+                  onChange={(e) => setHeatRadius(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+              <div className="mb-3">
+                <label className="text-xs text-gray-600 block mb-1">Intensity: {heatIntensity.toFixed(1)}</label>
+                <input 
+                  type="range" 
+                  min="0.3" 
+                  max="2" 
+                  step="0.1"
+                  value={heatIntensity}
+                  onChange={(e) => setHeatIntensity(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
               </div>
               
               {/* Recommendations Legend */}
@@ -405,7 +427,7 @@ const HeatMapPage = () => {
                 </>
               )}
               
-              <div className="text-xs text-gray-500 pt-2 border-t mt-2">Drag & zoom freely</div>
+              <div className="text-xs text-gray-500 pt-2 border-t mt-2">Click on map for details</div>
               <div className="text-xs mt-2">
                 Total Points: <b>{mapData.length}</b>
               </div>
