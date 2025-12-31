@@ -3,7 +3,12 @@ import { io } from 'socket.io-client';
 import { useAuth } from './authContext';
 import { message } from 'antd';
 
+import { BASE_URL } from '../config/URL';
+
 const SocketContext = createContext(null);
+
+// Event listeners registry for components to subscribe to socket events
+const eventListeners = new Map();
 
 export const useSocket = () => {
     const context = useContext(SocketContext);
@@ -21,20 +26,73 @@ export const SocketProvider = ({ children }) => {
     const [incomingRequests, setIncomingRequests] = useState([]);
     const [notifications, setNotifications] = useState([]);
 
+    // Helper to notify event listeners (defined before useEffect to avoid hoisting issues)
+    const notifyListeners = useCallback((eventName, data) => {
+        const listeners = eventListeners.get(eventName) || [];
+        listeners.forEach(callback => callback(data));
+    }, []);
+
+    // Subscribe to socket events (for components like CollaborationPage)
+    const subscribeToEvent = useCallback((eventName, callback) => {
+        if (!eventListeners.has(eventName)) {
+            eventListeners.set(eventName, []);
+        }
+        eventListeners.get(eventName).push(callback);
+        
+        // Return unsubscribe function
+        return () => {
+            const listeners = eventListeners.get(eventName) || [];
+            const index = listeners.indexOf(callback);
+            if (index > -1) {
+                listeners.splice(index, 1);
+            }
+        };
+    }, []);
+
     // Initialize socket connection
     useEffect(() => {
-        if (isAuthenticated && user?._id) {
-            const socketInstance = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
-                transports: ['websocket', 'polling'],
+        // isAuthenticated is a function in authContext, so call it
+        const isAuth = typeof isAuthenticated === 'function' ? isAuthenticated() : isAuthenticated;
+        
+        if (!isAuth || !user?._id) {
+            return;
+        }
+
+        // Prevent multiple connections - check if already connected
+        if (socketRef.current?.connected) {
+            console.log('🔌 Socket already connected, skipping...');
+            return;
+        }
+
+        // Disconnect existing socket if any (but not connected)
+        if (socketRef.current) {
+            socketRef.current.disconnect();
+            socketRef.current = null;
+        }
+
+        console.log('🔌 Initializing socket connection for user:', user.name);
+
+        const socketInstance = io(BASE_URL, {
+                // Start with polling then upgrade to websocket (more reliable for cloud platforms like Render)
+                transports: ['polling', 'websocket'],
+                upgrade: true,
                 reconnection: true,
-                reconnectionAttempts: 5,
+                reconnectionAttempts: Infinity,
                 reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                timeout: 30000,
+                // Don't use credentials with wildcard CORS origin
+                withCredentials: false,
+                // Force new connection
+                forceNew: true,
+                // Auto connect
+                autoConnect: true,
             });
 
             socketRef.current = socketInstance;
 
             socketInstance.on('connect', () => {
-                console.log('🔌 Socket connected');
+                console.log('🔌 Socket connected:', socketInstance.id);
                 setIsConnected(true);
                 
                 // Emit user online status
@@ -48,9 +106,30 @@ export const SocketProvider = ({ children }) => {
                 socketInstance.emit('get_online_users');
             });
 
-            socketInstance.on('disconnect', () => {
-                console.log('🔌 Socket disconnected');
+            socketInstance.on('connect_error', (error) => {
+                console.error('🔌 Socket connection error:', error.message);
                 setIsConnected(false);
+            });
+
+            socketInstance.on('disconnect', (reason) => {
+                console.log('🔌 Socket disconnected:', reason);
+                setIsConnected(false);
+                
+                // If the disconnection was initiated by the server, reconnect manually
+                if (reason === 'io server disconnect') {
+                    socketInstance.connect();
+                }
+            });
+
+            socketInstance.on('reconnect', (attemptNumber) => {
+                console.log('🔌 Socket reconnected after', attemptNumber, 'attempts');
+                // Re-emit user online status after reconnect
+                socketInstance.emit('user_online', {
+                    userId: user._id,
+                    name: user.name,
+                    email: user.email,
+                });
+                socketInstance.emit('get_online_users');
             });
 
             // Listen for online users updates
@@ -115,15 +194,22 @@ export const SocketProvider = ({ children }) => {
                 } else {
                     message.error(response.message || 'Failed to send response');
                 }
+                // Notify listeners for collaboration history refresh
+                notifyListeners('collaboration_updated');
+            });
+
+            // Forward events to registered listeners
+            socketInstance.on('meeting_request_sent', (data) => {
+                notifyListeners('collaboration_updated', data);
             });
 
             return () => {
+                console.log('🔌 Cleaning up socket connection');
                 socketInstance.disconnect();
                 socketRef.current = null;
                 setIsConnected(false);
             };
-        }
-    }, [isAuthenticated, user]);
+    }, [user?._id, user?.name, user?.email, notifyListeners, isAuthenticated]);
 
     // Send meeting request
     const sendMeetingRequest = useCallback((receiverId, meetLink, requestMessage) => {
@@ -179,7 +265,8 @@ export const SocketProvider = ({ children }) => {
         sendMeetingRequest,
         acceptMeetingRequest,
         declineMeetingRequest,
-        clearNotification
+        clearNotification,
+        subscribeToEvent
     };
 
     return (

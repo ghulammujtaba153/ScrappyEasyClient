@@ -34,7 +34,6 @@ import { useAuth } from '../../context/authContext';
 import MeetingRequestModal from '../../components/collaboration/MeetingRequestModal';
 import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
-import { io } from 'socket.io-client';
 import CollaboratorProfile from '../../components/collaboration/CollaboratorProfile';
 import ProfileCompletionForm from '../../components/collaboration/ProfileCompletionForm';
 
@@ -51,7 +50,8 @@ const CollaborationPage = () => {
         incomingRequests, 
         sendMeetingRequest,
         acceptMeetingRequest,
-        declineMeetingRequest 
+        declineMeetingRequest,
+        subscribeToEvent 
     } = useSocket();
     
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -120,36 +120,24 @@ const CollaborationPage = () => {
         fetchPastCollaborations();
     }, [fetchPastCollaborations]);
 
-    // Real-time collaboration history updates
+    // Real-time collaboration history updates - use shared socket context
     useEffect(() => {
         if (!user?._id) return;
 
-        const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
-            transports: ['websocket', 'polling'],
-        });
-
-        // Listen for collaboration updates (new request sent, accepted, declined)
-        socket.on('meeting_request_sent', () => {
-            fetchPastCollaborations();
-        });
-
-        socket.on('meeting_request_response', () => {
-            fetchPastCollaborations();
-        });
-
-        socket.on('response_sent', () => {
-            fetchPastCollaborations();
-        });
-
-        // Also listen for when a new request is received (for receiver's history)
-        socket.on('meeting_request_received', () => {
+        // Subscribe to collaboration updates from shared socket context
+        const unsubscribe = subscribeToEvent('collaboration_updated', () => {
             fetchPastCollaborations();
         });
 
         return () => {
-            socket.disconnect();
+            unsubscribe();
         };
-    }, [user, fetchPastCollaborations]);
+    }, [user?._id, fetchPastCollaborations, subscribeToEvent]);
+
+    // Also refresh when incoming requests change (means we received/responded to something)
+    useEffect(() => {
+        fetchPastCollaborations();
+    }, [incomingRequests.length, fetchPastCollaborations]);
 
     const handleSendRequest = (data) => {
         setSendingRequest(true);
@@ -488,6 +476,9 @@ const CollaborationPage = () => {
                                             title={
                                                 <Space>
                                                     <Text>Meeting</Text>
+                                                    <Tag color={collab.sentByYou ? 'blue' : 'purple'}>
+                                                        {collab.sentByYou ? 'Sent' : 'Received'}
+                                                    </Tag>
                                                     <Tag color={
                                                         collab.status === 'accepted' ? 'green' :
                                                         collab.status === 'declined' ? 'red' : 'orange'
@@ -498,6 +489,12 @@ const CollaborationPage = () => {
                                             }
                                             description={
                                                 <Space direction="vertical" size={0}>
+                                                    <Text type="secondary">
+                                                        {collab.sentByYou 
+                                                            ? `To: ${collab.participants[1]?.name || 'Unknown'}` 
+                                                            : `From: ${collab.participants[0]?.name || 'Unknown'}`
+                                                        }
+                                                    </Text>
                                                     <Text type="secondary">{collab.message}</Text>
                                                     <Text type="secondary" style={{ fontSize: 11 }}>
                                                         {formatTime(collab.createdAt)}
