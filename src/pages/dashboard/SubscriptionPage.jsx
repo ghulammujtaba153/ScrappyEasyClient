@@ -1,5 +1,5 @@
 import React from 'react'
-import SubscriptionCard from '../../component/dashboard/SubscriptionCard'
+import SubscriptionCard from '../../components/dashboard/SubscriptionCard'
 
 const SubscriptionPage = () => {
     const plans = [

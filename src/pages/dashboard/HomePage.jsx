@@ -3,6 +3,13 @@ import { useAuth } from "../../context/authContext";
 import axios from "axios";
 import { BASE_URL } from "../../config/URL";
 import { Spin } from "antd";
+import {
+    ChartFilter,
+    LeadsAreaChart,
+    RatingPieChart,
+    CityBarChart,
+    WhatsAppDonutChart
+} from "../../components/charts";
 
 const HomePage = () => {
     const { user } = useAuth();
@@ -12,7 +19,15 @@ const HomePage = () => {
         whatsappAvailable: 0,
         lowRated: 0
     });
+    const [chartData, setChartData] = useState({
+        leadsOverTime: [],
+        ratingDistribution: [],
+        cityDistribution: [],
+        whatsappDistribution: []
+    });
     const [loading, setLoading] = useState(true);
+    const [chartLoading, setChartLoading] = useState(true);
+    const [timeFilter, setTimeFilter] = useState('yearly');
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -35,6 +50,31 @@ const HomePage = () => {
 
         fetchStats();
     }, [user?._id, user?.id]);
+
+    useEffect(() => {
+        const fetchChartData = async () => {
+            if (!user?._id && !user?.id) {
+                setChartLoading(false);
+                return;
+            }
+
+            setChartLoading(true);
+            try {
+                const response = await axios.get(
+                    `${BASE_URL}/api/dashboard/charts/${user._id || user.id}?filter=${timeFilter}`
+                );
+                if (response.data?.success) {
+                    setChartData(response.data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch chart data:', error);
+            } finally {
+                setChartLoading(false);
+            }
+        };
+
+        fetchChartData();
+    }, [user?._id, user?.id, timeFilter]);
 
     return (
         <div className="space-y-6">
@@ -128,35 +168,22 @@ const HomePage = () => {
                 </div>
             </div>
 
-            {/* User Info Card */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Account Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded">
-                        <p className="text-sm text-gray-600 font-medium">Full Name</p>
-                        <p className="text-gray-800 font-semibold mt-1">{user?.name}</p>
-                    </div>
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded">
-                        <p className="text-sm text-gray-600 font-medium">Email</p>
-                        <p className="text-gray-800 font-semibold mt-1">{user?.email}</p>
-                    </div>
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded">
-                        <p className="text-sm text-gray-600 font-medium">Phone</p>
-                        <p className="text-gray-800 font-semibold mt-1">{user?.phone}</p>
-                    </div>
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded">
-                        <p className="text-sm text-gray-600 font-medium">Country</p>
-                        <p className="text-gray-800 font-semibold mt-1">{user?.country}</p>
-                    </div>
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded">
-                        <p className="text-sm text-gray-600 font-medium">Role</p>
-                        <p className="text-gray-800 font-semibold mt-1 capitalize">{user?.role}</p>
-                    </div>
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded">
-                        <p className="text-sm text-gray-600 font-medium">Status</p>
-                        <p className="text-green-600 font-semibold mt-1 capitalize">{user?.status}</p>
-                    </div>
-                </div>
+            {/* Charts Section Header with Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white rounded-lg shadow-md p-4">
+                <h3 className="text-xl font-bold text-gray-800 mb-3 sm:mb-0">Analytics Overview</h3>
+                <ChartFilter activeFilter={timeFilter} onFilterChange={setTimeFilter} />
+            </div>
+
+            {/* Charts Row 1 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <LeadsAreaChart data={chartData.leadsOverTime} loading={chartLoading} />
+                <RatingPieChart data={chartData.ratingDistribution} loading={chartLoading} />
+            </div>
+
+            {/* Charts Row 2 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <CityBarChart data={chartData.cityDistribution} loading={chartLoading} />
+                <WhatsAppDonutChart data={chartData.whatsappDistribution} loading={chartLoading} />
             </div>
         </div>
     );

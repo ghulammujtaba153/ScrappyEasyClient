@@ -4,7 +4,7 @@ import "react-phone-input-2/lib/style.css";
 import Select from 'react-select';
 import { getData as getCountries } from 'country-list';
 import { BASE_URL } from "../../config/URL";
-import Notification from "../../component/common/Notification";
+import Notification from "../../components/common/Notification";
 import { FaEye, FaEyeSlash, FaUser } from "react-icons/fa";
 import { useAuth } from '../../context/authContext';
 

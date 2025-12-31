@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import WhatsAppConnectModal from '../../component/dashboard/WhatsAppConnectModal';
-import SaveNumbersModal from '../../component/dashboard/SaveNumbersModal';
+import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
+import SaveNumbersModal from '../../components/dashboard/SaveNumbersModal';
 import {
   Alert,
   Button,
@@ -38,10 +38,10 @@ import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import { useOperations } from '../../context/operationsContext';
 import { useScreenshot } from '../../context/screenshotContext';
-import Notes from '../../component/dashboard/Notes';
-import SaveColdCallsModal from '../../component/dashboard/SaveColdCallsModal';
-import ScreenshotViewer from '../../component/dashboard/ScreenshotViewer';
-import WebsiteCarouselViewer from '../../component/dashboard/WebsiteCarouselViewer';
+import Notes from '../../components/dashboard/Notes';
+import SaveColdCallsModal from '../../components/dashboard/SaveColdCallsModal';
+import ScreenshotViewer from '../../components/dashboard/ScreenshotViewer';
+import WebsiteCarouselViewer from '../../components/dashboard/WebsiteCarouselViewer';
 
 const { Option } = Select;
 

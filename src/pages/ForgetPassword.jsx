@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../config/URL";
-import Notification from "../component/common/Notification";
-import OtpVerification from "../component/common/OtpVerification";
+import Notification from "../components/common/Notification";
+import OtpVerification from "../components/common/OtpVerification";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const ForgetPassword = () => {
