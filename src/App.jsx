@@ -29,6 +29,7 @@ import SubscriptionPage from "./pages/dashboard/SubscriptionPage";
 import SubscriptionSuccessPage from "./pages/dashboard/SubscriptionSuccessPage";
 import LocationPage from "./pages/dashboard/LocationPage";
 import CollaborationPage from "./pages/dashboard/CollaborationPage";
+import InviteUserResetPage from "./pages/InviteUserResetPage";
 
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
                                 <Route path="/register" element={<RegisterPage />} />
                                 <Route path="/login" element={<LoginPage />} />
                                 <Route path="/forgot-password" element={<ForgetPassword />} />
+                                <Route path="/reset-password" element={<InviteUserResetPage />} />
 
                                 {/* Protected Routes */}
                                 <Route
