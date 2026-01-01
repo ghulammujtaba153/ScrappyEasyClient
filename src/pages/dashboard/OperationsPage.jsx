@@ -1,9 +1,12 @@
-import React, { useEffect } from 'react';
-import { Button, Input, Space, Table, Tag, message } from 'antd';
-import { FiRefreshCw, FiArrowRightCircle } from 'react-icons/fi';
+import React, { useEffect, useState } from 'react';
+import { Button, Input, Space, Table, Tag, message, Popconfirm } from 'antd';
+import { FiRefreshCw, FiArrowRightCircle, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import axios from 'axios';
+import { BASE_URL } from '../../config/URL';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
 import { useOperations } from '../../context/operationsContext';
+import EditOperationModal from '../../components/dashboard/EditOperationModal';
 
 const { Search } = Input;
 
@@ -21,6 +24,13 @@ const OperationsPage = () => {
         isDataLoaded
     } = useOperations();
 
+    const { token } = useAuth();
+
+    // Modal state
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [selectedOperation, setSelectedOperation] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(null);
+
     // Initial Fetch if not loaded
     useEffect(() => {
         if (user && !isDataLoaded) {
@@ -36,6 +46,47 @@ const OperationsPage = () => {
     // Handle Search
     const handleSearch = (value) => {
         fetchUniqueSearches(1, pagination.pageSize, value);
+    };
+
+    // Handle Edit Click
+    const handleEditClick = (record) => {
+        setSelectedOperation(record);
+        setEditModalVisible(true);
+    };
+
+    // Handle Modal Success
+    const handleModalSuccess = (action) => {
+        setEditModalVisible(false);
+        setSelectedOperation(null);
+        // Refresh the list after update or delete
+        fetchUniqueSearches(pagination.current, pagination.pageSize);
+    };
+
+    // Handle Delete
+    const handleDelete = async (record) => {
+        const operationId = record.id || record._id;
+        if (!operationId) {
+            message.error('No operation selected');
+            return;
+        }
+
+        setDeleteLoading(operationId);
+        try {
+            const res = await axios.delete(
+                `${BASE_URL}/api/data/${operationId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (res.status === 200) {
+                message.success('Operation deleted successfully');
+                fetchUniqueSearches(pagination.current, pagination.pageSize);
+            }
+        } catch (error) {
+            console.error('Delete failed:', error);
+            message.error(error.response?.data?.error || 'Failed to delete operation');
+        } finally {
+            setDeleteLoading(null);
+        }
     };
 
     const columns = [
@@ -81,14 +132,39 @@ const OperationsPage = () => {
             title: 'Action',
             key: 'action',
             render: (_, record) => (
-                <Button
-                    className="bg-primary hover:bg-primary border-[#0F792C] rounded-full"
-                    type="primary"
-                    icon={<FiArrowRightCircle />}
-                    onClick={() => navigate(`/dashboard/operations/${record.id}`)}
-                >
-                    View Details
-                </Button>
+                <Space>
+                    <Button
+                        className="bg-primary hover:bg-primary border-[#0F792C] rounded-full"
+                        type="primary"
+                        icon={<FiArrowRightCircle />}
+                        onClick={() => navigate(`/dashboard/operations/${record.id}`)}
+                    >
+                        View Details
+                    </Button>
+                    <Button
+                        icon={<FiEdit2 />}
+                        onClick={() => handleEditClick(record)}
+                    >
+                        Edit
+                    </Button>
+                    <Popconfirm
+                        title="Delete Operation"
+                        description="Are you sure you want to delete this operation?"
+                        onConfirm={() => handleDelete(record)}
+                        okText="Yes, Delete"
+                        cancelText="Cancel"
+                        okButtonProps={{ danger: true }}
+                    >
+                        <Button
+                            danger
+                            icon={<FiTrash2 />}
+                            loading={deleteLoading === (record.id || record._id)}
+                        >
+                            Delete
+                        </Button>
+                    </Popconfirm>
+                    
+                </Space>
             ),
         },
     ];
@@ -223,6 +299,17 @@ const OperationsPage = () => {
                     }}
                 />
             </div>
+
+            {/* Edit Operation Modal */}
+            <EditOperationModal
+                visible={editModalVisible}
+                onCancel={() => {
+                    setEditModalVisible(false);
+                    setSelectedOperation(null);
+                }}
+                operation={selectedOperation}
+                onSuccess={handleModalSuccess}
+            />
         </div>
     );
 };

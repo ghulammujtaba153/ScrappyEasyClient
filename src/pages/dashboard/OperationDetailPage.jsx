@@ -908,6 +908,20 @@ const OperationDetailPage = () => {
       sorter: (a, b) => (parseFloat(a.rating) || 0) - (parseFloat(b.rating) || 0),
     },
     {
+      title: 'Favorite',
+      key: 'favorite',
+      width: 100,
+      render: (_, record) => (
+        <Button
+          type="text"
+          icon={record.favorite ? <MdFavorite style={{ color: '#ef4444' }} className="text-xl" /> : <MdFavoriteBorder className="text-gray-400 text-xl" />}
+          onClick={() => toggleFavorite(record.itemIndex, !record.favorite)}
+          className="hover:bg-red-50 transition-colors"
+        />
+      ),
+      sorter: (a, b) => (a.favorite ? 1 : 0) - (b.favorite ? 1 : 0),
+    },
+    {
       title: 'Reviews',
       dataIndex: 'reviews',
       key: 'reviews',
