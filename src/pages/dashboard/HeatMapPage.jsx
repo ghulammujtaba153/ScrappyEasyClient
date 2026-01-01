@@ -5,6 +5,7 @@ import axios from 'axios';
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat/dist/leaflet-heat.js";
+import Loader from '../../components/common/Loader';
 
 const HeatMapPage = () => {
   const { user } = useAuth();
@@ -391,9 +392,7 @@ const HeatMapPage = () => {
       <div className="bg-white rounded-lg shadow-md p-6">
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
+          <Loader/>
         ) : mapData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500">
             <p>No location data available</p>

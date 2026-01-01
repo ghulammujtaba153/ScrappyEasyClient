@@ -36,6 +36,7 @@ import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 import CollaboratorProfile from '../../components/collaboration/CollaboratorProfile';
 import ProfileCompletionForm from '../../components/collaboration/ProfileCompletionForm';
+import Loader from '../../components/common/Loader';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -184,7 +185,7 @@ const CollaborationPage = () => {
     if (profileCheckLoading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 200px)' }}>
-                <Spin size="large" />
+                <Loader/>
             </div>
         );
     }
@@ -416,9 +417,7 @@ const CollaborationPage = () => {
                         }
                     >
                         {loadingHistory ? (
-                            <div style={{ textAlign: 'center', padding: 40 }}>
-                                <Spin size="large" />
-                            </div>
+                            <Loader/>
                         ) : pastCollaborations.length === 0 ? (
                             <Empty 
                                 description="No collaboration history"

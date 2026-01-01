@@ -7,6 +7,7 @@ import { BASE_URL } from "../../config/URL";
 import Notification from "../../components/common/Notification";
 import { FaEye, FaEyeSlash, FaUser } from "react-icons/fa";
 import { useAuth } from '../../context/authContext';
+import Loader from '../../components/common/Loader';
 
 const ProfilePage = () => {
     const [form, setForm] = useState({
@@ -228,9 +229,7 @@ const ProfilePage = () => {
 
     if (fetchLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
+            <Loader/>
         );
     }
 

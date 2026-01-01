@@ -6,6 +6,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/authContext';
 import { BASE_URL } from '../../config/URL';
 import Dialer from '../../components/Dialer';
+import Loader from '../../components/common/Loader';
 
 const ColdCallerDetailPage = () => {
   const { id } = useParams();
@@ -85,10 +86,7 @@ const ColdCallerDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-gray-50 min-h-screen">
-        <LoadingOutlined style={{ fontSize: 40, color: '#0F792C' }} spin />
-        <p className="mt-4 text-gray-500">Loading campaign details...</p>
-      </div>
+      <Loader/>
     );
   }
 
