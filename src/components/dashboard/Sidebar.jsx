@@ -157,7 +157,7 @@ const Sidebar = () => {
     return (
         <aside
             className={`text-black h-screen fixed left-0 top-0 transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"
-                } shadow-2xl z-50 overflow-y-auto bg-gray-50 custom-scrollbar`}
+                } shadow-2xl z-50 overflow-y-auto overflow-x-hidden bg-gray-50 custom-scrollbar`}
             style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#0F792C #f3f4f6'
@@ -196,7 +196,9 @@ const Sidebar = () => {
 
             <nav className="mt-6">
                 {menuItems.map((item) => {
-                    const isActive = location.pathname === item.path;
+                    const isActive = item.path === '/dashboard/operations' 
+                        ? location.pathname.startsWith('/dashboard/operations')
+                        : location.pathname === item.path;
                     return (
                         <Link
                             key={item.path}
