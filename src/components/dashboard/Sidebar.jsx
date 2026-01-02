@@ -69,6 +69,11 @@ const Sidebar = () => {
             icon: <MdBuild className="w-5 h-5" />,
         },
         {
+            name: "Qualified Leads",
+            path: "/dashboard/qualified-leads",
+            icon: <MdBuild className="w-5 h-5" />,
+        },
+        {
             name: "Message Automation",
             path: "/dashboard/message-automation",
             icon: <MdMessage className="w-5 h-5" />,

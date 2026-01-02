@@ -93,8 +93,38 @@ export const OperationsProvider = ({ children }) => {
             if (response.data?.success) {
                 const data = response.data.data;
 
-                // Process initial derived data to store in cache
+                // Process initial derived data from leads (normalized schema)
                 let initialWhatsappStatus = {};
+                let initialCityData = {};
+                let initialScreenshotData = {};
+
+                // If leads are populated, extract status/city/screenshot from LeadData
+                if (data.leads && Array.isArray(data.leads)) {
+                    data.leads.forEach((lead, index) => {
+                        const leadId = lead._id;
+                        const itemKey = leadId || `${data._id}-${index}`;
+                        
+                        // Extract whatsapp status from lead
+                        if (lead.whatsappStatus) {
+                            const phone = lead.phone?.replace(/\D/g, '');
+                            if (phone) {
+                                initialWhatsappStatus[`+${phone}`] = lead.whatsappStatus;
+                            }
+                        }
+                        
+                        // Extract city from lead
+                        if (lead.city) {
+                            initialCityData[itemKey] = lead.city;
+                        }
+                        
+                        // Extract screenshot from lead
+                        if (lead.screenshotUrl) {
+                            initialScreenshotData[itemKey] = lead.screenshotUrl;
+                        }
+                    });
+                }
+
+                // Also check legacy data for backward compatibility
                 if (data.whatsappVerifications) {
                     const verifications = data.whatsappVerifications;
                     const entries = verifications instanceof Map ?
@@ -102,11 +132,12 @@ export const OperationsProvider = ({ children }) => {
                         Object.entries(verifications);
 
                     entries.forEach(([phone, verificationData]) => {
-                        initialWhatsappStatus[phone] = verificationData.isRegistered ? 'verified' : 'not-verified';
+                        if (!initialWhatsappStatus[phone]) {
+                            initialWhatsappStatus[phone] = verificationData.isRegistered ? 'verified' : 'not-verified';
+                        }
                     });
                 }
 
-                let initialCityData = {};
                 if (data.cityData) {
                     const cities = data.cityData;
                     const entries = cities instanceof Map ?
@@ -115,11 +146,12 @@ export const OperationsProvider = ({ children }) => {
 
                     entries.forEach(([index, city]) => {
                         const itemKey = `${data._id}-${index}`;
-                        initialCityData[itemKey] = city;
+                        if (!initialCityData[itemKey]) {
+                            initialCityData[itemKey] = city;
+                        }
                     });
                 }
 
-                let initialScreenshotData = {};
                 if (data.screenshotData) {
                     const screenshots = data.screenshotData;
                     const entries = screenshots instanceof Map ?
@@ -128,7 +160,9 @@ export const OperationsProvider = ({ children }) => {
 
                     entries.forEach(([index, url]) => {
                         const itemKey = `${data._id}-${index}`;
-                        initialScreenshotData[itemKey] = url;
+                        if (!initialScreenshotData[itemKey]) {
+                            initialScreenshotData[itemKey] = url;
+                        }
                     });
                 }
 
