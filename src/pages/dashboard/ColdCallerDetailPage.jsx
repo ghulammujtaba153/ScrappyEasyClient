@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftOutlined, PhoneOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Table, Button, Space, Tag, Progress, Card, Statistic, message, Tooltip, Empty, Modal, Radio } from 'antd';
+import { ArrowLeftOutlined, PhoneOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Tag, Progress, Card, Statistic, message, Empty, Modal, Radio, Alert, Badge, Select } from 'antd';
 import axios from 'axios';
 import { useAuth } from '../../context/authContext';
 import { BASE_URL } from '../../config/URL';
@@ -19,9 +19,47 @@ const ColdCallerDetailPage = () => {
   const [showDialer, setShowDialer] = useState(false);
   const [dialerNumber, setDialerNumber] = useState("");
   const [callingLeadId, setCallingLeadId] = useState(null);
+  const [callingEntryId, setCallingEntryId] = useState(null);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("successful");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // Check if campaign uses qualified leads
+  const isQualifiedLeadsCampaign = useMemo(() => {
+    return campaign?.qualifiedLeadsId && campaign.qualifiedLeadsId.entries?.length > 0;
+  }, [campaign]);
+
+  // Get unified leads list from either qualified leads or legacy numbers
+  const leads = useMemo(() => {
+    if (!campaign) return [];
+
+    if (isQualifiedLeadsCampaign) {
+      return campaign.qualifiedLeadsId.entries
+        .filter(entry => entry.leadId?.phone)
+        .map(entry => ({
+          _id: entry._id,
+          entryId: entry._id,
+          leadId: entry.leadId._id,
+          number: entry.leadId.phone,
+          businessName: entry.leadId.title || 'Unknown',
+          city: entry.leadId.city || '',
+          address: entry.leadId.address || '',
+          status: entry.callStatus || 'not-called',
+          lastCalled: entry.lastCalledAt,
+          recordingUrl: entry.recordingUrl,
+          attempts: entry.callAttempts || 0,
+          notes: entry.callNotes,
+          isQualifiedLead: true
+        }));
+    }
+
+    // Legacy numbers array
+    return (campaign.numbers || []).map(n => ({
+      ...n,
+      businessName: null,
+      isQualifiedLead: false
+    }));
+  }, [campaign, isQualifiedLeadsCampaign]);
 
   const fetchCampaignData = async () => {
     setLoading(true);
@@ -48,33 +86,47 @@ const ColdCallerDetailPage = () => {
   const handleCall = (record) => {
     setDialerNumber(record.number);
     setCallingLeadId(record._id);
+    setCallingEntryId(record.entryId || null);
     setShowDialer(true);
   };
 
   const onCallEnd = () => {
     // When call ends, show the status selection modal
-    if (callingLeadId) {
+    if (callingLeadId || callingEntryId) {
       setStatusModalVisible(true);
     }
   };
 
   const handleUpdateStatus = async () => {
-    if (!callingLeadId) return;
+    if (!callingLeadId && !callingEntryId) return;
     setUpdatingStatus(true);
     try {
-      const res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
-        leadId: callingLeadId,
-        status: selectedStatus
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      let res;
+      
+      if (isQualifiedLeadsCampaign && callingEntryId) {
+        // Update status via qualified leads entry
+        res = await axios.put(`${BASE_URL}/api/coldcall/update-call-status/${id}`, {
+          entryId: callingEntryId,
+          status: selectedStatus
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Legacy: update via numbers array
+        res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
+          leadId: callingLeadId,
+          status: selectedStatus
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
 
       if (res.data.success) {
         message.success('Lead status updated');
-        // Refresh full data to get any new recordings that might have been saved by webhook
         fetchCampaignData();
         setStatusModalVisible(false);
         setCallingLeadId(null);
+        setCallingEntryId(null);
       }
     } catch (error) {
       console.error('Update status error:', error);
@@ -83,6 +135,48 @@ const ColdCallerDetailPage = () => {
       setUpdatingStatus(false);
     }
   };
+
+  // Handle inline status change from dropdown
+  const handleInlineStatusChange = async (record, newStatus) => {
+    try {
+      let res;
+      
+      if (isQualifiedLeadsCampaign && record.entryId) {
+        res = await axios.put(`${BASE_URL}/api/coldcall/update-call-status/${id}`, {
+          entryId: record.entryId,
+          status: newStatus
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
+          leadId: record._id,
+          status: newStatus
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
+      if (res.data.success) {
+        message.success('Status updated');
+        fetchCampaignData();
+      }
+    } catch (error) {
+      console.error('Inline status update error:', error);
+      message.error('Failed to update status');
+    }
+  };
+
+  // Status options for dropdown
+  const statusOptions = [
+    { value: 'not-called', label: '⏳ Not Called', color: 'default' },
+    { value: 'interested', label: '✅ Interested', color: 'success' },
+    { value: 'callback', label: '📞 Callback', color: 'processing' },
+    { value: 'not-interested', label: '❌ Not Interested', color: 'warning' },
+    { value: 'no-answer', label: '📵 No Answer', color: 'orange' },
+    { value: 'wrong-number', label: '🚫 Wrong Number', color: 'error' },
+    { value: 'ignore', label: '🔇 Ignore', color: 'default' },
+  ];
 
   if (loading) {
     return (
@@ -105,13 +199,37 @@ const ColdCallerDetailPage = () => {
     );
   }
 
-  const numbers = campaign.numbers || [];
-  const total = numbers.length;
-  const success = numbers.filter(n => n.status === 'successful').length;
-  const pending = numbers.filter(n => n.status === 'pending').length;
-  const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
+  // Stats calculation
+  const total = leads.length;
+  const interested = leads.filter(n => n.status === 'successful' || n.status === 'interested').length;
+  const callback = leads.filter(n => n.status === 'callback').length;
+  const pending = leads.filter(n => n.status === 'pending' || n.status === 'not-called').length;
+  const notInterested = leads.filter(n => n.status === 'not-interested' || n.status === 'no-answer' || n.status === 'wrong-number').length;
+  const successRate = total > 0 ? Math.round((interested / total) * 100) : 0;
+
+  // Get current lead being called for modal display
+  const currentCallingLead = leads.find(n => 
+    (callingEntryId && n.entryId === callingEntryId) || 
+    (callingLeadId && n._id === callingLeadId)
+  );
 
   const columns = [
+    {
+      title: '#',
+      width: 50,
+      render: (_, __, index) => index + 1,
+    },
+    ...(isQualifiedLeadsCampaign ? [{
+      title: 'Business',
+      key: 'business',
+      width: 200,
+      render: (_, record) => (
+        <div>
+          <div className="font-medium text-gray-800">{record.businessName}</div>
+          {record.city && <div className="text-xs text-gray-500">{record.city}</div>}
+        </div>
+      ),
+    }] : []),
     {
       title: 'Phone Number',
       dataIndex: 'number',
@@ -122,18 +240,27 @@ const ColdCallerDetailPage = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => {
-        let color = 'blue';
-        let icon = <ClockCircleOutlined />;
-        if (status === 'successful') { color = 'success'; icon = <CheckCircleOutlined />; }
-        if (status === 'failed') { color = 'error'; icon = <CloseCircleOutlined />; }
-        return (
-          <Tag icon={icon} color={color}>
-            {status.toUpperCase()}
-          </Tag>
-        );
-      }
+      width: 160,
+      render: (status, record) => (
+        <Select
+          value={status || 'not-called'}
+          onChange={(value) => handleInlineStatusChange(record, value)}
+          style={{ width: 150 }}
+          size="small"
+          options={statusOptions}
+          optionRender={(option) => (
+            <span>{option.data.label}</span>
+          )}
+        />
+      )
     },
+    ...(isQualifiedLeadsCampaign ? [{
+      title: 'Attempts',
+      dataIndex: 'attempts',
+      key: 'attempts',
+      width: 80,
+      render: (attempts) => attempts || 0,
+    }] : []),
     {
       title: 'Last Contact',
       dataIndex: 'lastCalled',
@@ -188,17 +315,29 @@ const ColdCallerDetailPage = () => {
         confirmLoading={updatingStatus}
         onCancel={() => setStatusModalVisible(false)}
       >
-        <p className="mb-4 text-gray-600">How did the call with <span className="font-bold text-gray-800">{campaign.numbers.find(n => n._id === callingLeadId)?.number}</span> go?</p>
+        <p className="mb-4 text-gray-600">
+          How did the call with{' '}
+          <span className="font-bold text-gray-800">
+            {currentCallingLead?.businessName || currentCallingLead?.number}
+          </span>{' '}
+          go?
+        </p>
         <Radio.Group onChange={(e) => setSelectedStatus(e.target.value)} value={selectedStatus}>
           <Space direction="vertical">
             <Radio value="successful" className="text-green-600 font-medium">
               <CheckCircleOutlined /> Successful (Lead Interested)
             </Radio>
-            <Radio value="failed" className="text-red-500 font-medium">
-              <CloseCircleOutlined /> Failed (No Answer / Not Interested)
+            <Radio value="callback" className="text-blue-500 font-medium">
+              <ClockCircleOutlined /> Callback (Schedule Follow-up)
             </Radio>
-            <Radio value="pending" className="text-blue-500 font-medium">
-              <ClockCircleOutlined /> Still Pending (Try Again Later)
+            <Radio value="no-answer" className="text-orange-500 font-medium">
+              <CloseCircleOutlined /> No Answer
+            </Radio>
+            <Radio value="not-interested" className="text-gray-500 font-medium">
+              <CloseCircleOutlined /> Not Interested
+            </Radio>
+            <Radio value="failed" className="text-red-500 font-medium">
+              <CloseCircleOutlined /> Failed (Wrong Number / Other)
             </Radio>
           </Space>
         </Radio.Group>
@@ -212,63 +351,92 @@ const ColdCallerDetailPage = () => {
           shape="circle"
         />
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{campaign.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {campaign.name}
+            {isQualifiedLeadsCampaign && (
+              <Badge 
+                count={<UserOutlined className="text-green-600" />} 
+                style={{ marginLeft: 8 }}
+                title="Linked to Qualified Leads"
+              />
+            )}
+          </h1>
           <p className="text-gray-500 text-sm">Campaign ID: {campaign._id}</p>
         </div>
       </div>
 
+      {/* Qualified Leads Info */}
+      {isQualifiedLeadsCampaign && (
+        <Alert
+          type="info"
+          showIcon
+          message={`Linked to: ${campaign.qualifiedLeadsId.name}`}
+          description="This campaign is linked to a qualified leads list. Call status is tracked per lead with business details."
+        />
+      )}
+
+      {/* Call Script */}
+      {campaign.callScript && (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <h4 className="font-semibold text-yellow-800 mb-2">📝 Call Script</h4>
+          <p className="text-yellow-700 whitespace-pre-wrap">{campaign.callScript}</p>
+        </Card>
+      )}
+
       <div className="flex justify-end gap-2 mb-8">
-        <Button
-          icon={<PhoneOutlined />}
-          onClick={() => {
-            Modal.confirm({
-              title: 'Add New Lead',
-              content: (
-                <div className="mt-4">
-                  <p className="mb-2 text-gray-500">Enter phone number to add to this campaign:</p>
-                  <input
-                    id="new-lead-number"
-                    className="w-full p-2 border rounded-md font-mono"
-                    placeholder="+923001234567"
-                  />
-                </div>
-              ),
-              onOk: async () => {
-                const number = document.getElementById('new-lead-number')?.value;
-                if (!number) {
-                  message.error('Number is required');
-                  return;
-                }
-                try {
-                  const res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
-                    newNumber: number
-                  }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                  });
-                  if (res.data.success) {
-                    message.success('Lead added successfully');
-                    setCampaign(res.data.data);
+        {!isQualifiedLeadsCampaign && (
+          <Button
+            icon={<PhoneOutlined />}
+            onClick={() => {
+              Modal.confirm({
+                title: 'Add New Lead',
+                content: (
+                  <div className="mt-4">
+                    <p className="mb-2 text-gray-500">Enter phone number to add to this campaign:</p>
+                    <input
+                      id="new-lead-number"
+                      className="w-full p-2 border rounded-md font-mono"
+                      placeholder="+923001234567"
+                    />
+                  </div>
+                ),
+                onOk: async () => {
+                  const number = document.getElementById('new-lead-number')?.value;
+                  if (!number) {
+                    message.error('Number is required');
+                    return;
                   }
-                } catch {
-                  message.error('Failed to add lead');
+                  try {
+                    const res = await axios.put(`${BASE_URL}/api/coldcall/update/${id}`, {
+                      newNumber: number
+                    }, {
+                      headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.data.success) {
+                      message.success('Lead added successfully');
+                      setCampaign(res.data.data);
+                    }
+                  } catch {
+                    message.error('Failed to add lead');
+                  }
                 }
-              }
-            });
-          }}
-          style={{ backgroundColor: '#0F792C', borderColor: '#0F792C', color: 'white' }}
-        >
-          Add Lead
-        </Button>
+              });
+            }}
+            style={{ backgroundColor: '#0F792C', borderColor: '#0F792C', color: 'white' }}
+          >
+            Add Lead
+          </Button>
+        )}
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
         <Card bordered={false} className="shadow-sm">
           <Statistic title="Total Leads" value={total} prefix={<PhoneOutlined />} />
         </Card>
         <Card bordered={false} className="shadow-sm">
           <Statistic
-            title="Success Rate"
+            title="Interest Rate"
             value={successRate}
             suffix="%"
             valueStyle={{ color: '#0F792C' }}
@@ -276,10 +444,16 @@ const ColdCallerDetailPage = () => {
           <Progress percent={successRate} size="small" strokeColor="#0F792C" showInfo={false} />
         </Card>
         <Card bordered={false} className="shadow-sm">
-          <Statistic title="Successful" value={success} valueStyle={{ color: '#0F792C' }} />
+          <Statistic title="Interested" value={interested} valueStyle={{ color: '#0F792C' }} />
         </Card>
         <Card bordered={false} className="shadow-sm">
-          <Statistic title="Pending" value={pending} valueStyle={{ color: '#1890ff' }} />
+          <Statistic title="Callback" value={callback} valueStyle={{ color: '#1890ff' }} />
+        </Card>
+        <Card bordered={false} className="shadow-sm">
+          <Statistic title="Pending" value={pending} valueStyle={{ color: '#faad14' }} />
+        </Card>
+        <Card bordered={false} className="shadow-sm">
+          <Statistic title="Not Interested" value={notInterested} valueStyle={{ color: '#ff4d4f' }} />
         </Card>
       </div>
 
@@ -287,8 +461,8 @@ const ColdCallerDetailPage = () => {
       <Card title="Lead Details" className="shadow-sm rounded-xl mb-10">
         <Table
           columns={columns}
-          dataSource={numbers}
-          rowKey={(record, idx) => record._id || idx}
+          dataSource={leads}
+          rowKey={(record) => record._id || record.entryId}
           pagination={{ pageSize: 15 }}
         />
       </Card>
@@ -302,7 +476,7 @@ const ColdCallerDetailPage = () => {
             <p className="text-blue-700 text-sm">
               This campaign was created on {new Date(campaign.createdAt).toLocaleDateString()}.
               Currently, {pending} leads are waiting to be called.
-              The success rate is {successRate}% based on {success} completions.
+              Interest rate is {successRate}% based on {interested} interested leads out of {total - pending} contacted.
             </p>
           </div>
         </div>

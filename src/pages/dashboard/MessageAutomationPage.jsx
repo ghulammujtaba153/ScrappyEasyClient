@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Table, Button, message, Popconfirm, Tag, Space, Tooltip, Modal, Progress, Input, Alert } from 'antd';
-import { FiTrash2, FiEdit2, FiPlay, FiRefreshCw, FiSend } from 'react-icons/fi';
+import React, { useEffect, useState } from 'react';
+import { Table, Button, message, Popconfirm, Tag, Space, Modal, Progress, Input, Alert, Badge } from 'antd';
+import { FiTrash2, FiEdit2, FiPlay, FiRefreshCw, FiSend, FiUsers } from 'react-icons/fi';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
 import { useAuth } from '../../context/authContext';
@@ -20,6 +20,36 @@ const MessageAutomationPage = () => {
     const [connectModalOpen, setConnectModalOpen] = useState(false);
     const [whatsappInitialized, setWhatsappInitialized] = useState(false);
     const [searchText, setSearchText] = useState('');
+
+    // Helper to check if campaign uses qualified leads
+    const isQualifiedLeadsCampaign = (record) => {
+        return record?.qualifiedLeadsId && record.qualifiedLeadsId.entries?.length > 0;
+    };
+
+    // Get recipients list - either from qualified leads or legacy numbers
+    const getRecipients = (record) => {
+        if (isQualifiedLeadsCampaign(record)) {
+            return record.qualifiedLeadsId.entries
+                .filter(entry => entry.leadId?.phone) // Only entries with phone numbers
+                .map(entry => ({
+                    _id: entry._id,
+                    number: entry.leadId.phone,
+                    businessName: entry.leadId.title || 'Unknown',
+                    city: entry.leadId.city || '',
+                    status: entry.messageStatus || 'not-sent',
+                    sentAt: entry.lastMessagedAt,
+                    attempts: entry.messageAttempts || 0,
+                    notes: entry.messageNotes,
+                    isQualifiedLead: true
+                }));
+        }
+        // Legacy numbers array
+        return (record?.numbers || []).map(n => ({
+            ...n,
+            businessName: null,
+            isQualifiedLead: false
+        }));
+    };
 
     const checkWhatsAppStatus = async () => {
         try {
@@ -141,18 +171,15 @@ const MessageAutomationPage = () => {
         }
     };
 
-    // Calculate Stats
-    const getStats = (numbers) => {
-        // Handle both schema versions (string array vs object array)
-        if (!numbers || !numbers.length) return { total: 0, sent: 0, pending: 0, failed: 0 };
+    // Calculate Stats - supports both qualified leads and legacy numbers
+    const getStats = (record) => {
+        const recipients = getRecipients(record);
+        if (!recipients.length) return { total: 0, sent: 0, pending: 0, failed: 0 };
 
-        // If simple strings (old schema), everything is pending effectively
-        if (typeof numbers[0] === 'string') return { total: numbers.length, sent: 0, pending: numbers.length, failed: 0 };
-
-        const total = numbers.length;
-        const sent = numbers.filter(n => n.status === 'sent').length;
-        const failed = numbers.filter(n => n.status === 'failed').length;
-        const pending = numbers.filter(n => n.status === 'pending').length;
+        const total = recipients.length;
+        const sent = recipients.filter(r => r.status === 'sent' || r.status === 'delivered' || r.status === 'read').length;
+        const failed = recipients.filter(r => r.status === 'failed').length;
+        const pending = recipients.filter(r => r.status === 'pending' || r.status === 'not-sent').length;
         return { total, sent, failed, pending };
     };
 
@@ -165,13 +192,38 @@ const MessageAutomationPage = () => {
             title: 'List Name',
             dataIndex: 'name',
             key: 'name',
-            render: (text) => <span className="font-semibold text-gray-700">{text}</span>,
+            render: (text, record) => (
+                <div>
+                    <span className="font-semibold text-gray-700">{text}</span>
+                    {isQualifiedLeadsCampaign(record) && (
+                        <Badge 
+                            count={<FiUsers className="text-green-600" />} 
+                            style={{ marginLeft: 8 }}
+                            title="Linked to Qualified Leads"
+                        />
+                    )}
+                </div>
+            ),
+        },
+        {
+            title: 'Source',
+            key: 'source',
+            render: (_, record) => {
+                if (isQualifiedLeadsCampaign(record)) {
+                    return (
+                        <Tag color="green">
+                            {record.qualifiedLeadsId.name || 'Qualified Leads'}
+                        </Tag>
+                    );
+                }
+                return <Tag color="blue">Manual List</Tag>;
+            }
         },
         {
             title: 'Progress',
             key: 'progress',
             render: (_, record) => {
-                const stats = getStats(record.numbers);
+                const stats = getStats(record);
                 const percent = Math.round((stats.sent / stats.total) * 100) || 0;
                 return (
                     <div className="w-32">
@@ -225,22 +277,45 @@ const MessageAutomationPage = () => {
 
     const detailColumns = [
         {
+            title: 'Business',
+            key: 'business',
+            render: (_, record) => record.businessName ? (
+                <div>
+                    <div className="font-medium text-gray-800">{record.businessName}</div>
+                    {record.city && <div className="text-xs text-gray-500">{record.city}</div>}
+                </div>
+            ) : '-'
+        },
+        {
             title: 'Number',
             dataIndex: 'number',
             key: 'number',
-            // Handle old schema string format just in case
             render: (text, record) => typeof record === 'string' ? record : record.number
         },
         {
             title: 'Status',
             key: 'status',
             render: (_, record) => {
-                // Handle old schema
                 if (typeof record === 'string') return <Tag>Pending</Tag>;
 
-                const color = record.status === 'sent' ? 'green' : record.status === 'failed' ? 'red' : 'blue';
-                return <Tag color={color}>{record.status.toUpperCase()}</Tag>;
+                const statusConfig = {
+                    'sent': { color: 'green', label: 'SENT' },
+                    'delivered': { color: 'cyan', label: 'DELIVERED' },
+                    'read': { color: 'blue', label: 'READ' },
+                    'failed': { color: 'red', label: 'FAILED' },
+                    'pending': { color: 'orange', label: 'PENDING' },
+                    'not-sent': { color: 'default', label: 'NOT SENT' }
+                };
+                const config = statusConfig[record.status] || { color: 'default', label: record.status?.toUpperCase() };
+                return <Tag color={config.color}>{config.label}</Tag>;
             }
+        },
+        {
+            title: 'Attempts',
+            dataIndex: 'attempts',
+            key: 'attempts',
+            render: (attempts) => attempts || 0,
+            width: 80
         },
         {
             title: 'Sent At',
@@ -290,43 +365,71 @@ const MessageAutomationPage = () => {
 
             {/* Detail / Send Modal */}
             <Modal
-                title={currentList?.name || "Campaign Details"}
+                title={
+                    <div>
+                        {currentList?.name || "Campaign Details"}
+                        {currentList && isQualifiedLeadsCampaign(currentList) && (
+                            <Tag color="green" className="ml-2">Qualified Leads</Tag>
+                        )}
+                    </div>
+                }
                 open={detailModalOpen}
                 onCancel={() => setDetailModalOpen(false)}
-                width={800}
+                width={900}
                 footer={null}
+                
             >
                 {currentList && (
                     <div className="space-y-6">
+                        {/* Qualified Leads Info Banner */}
+                        {isQualifiedLeadsCampaign(currentList) && (
+                            <Alert
+                                message={`Linked to: ${currentList.qualifiedLeadsId.name}`}
+                                description="Messages will be sent to leads from your qualified leads list. Use {name} in your message to personalize with the business name."
+                                type="info"
+                                showIcon
+                            />
+                        )}
+
                         {/* Status Overview */}
                         <div className="grid grid-cols-4 gap-4 text-center">
                             <div className="bg-gray-50 p-3 rounded">
-                                <div className="text-xl font-bold">{getStats(currentList.numbers).total}</div>
+                                <div className="text-xl font-bold">{getStats(currentList).total}</div>
                                 <div className="text-xs text-gray-500">Total</div>
                             </div>
                             <div className="bg-green-50 p-3 rounded text-green-700">
-                                <div className="text-xl font-bold">{getStats(currentList.numbers).sent}</div>
+                                <div className="text-xl font-bold">{getStats(currentList).sent}</div>
                                 <div className="text-xs">Sent</div>
                             </div>
                             <div className="bg-blue-50 p-3 rounded text-blue-700">
-                                <div className="text-xl font-bold">{getStats(currentList.numbers).pending}</div>
+                                <div className="text-xl font-bold">{getStats(currentList).pending}</div>
                                 <div className="text-xs">Pending</div>
                             </div>
                             <div className="bg-red-50 p-3 rounded text-red-700">
-                                <div className="text-xl font-bold">{getStats(currentList.numbers).failed}</div>
+                                <div className="text-xl font-bold">{getStats(currentList).failed}</div>
                                 <div className="text-xs">Failed</div>
                             </div>
                         </div>
 
                         {/* Message Configuration */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Message Content</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Message Content
+                                {isQualifiedLeadsCampaign(currentList) && (
+                                    <span className="text-gray-400 ml-2 font-normal">
+                                        (Use {'{name}'} for business name)
+                                    </span>
+                                )}
+                            </label>
                             <div className="flex gap-2">
                                 <Input.TextArea
                                     rows={3}
                                     value={messageContent}
                                     onChange={(e) => setMessageContent(e.target.value)}
-                                    placeholder="Type your message here..."
+                                    placeholder={isQualifiedLeadsCampaign(currentList) 
+                                        ? "Hello {name}, we have a special offer for you..."
+                                        : "Type your message here..."
+                                    }
                                 />
                                 <Button
                                     onClick={handleSaveMessage}
@@ -364,20 +467,20 @@ const MessageAutomationPage = () => {
                                 icon={<FiSend />}
                                 onClick={handleSendBatch}
                                 loading={sending}
-                                disabled={getStats(currentList.numbers).pending === 0}
+                                disabled={getStats(currentList).pending === 0}
                                 style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
                             >
                                 {sending ? 'Sending...' : 'Send Batch (10)'}
                             </Button>
                         </div>
 
-                        {/* Numbers List */}
+                        {/* Recipients List */}
                         <Table
                             columns={detailColumns}
-                            dataSource={currentList.numbers}
-                            rowKey={(record) => record._id || record} // Handle string or object
+                            dataSource={getRecipients(currentList)}
+                            rowKey={(record) => record._id || record.number}
                             size="small"
-                            pagination={{ pageSize: 5 }}
+                            pagination={{ pageSize: 10 }}
                         />
                     </div>
                 )}

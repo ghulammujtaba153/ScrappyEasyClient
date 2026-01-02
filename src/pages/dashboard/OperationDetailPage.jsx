@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 import SaveNumbersModal from '../../components/dashboard/SaveNumbersModal';
+import SaveQualifiedLeadsModal from '../../components/dashboard/SaveQualifiedLeadsModal';
 import {
   Alert,
   Button,
@@ -31,7 +32,8 @@ import {
   MdWeb,
   MdLocationOn,
   MdFavorite,
-  MdFavoriteBorder
+  MdFavoriteBorder,
+  MdStar
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
@@ -99,6 +101,7 @@ const OperationDetailPage = () => {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isColdCallModalOpen, setIsColdCallModalOpen] = useState(false);
+  const [isQualifiedLeadsModalOpen, setIsQualifiedLeadsModalOpen] = useState(false);
   // Carousel State
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
 
@@ -197,7 +200,7 @@ const OperationDetailPage = () => {
 
   // Get recommended nearby cities based on Google Maps coordinates in data
   const getRecommendedCities = async () => {
-    if (!record || !record.data) {
+    if (!record || !record.leads) {
       message.warning('No data available to analyze');
       return;
     }
@@ -207,7 +210,7 @@ const OperationDetailPage = () => {
     try {
       // Collect all coordinates from Google Maps links
       const allCoords = [];
-      record.data.forEach((item) => {
+      record.leads.forEach((item) => {
         if (item.googleMapsLink) {
           const coords = extractCoordinates(item.googleMapsLink);
           if (coords) {
@@ -254,12 +257,12 @@ const OperationDetailPage = () => {
 
   // Extract cities for all items in record
   const extractCitiesForRecord = async () => {
-    if (!record || !record.data) return;
+    if (!record || !record.leads) return;
 
     setExtractingCities(true);
     const newCityData = { ...cityData };
     let updated = false;
-    const totalItems = record.data.length;
+    const totalItems = record.leads.length;
     let processedCount = 0;
     let skippedCount = 0;
     let successCount = 0;
@@ -268,9 +271,9 @@ const OperationDetailPage = () => {
     console.log(`🏙️ Starting city extraction for ${totalItems} items...`);
 
     try {
-      for (let i = 0; i < record.data.length; i++) {
-        const item = record.data[i];
-        const itemKey = `${record._id}-${i}`;
+      for (let i = 0; i < record.leads.length; i++) {
+        const item = record.leads[i];
+        const itemKey = item._id || `${record._id}-${i}`;
 
         // Skip if city already extracted
         if (newCityData[itemKey]) {
@@ -388,10 +391,11 @@ const OperationDetailPage = () => {
   };
 
   // Toggle favorite status for a data item
-  const toggleFavorite = async (itemIndex, favorite) => {
+  const toggleFavorite = async (leadId, itemIndex, favorite) => {
     try {
       const res = await axios.post(`${BASE_URL}/api/data/toggle-favorite`, {
         recordId: record._id,
+        leadId,
         itemIndex,
         favorite
       });
@@ -399,8 +403,9 @@ const OperationDetailPage = () => {
       if (res.data.success) {
         // Update the local cache
         const updatedRecord = { ...record };
-        updatedRecord.data = [...record.data];
-        updatedRecord.data[itemIndex] = { ...updatedRecord.data[itemIndex], favorite };
+        updatedRecord.leads = record.leads.map((lead, idx) => 
+          (lead._id === leadId || idx === itemIndex) ? { ...lead, favorite } : lead
+        );
         updateOperationCache(operationId, { record: updatedRecord });
         message.success(favorite ? 'Added to favorites' : 'Removed from favorites');
       }
@@ -559,19 +564,31 @@ const OperationDetailPage = () => {
   };
 
   const flattenedData = useMemo(() => {
-    if (!record?.data) {
+    if (!record?.leads) {
       return [];
     }
 
-    return record.data.map((item, index) => ({
-      key: `${record._id}-${index}`,
+    return record.leads.map((item, index) => ({
+      key: item._id || `${record._id}-${index}`,
+      _id: item._id,
+      leadId: item._id,
       recordId: record._id,
       itemIndex: index,
       searchString: record.searchString,
-      createdAt: record.createdAt,
-      ...item
+      createdAt: item.createdAt || record.createdAt,
+      title: item.title || '',
+      rating: item.rating || '',
+      reviews: item.reviews || '',
+      phone: item.phone || '',
+      address: item.address || '',
+      city: item.city || cityData[item._id] || '',
+      website: item.website || '',
+      googleMapsLink: item.googleMapsLink || '',
+      whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone)] || 'not-checked',
+      favorite: item.favorite || false,
+      screenshotUrl: item.screenshotUrl || screenshotData[item._id] || ''
     }));
-  }, [record]);
+  }, [record, cityData, whatsappStatus, screenshotData]);
 
   // Calculate verification statistics
   const verificationStats = useMemo(() => {
@@ -711,16 +728,6 @@ const OperationDetailPage = () => {
     if (status === 'failed') return 'Failed';
     if (status === 'checking') return 'Checking';
     return 'Not Checked';
-  };
-
-  const getFilteredPhoneNumbers = () => {
-    return [...new Set(
-      filteredData
-        .map(item => item.phone)
-        .filter(Boolean)
-        .map(phone => formatPhoneNumber(phone))
-        .filter(Boolean)
-    )];
   };
 
   const getFileBaseName = () => {
@@ -915,7 +922,7 @@ const OperationDetailPage = () => {
         <Button
           type="text"
           icon={record.favorite ? <MdFavorite style={{ color: '#ef4444' }} className="text-xl" /> : <MdFavoriteBorder className="text-gray-400 text-xl" />}
-          onClick={() => toggleFavorite(record.itemIndex, !record.favorite)}
+          onClick={() => toggleFavorite(record.leadId, record.itemIndex, !record.favorite)}
           className="hover:bg-red-50 transition-colors"
         />
       ),
@@ -948,9 +955,8 @@ const OperationDetailPage = () => {
       key: 'city',
       width: 150,
       render: (_, record) => {
-        const city = cityData[record.key];
-        if (city) {
-          return <Tag color="green">{city}</Tag>;
+        if (record.city) {
+          return <Tag color="green">{record.city}</Tag>;
         }
         return <span className="text-gray-400">-</span>;
       },
@@ -966,8 +972,8 @@ const OperationDetailPage = () => {
             <MdOpenInNew className="inline" /> Link
           </a>
           <div className="flex items-center gap-2">
-            {screenshotData[record.key] && (
-              <ScreenshotViewer url={screenshotData[record.key]} title={record.title} />
+            {(record.screenshotUrl || screenshotData[record.key]) && (
+              <ScreenshotViewer url={record.screenshotUrl || screenshotData[record.key]} title={record.title} />
             )}
             <Button
               size="small"
@@ -977,7 +983,7 @@ const OperationDetailPage = () => {
               loading={queue.some(i => i.key === record.key && (i.status === 'pending' || i.status === 'processing'))}
               className="flex items-center gap-1 hover:bg-blue-50 transition-colors"
             >
-              {screenshotData[record.key] ? 'Recapture' : 'Capture'}
+              {(record.screenshotUrl || screenshotData[record.key]) ? 'Recapture' : 'Capture'}
             </Button>
           </div>
         </Space>
@@ -1063,7 +1069,7 @@ const OperationDetailPage = () => {
           {record && (
             <div className="space-y-1">
               <p className="text-gray-600">
-                {record.data?.length || 0} records • Last updated {record.updatedAt ? new Date(record.updatedAt).toLocaleString() : 'N/A'}
+                {record.leads?.length || 0} records • Last updated {record.updatedAt ? new Date(record.updatedAt).toLocaleString() : 'N/A'}
               </p>
               {verificationStats.total > 0 && (
                 <div className="flex gap-3 text-sm">
@@ -1126,7 +1132,7 @@ const OperationDetailPage = () => {
             <Button
               icon={<MdSave />}
               onClick={() => setIsSaveModalOpen(true)}
-              disabled={getFilteredPhoneNumbers().length === 0}
+              disabled={filteredData.filter(item => item.phone && item.leadId).length === 0}
               className="bg-white text-[#0F792C] border-[#0F792C] hover:bg-[#0F792C] hover:text-white transition-all"
             >
               Save for Messages
@@ -1134,12 +1140,21 @@ const OperationDetailPage = () => {
             <Button
               icon={<MdPhone />}
               onClick={() => setIsColdCallModalOpen(true)}
-              disabled={getFilteredPhoneNumbers().length === 0}
+              disabled={filteredData.filter(item => item.phone && item.leadId).length === 0}
               className="bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white transition-all"
             >
               Save for Cold Calls
             </Button>
+            <Button
+              icon={<MdStar />}
+              onClick={() => setIsQualifiedLeadsModalOpen(true)}
+              disabled={filteredData.length === 0}
+              className="bg-white text-yellow-600 border-yellow-500 hover:bg-yellow-500 hover:text-white transition-all"
+            >
+              Save to Qualified Leads
+            </Button>
           </div>
+
 
           <div className="flex flex-wrap gap-2 justify-end">
             {whatsappInitialized && (
@@ -1233,15 +1248,32 @@ const OperationDetailPage = () => {
       <SaveNumbersModal
         visible={isSaveModalOpen}
         onCancel={() => setIsSaveModalOpen(false)}
-        numbers={getFilteredPhoneNumbers()}
+        filteredData={filteredData}
         userId={user?._id || user?.id}
+        operationId={operationId}
+        searchString={record?.searchString}
       />
 
       <SaveColdCallsModal
         visible={isColdCallModalOpen}
         onCancel={() => setIsColdCallModalOpen(false)}
-        numbers={getFilteredPhoneNumbers()}
+        filteredData={filteredData}
         userId={user?._id || user?.id}
+        operationId={operationId}
+        searchString={record?.searchString}
+      />
+
+      <SaveQualifiedLeadsModal
+        visible={isQualifiedLeadsModalOpen}
+        onCancel={() => setIsQualifiedLeadsModalOpen(false)}
+        filteredData={filteredData}
+        filters={filters}
+        userId={user?._id || user?.id}
+        operationId={operationId}
+        searchString={record?.searchString}
+        cityData={cityData}
+        whatsappStatus={whatsappStatus}
+        formatPhoneNumber={formatPhoneNumber}
       />
 
       {/* Recommended Cities Modal */}
@@ -1500,15 +1532,16 @@ const OperationDetailPage = () => {
           .map(item => ({
             title: item.title,
             url: item.website,
-            screenshotUrl: screenshotData[item.key],
+            screenshotUrl: item.screenshotUrl || screenshotData[item.key],
             favorite: item.favorite,
-            itemIndex: item.itemIndex
+            itemIndex: item.itemIndex,
+            leadId: item.leadId
           }))}
         onToggleFavorite={(carouselIndex, favorite) => {
           const websitesWithIndex = filteredData.filter(item => item.website);
           const item = websitesWithIndex[carouselIndex];
           if (item) {
-            toggleFavorite(item.itemIndex, favorite);
+            toggleFavorite(item.leadId, item.itemIndex, favorite);
           }
         }}
       />

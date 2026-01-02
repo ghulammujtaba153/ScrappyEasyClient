@@ -30,6 +30,8 @@ import SubscriptionSuccessPage from "./pages/dashboard/SubscriptionSuccessPage";
 import LocationPage from "./pages/dashboard/LocationPage";
 import CollaborationPage from "./pages/dashboard/CollaborationPage";
 import InviteUserResetPage from "./pages/InviteUserResetPage";
+import QualifiedLeadsPage from "./pages/dashboard/QualifiedLeadsPage";
+import QualifiedLeadsDetailPage from "./pages/dashboard/QualifiedLeadsDetailPage";
 
 
 function App() {
@@ -76,6 +78,8 @@ function App() {
                                     <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
                                     <Route path="location" element={<LocationPage />} />
                                     <Route path="collaboration" element={<CollaborationPage />} />
+                                    <Route path="qualified-leads" element={<QualifiedLeadsPage />} />
+                                    <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
                                 </Route>
 
                                 {/* 404 Page - Must be last */}
