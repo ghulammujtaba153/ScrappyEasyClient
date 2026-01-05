@@ -52,7 +52,19 @@ const ColdCallerPage = () => {
     }
   };
 
-  const getListStats = (numbers) => {
+  const getListStats = (record) => {
+    // Check if it's a qualified leads campaign
+    if (record.qualifiedLeadsId?.entries?.length > 0) {
+      const entries = record.qualifiedLeadsId.entries.filter(e => e.leadId?.phone);
+      const total = entries.length;
+      const success = entries.filter(e => e.callStatus === 'successful' || e.callStatus === 'interested').length;
+      const failed = entries.filter(e => e.callStatus === 'failed' || e.callStatus === 'not-interested' || e.callStatus === 'no-answer' || e.callStatus === 'wrong-number').length;
+      const pending = entries.filter(e => !e.callStatus || e.callStatus === 'pending' || e.callStatus === 'not-called').length;
+      return { total, success, failed, pending };
+    }
+    
+    // Legacy numbers array
+    const numbers = record.numbers;
     if (!numbers || !Array.isArray(numbers)) return { total: 0, success: 0, failed: 0, pending: 0 };
     const total = numbers.length;
     const success = numbers.filter(n => n.status === 'successful').length;
@@ -67,7 +79,7 @@ const ColdCallerPage = () => {
 
   // Calculate Global Stats
   const globalStats = data.reduce((acc, curr) => {
-    const stats = getListStats(curr.numbers);
+    const stats = getListStats(curr);
     acc.totalLists += 1;
     acc.totalNumbers += stats.total;
     acc.totalSuccess += stats.success;
@@ -86,7 +98,7 @@ const ColdCallerPage = () => {
       title: 'Progress',
       key: 'progress',
       render: (_, record) => {
-        const { total, success } = getListStats(record.numbers);
+        const { total, success } = getListStats(record);
         const percent = total > 0 ? Math.round((success / total) * 100) : 0;
         return (
           <div style={{ width: 150 }}>
@@ -104,7 +116,7 @@ const ColdCallerPage = () => {
       title: 'Status Breakdown',
       key: 'breakdown',
       render: (_, record) => {
-        const { success, failed, pending } = getListStats(record.numbers);
+        const { success, failed, pending } = getListStats(record);
         return (
           <Space size="middle">
             <Tooltip title="Successful">

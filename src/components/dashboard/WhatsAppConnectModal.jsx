@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Modal, Button, Spin, message, Alert } from 'antd';
 import { QRCodeCanvas } from 'qrcode.react';
 import axios from 'axios';
@@ -10,28 +10,43 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected }) => {
     const { token } = useAuth();
     const [loading, setLoading] = useState(false);
     const [qrCode, setQrCode] = useState(null);
-    const [status, setStatus] = useState('initializing'); // initializing, qr_ready, connected, error
+    const [status, setStatus] = useState('initializing'); // initializing, qr_ready, connected, error, waiting
+    const [errorMessage, setErrorMessage] = useState(null);
+    const pollIntervalRef = useRef(null);
+    const initAttemptRef = useRef(0);
 
     // Poll status when modal is open
     useEffect(() => {
-        let pollInterval;
-
         if (visible) {
-            // Initial check/setup
+            // Reset state
+            setQrCode(null);
+            setStatus('initializing');
+            setErrorMessage(null);
+            initAttemptRef.current = 0;
+            
+            // Initial setup
             initializeSession();
 
             // Start polling
-            pollInterval = setInterval(async () => {
+            pollIntervalRef.current = setInterval(async () => {
                 await checkStatus();
-            }, 3000);
+            }, 2000);
         } else {
-            // Reset state on close
+            // Clean up on close
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
             setQrCode(null);
             setStatus('initializing');
+            setErrorMessage(null);
         }
 
         return () => {
-            if (pollInterval) clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visible]);
@@ -48,14 +63,27 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected }) => {
                 if (data.isConnected) {
                     setStatus('connected');
                     message.success('WhatsApp connected successfully!');
+                    if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                    }
                     onConnected();
-                    onCancel(); // Close modal
+                    onCancel();
                     return;
                 }
 
                 if (data.qrCode && data.qrCode !== qrCode) {
                     setQrCode(data.qrCode);
                     setStatus('qr_ready');
+                    setErrorMessage(null);
+                }
+
+                if (data.isInitializing) {
+                    setStatus('waiting');
+                }
+
+                if (data.lastError && !data.qrCode && !data.isInitializing) {
+                    setErrorMessage(`Connection error: ${data.lastError.errorMessage || 'Unknown error'}`);
                 }
             }
         } catch (error) {
@@ -65,8 +93,11 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected }) => {
 
     const initializeSession = async () => {
         setLoading(true);
+        setStatus('initializing');
+        setErrorMessage(null);
+        
         try {
-            // Check if already connected or has QR
+            // Check current status first
             const statusRes = await axios.get(`${BASE_URL}/api/verification/status`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -78,19 +109,24 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected }) => {
                 return;
             }
 
-            // If not connected, ensure session is initialized
-            if (!statusRes.data.data?.initialized) {
-                await axios.post(`${BASE_URL}/api/verification/initialize`, {}, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-            }
+            // Initialize session (with forceNew if previous session had errors)
+            const shouldForceNew = statusRes.data.data?.needsReinitialization || 
+                                   statusRes.data.data?.lastError;
+            
+            await axios.post(`${BASE_URL}/api/verification/initialize`, 
+                { forceNew: shouldForceNew }, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
-            // Fetch explicit QR if needed
+            // Wait a moment then fetch QR
+            setStatus('waiting');
+            await new Promise(resolve => setTimeout(resolve, 1500));
             await refreshQrCode();
 
         } catch (error) {
             console.error('Initialization failed', error);
             setStatus('error');
+            setErrorMessage(error.response?.data?.error || error.message);
         } finally {
             setLoading(false);
         }
@@ -98,6 +134,8 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected }) => {
 
     const refreshQrCode = async () => {
         setLoading(true);
+        setErrorMessage(null);
+        
         try {
             const res = await axios.get(`${BASE_URL}/api/verification/qr`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -110,9 +148,47 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected }) => {
                 setStatus('connected');
                 onConnected();
                 onCancel();
+            } else if (res.data.isInitializing) {
+                setStatus('waiting');
+            } else {
+                // If no QR yet, might need to reinitialize
+                initAttemptRef.current++;
+                if (initAttemptRef.current < 3) {
+                    setStatus('waiting');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await refreshQrCode();
+                } else {
+                    setErrorMessage(res.data.error || 'Failed to generate QR code');
+                    setStatus('error');
+                }
             }
-        } catch {
-            message.error('Failed to refresh QR code');
+        } catch (error) {
+            setErrorMessage(error.response?.data?.error || 'Failed to refresh QR code');
+            setStatus('error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForceReconnect = async () => {
+        initAttemptRef.current = 0;
+        setQrCode(null);
+        setStatus('initializing');
+        setErrorMessage(null);
+        
+        setLoading(true);
+        try {
+            // Force new session
+            await axios.post(`${BASE_URL}/api/verification/initialize`, 
+                { forceNew: true }, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            await refreshQrCode();
+        } catch (error) {
+            setErrorMessage(error.response?.data?.error || error.message);
+            setStatus('error');
         } finally {
             setLoading(false);
         }
@@ -124,7 +200,7 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected }) => {
             open={visible}
             onCancel={onCancel}
             footer={null}
-            width={400}
+            width={420}
             destroyOnClose
         >
             <div className="flex flex-col items-center justify-center p-4 gap-4">
@@ -143,20 +219,50 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected }) => {
                             {qrCode ? (
                                 <QRCodeCanvas value={qrCode} size={250} />
                             ) : (
-                                <div className="h-[250px] w-[250px] flex items-center justify-center bg-gray-50 text-gray-400">
-                                    {loading ? <Spin size="large" /> : 'Waiting for QR...'}
+                                <div className="h-[250px] w-[250px] flex flex-col items-center justify-center bg-gray-50 text-gray-400 gap-2">
+                                    {loading || status === 'waiting' || status === 'initializing' ? (
+                                        <>
+                                            <Spin size="large" />
+                                            <span className="text-sm">
+                                                {status === 'initializing' ? 'Initializing...' : 'Generating QR Code...'}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span>Click refresh to get QR code</span>
+                                    )}
                                 </div>
                             )}
                         </div>
+
+                        {errorMessage && (
+                            <Alert
+                                message="Connection Error"
+                                description={errorMessage}
+                                type="error"
+                                showIcon
+                                className="w-full"
+                            />
+                        )}
 
                         <div className="flex gap-2">
                             <Button
                                 icon={<FiRefreshCw />}
                                 onClick={refreshQrCode}
                                 loading={loading}
+                                disabled={status === 'initializing'}
                             >
                                 Refresh QR
                             </Button>
+                            {(status === 'error' || errorMessage) && (
+                                <Button
+                                    type="primary"
+                                    onClick={handleForceReconnect}
+                                    loading={loading}
+                                    className="bg-blue-600"
+                                >
+                                    Force Reconnect
+                                </Button>
+                            )}
                         </div>
 
                         <Alert

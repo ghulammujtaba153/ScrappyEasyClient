@@ -201,9 +201,10 @@ const Sidebar = () => {
 
             <nav className="mt-6">
                 {menuItems.map((item) => {
-                    const isActive = item.path === '/dashboard/operations' 
-                        ? location.pathname.startsWith('/dashboard/operations')
-                        : location.pathname === item.path;
+                    // Handle active state for nested routes
+                    const isActive = item.path === '/dashboard'
+                        ? location.pathname === '/dashboard'
+                        : location.pathname.startsWith(item.path);
                     return (
                         <Link
                             key={item.path}

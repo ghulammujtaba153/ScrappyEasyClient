@@ -8,7 +8,8 @@ import {
     LeadsAreaChart,
     RatingPieChart,
     CityBarChart,
-    WhatsAppDonutChart
+    WhatsAppDonutChart,
+    CommunicationMethodsChart
 } from "../../components/charts";
 
 const HomePage = () => {
@@ -23,7 +24,8 @@ const HomePage = () => {
         leadsOverTime: [],
         ratingDistribution: [],
         cityDistribution: [],
-        whatsappDistribution: []
+        whatsappDistribution: [],
+        communicationMethods: []
     });
     const [loading, setLoading] = useState(true);
     const [chartLoading, setChartLoading] = useState(true);
@@ -87,6 +89,7 @@ const HomePage = () => {
                     Here's an overview of your account and recent activity.
                 </p>
             </div>
+
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -184,6 +187,11 @@ const HomePage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <CityBarChart data={chartData.cityDistribution} loading={chartLoading} />
                 <WhatsAppDonutChart data={chartData.whatsappDistribution} loading={chartLoading} />
+            </div>
+
+            {/* Charts Row 3 - Communication Methods */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <CommunicationMethodsChart data={chartData.communicationMethods} loading={chartLoading} />
             </div>
         </div>
     );
