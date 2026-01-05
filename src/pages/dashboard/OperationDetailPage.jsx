@@ -60,6 +60,7 @@ const defaultFilters = {
   reviewsMax: null,
   hasWebsite: '',
   hasPhone: '',
+  hasVerifiedWhatsApp: '',
   favorite: ''
 };
 
@@ -108,6 +109,10 @@ const OperationDetailPage = () => {
   const [verifyingAll, setVerifyingAll] = useState(false);
 
   const [extractingCities, setExtractingCities] = useState(false);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Recommend Cities State
   const [recommendedCities, setRecommendedCities] = useState([]);
@@ -261,6 +266,7 @@ const OperationDetailPage = () => {
 
     setExtractingCities(true);
     const newCityData = { ...cityData };
+    const cityDataToSave = {}; // Store leadId -> city for backend
     let updated = false;
     const totalItems = record.leads.length;
     let processedCount = 0;
@@ -273,12 +279,12 @@ const OperationDetailPage = () => {
     try {
       for (let i = 0; i < record.leads.length; i++) {
         const item = record.leads[i];
-        const itemKey = item._id || `${record._id}-${i}`;
+        const leadId = item._id;
 
-        // Skip if city already extracted
-        if (newCityData[itemKey]) {
+        // Skip if city already stored in lead or cached
+        if (item.city || newCityData[leadId]) {
           skippedCount++;
-          console.log(`⏭️ [${i + 1}/${totalItems}] Skipping - City already cached: ${newCityData[itemKey]}`);
+          console.log(`⏭️ [${i + 1}/${totalItems}] Skipping - City already exists: ${item.city || newCityData[leadId]}`);
           continue;
         }
 
@@ -289,7 +295,8 @@ const OperationDetailPage = () => {
           const city = await extractCityFromUrl(item.googleMapsLink);
 
           if (city && city !== 'Unknown') {
-            newCityData[itemKey] = city;
+            newCityData[leadId] = city;
+            cityDataToSave[leadId] = city; // Use leadId as key
             updated = true;
             successCount++;
             console.log(`✅ [${i + 1}/${totalItems}] Found city: ${city}`);
@@ -317,13 +324,7 @@ const OperationDetailPage = () => {
       console.log(`   Failed: ${failedCount}`);
 
       if (updated) {
-        // Save to backend
-        const cityDataToSave = {};
-        Object.entries(newCityData).forEach(([key, city]) => {
-          const index = key.split('-')[1];
-          cityDataToSave[index] = city;
-        });
-
+        // Save to backend using leadId -> city format
         await axios.post(`${BASE_URL}/api/data/update-city`, {
           recordId: record._id,
           cityData: cityDataToSave
@@ -331,6 +332,9 @@ const OperationDetailPage = () => {
 
         // Final update to cache
         setCityData(newCityData);
+
+        // Refresh the record to get updated leads with city data
+        await fetchRecord();
 
         console.log(`✅ Successfully saved cities to database`);
         message.success(`Cities extracted: ${successCount} successful, ${failedCount} failed`);
@@ -483,6 +487,9 @@ const OperationDetailPage = () => {
             message.info('Number does not have WhatsApp');
           }
         }
+        
+        // Refresh to get updated status from DB
+        fetchRecord();
       } else {
         const errorMessage = res.data.error || 'Failed to verify WhatsApp number';
         setWhatsappStatus(prev => ({ ...prev, [normalized]: 'unknown' }));
@@ -554,6 +561,9 @@ const OperationDetailPage = () => {
 
         setWhatsappStatus(prev => ({ ...prev, ...newStatus }));
         message.success(`Verified ${successful} numbers successfully. ${failed} failed.`);
+        
+        // Refresh record to get updated whatsappStatus from database
+        await fetchRecord();
       }
     } catch (error) {
       console.error('Batch verification error:', error);
@@ -581,7 +591,7 @@ const OperationDetailPage = () => {
       reviews: item.reviews || '',
       phone: item.phone || '',
       address: item.address || '',
-      city: item.city || cityData[item._id] || '',
+      city: item.city || cityData[item._id] || '', // Prefer stored city, then cached
       website: item.website || '',
       googleMapsLink: item.googleMapsLink || '',
       whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone)] || 'not-checked',
@@ -590,29 +600,28 @@ const OperationDetailPage = () => {
     }));
   }, [record, cityData, whatsappStatus, screenshotData]);
 
-  // Calculate verification statistics
+  // Calculate verification statistics - use item.whatsappStatus from new schema
   const verificationStats = useMemo(() => {
     const phonesWithNumbers = flattenedData.filter(item => item.phone);
-    const uniquePhones = new Set(phonesWithNumbers.map(item => formatPhoneNumber(item.phone)).filter(Boolean));
 
     let verified = 0;
     let notVerified = 0;
     let notChecked = 0;
 
-    uniquePhones.forEach(phone => {
-      const status = whatsappStatus[phone];
+    phonesWithNumbers.forEach(item => {
+      const status = item.whatsappStatus;
       if (status === 'verified') verified++;
       else if (status === 'not-verified') notVerified++;
       else notChecked++;
     });
 
     return {
-      total: uniquePhones.size,
+      total: phonesWithNumbers.length,
       verified,
       notVerified,
       notChecked
     };
-  }, [flattenedData, whatsappStatus]);
+  }, [flattenedData]);
 
 
 
@@ -657,13 +666,14 @@ const OperationDetailPage = () => {
 
     if (filters.whatsappStatus) {
       filtered = filtered.filter(item => {
-        const status = whatsappStatus[formatPhoneNumber(item.phone)];
+        // Use item.whatsappStatus directly from the lead document (new schema)
+        const status = item.whatsappStatus;
         if (filters.whatsappStatus === 'verified') {
           return status === 'verified';
         } else if (filters.whatsappStatus === 'not-verified') {
           return status === 'not-verified';
         } else if (filters.whatsappStatus === 'not-checked') {
-          return !status || status === 'unknown';
+          return !status || status === 'not-checked' || status === '';
         }
         return true;
       });
@@ -699,15 +709,24 @@ const OperationDetailPage = () => {
 
     if (filters.hasWebsite) {
       filtered = filtered.filter(item => {
-        const hasWebsite = !!item.website;
+        const hasWebsite = item.website && item.website.trim() !== '';
         return filters.hasWebsite === 'yes' ? hasWebsite : !hasWebsite;
       });
     }
 
     if (filters.hasPhone) {
       filtered = filtered.filter(item => {
-        const hasPhone = !!item.phone;
+        // Check if phone field has a non-empty value
+        const hasPhone = item.phone && item.phone.trim() !== '';
         return filters.hasPhone === 'yes' ? hasPhone : !hasPhone;
+      });
+    }
+
+    // Filter by verified WhatsApp (has phone AND whatsappStatus is 'verified')
+    if (filters.hasVerifiedWhatsApp) {
+      filtered = filtered.filter(item => {
+        const hasVerified = item.phone && item.whatsappStatus === 'verified';
+        return filters.hasVerifiedWhatsApp === 'yes' ? hasVerified : !hasVerified;
       });
     }
 
@@ -719,10 +738,11 @@ const OperationDetailPage = () => {
     }
 
     return filtered;
-  }, [flattenedData, filters, whatsappStatus]);
+  }, [flattenedData, filters]);
 
-  const getWhatsappStatusLabel = (phone) => {
-    const status = whatsappStatus[formatPhoneNumber(phone)];
+  const getWhatsappStatusLabel = (phone, itemStatus) => {
+    // Prioritize the item's stored status (from DB), fallback to local cache
+    const status = itemStatus || whatsappStatus[formatPhoneNumber(phone)];
     if (status === 'verified') return 'Verified';
     if (status === 'not-verified') return 'Not Verified';
     if (status === 'failed') return 'Failed';
@@ -895,7 +915,7 @@ const OperationDetailPage = () => {
     {
       title: '#',
       width: 60,
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
     },
     {
       title: 'Business Name',
@@ -1002,16 +1022,17 @@ const OperationDetailPage = () => {
     },
     {
       title: 'WhatsApp',
-      dataIndex: 'phone',
       key: 'whatsapp',
       width: 140,
-      render: (phone) => {
+      render: (_, record) => {
+        const phone = record.phone;
         if (!phone) return <Tag color="default">N/A</Tag>;
 
         const formattedPhone = formatPhoneNumber(phone);
         if (!formattedPhone) return <Tag color="default">Invalid</Tag>;
 
-        const status = whatsappStatus[formattedPhone];
+        // Use item.whatsappStatus from DB, fallback to local cache for real-time updates
+        const status = record.whatsappStatus || whatsappStatus[formattedPhone];
 
         if (status === 'checking') {
           return <Spin size="small" />;
@@ -1468,6 +1489,29 @@ const OperationDetailPage = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-2">
+                Has Verified WhatsApp
+              </label>
+              <Select
+                placeholder="Filter by verified WhatsApp"
+                style={{ width: '100%' }}
+                value={filters.hasVerifiedWhatsApp || undefined}
+                onChange={(value) => setFilters({ ...filters, hasVerifiedWhatsApp: value || '' })}
+                allowClear
+                className="custom-select-primary"
+              >
+                <Option value="yes">
+                  <span className="flex items-center gap-2">
+                    <BsWhatsapp className="text-green-500" /> Has Verified WhatsApp
+                  </span>
+                </Option>
+                <Option value="no">No Verified WhatsApp</Option>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Favorites
               </label>
               <Select
@@ -1497,6 +1541,7 @@ const OperationDetailPage = () => {
           filters.reviewsMax !== null ||
           filters.hasWebsite ||
           filters.hasPhone ||
+          filters.hasVerifiedWhatsApp ||
           filters.favorite) && (
             <div className="mt-4">
               <Button
@@ -1517,9 +1562,14 @@ const OperationDetailPage = () => {
           loading={loading}
           scroll={{ x: 1200 }}
           pagination={{
-            pageSize: 20,
+            current: currentPage,
+            pageSize: pageSize,
             showSizeChanger: true,
             showTotal: (total) => `Total ${total} records`,
+            onChange: (page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            },
           }}
         />
       </div>

@@ -49,13 +49,14 @@ export const ScreenshotProvider = ({ children }) => {
 
             if (res.success) {
                 const newUrl = res.screenshotUrl;
-                const index = item.key.split('-')[1];
+                // Use key directly as leadId (it's the MongoDB _id)
+                const leadId = item.key;
 
                 // 1. Update Backend
                 try {
                     await axios.post(`${BASE_URL}/api/data/update-screenshots`, {
                         recordId: item.recordId,
-                        screenshotData: { [index]: newUrl }
+                        screenshotData: { [leadId]: newUrl }
                     });
                 } catch (saveError) {
                     console.error("Failed to save screenshot to DB:", saveError);

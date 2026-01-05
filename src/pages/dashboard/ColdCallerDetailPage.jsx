@@ -23,6 +23,10 @@ const ColdCallerDetailPage = () => {
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("successful");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  
+  // Pagination state for row numbering
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Check if campaign uses qualified leads
   const isQualifiedLeadsCampaign = useMemo(() => {
@@ -217,7 +221,7 @@ const ColdCallerDetailPage = () => {
     {
       title: '#',
       width: 50,
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
     },
     ...(isQualifiedLeadsCampaign ? [{
       title: 'Business',
@@ -463,7 +467,16 @@ const ColdCallerDetailPage = () => {
           columns={columns}
           dataSource={leads}
           rowKey={(record) => record._id || record.entryId}
-          pagination={{ pageSize: 15 }}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            onChange: (page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            },
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '15', '25', '50']
+          }}
         />
       </Card>
 
