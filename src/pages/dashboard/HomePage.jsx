@@ -180,7 +180,8 @@ const HomePage = () => {
             {/* Charts Row 1 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <LeadsAreaChart data={chartData.leadsOverTime} loading={chartLoading} />
-                <RatingPieChart data={chartData.ratingDistribution} loading={chartLoading} />
+                <CommunicationMethodsChart data={chartData.communicationMethods} loading={chartLoading} />
+
             </div>
 
             {/* Charts Row 2 */}
@@ -191,7 +192,7 @@ const HomePage = () => {
 
             {/* Charts Row 3 - Communication Methods */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <CommunicationMethodsChart data={chartData.communicationMethods} loading={chartLoading} />
+                <RatingPieChart data={chartData.ratingDistribution} loading={chartLoading} />
             </div>
         </div>
     );
