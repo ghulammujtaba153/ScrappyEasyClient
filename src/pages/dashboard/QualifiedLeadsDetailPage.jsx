@@ -1,13 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Table, Tag, Spin, message, Space, Tooltip, Modal, Input, Form, Select, Checkbox, Alert, InputNumber } from 'antd';
-import { MdArrowBack, MdStar, MdFilterList, MdOpenInNew, MdDownload, MdCheckCircle, MdClose, MdFavorite, MdPhone, MdMessage, MdRefresh, MdSearch } from 'react-icons/md';
-import { BsWhatsapp } from 'react-icons/bs';
+import { Table, Tag, Spin, message, Tooltip, Form, Select, Checkbox } from 'antd';
+import { MdOpenInNew, MdCheckCircle, MdClose, MdFavorite, MdPhone, MdMessage } from 'react-icons/md';
+import { PhoneOutlined, MessageOutlined } from '@ant-design/icons';
+import { Button, Space } from 'antd';
 import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
+import Dialer from '../../components/Dialer';
+import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 
-const { Option } = Select;
+// Import QualifiedLeads components
+import {
+    CallStatusModal,
+    SendMessageModal,
+    BatchMessagingBar,
+    QualifiedLeadsFilters,
+    QualifiedLeadsInfoCards,
+    ColdCallCampaignModal,
+    MessageCampaignModal,
+    ActiveFiltersDisplay,
+    QualifiedLeadsHeader
+} from '../../components/QualifiedLeads';
 
 // Default filters matching OperationDetailPage
 const defaultFilters = {
@@ -38,7 +52,6 @@ const QualifiedLeadsDetailPage = () => {
     const [coldCallModalVisible, setColdCallModalVisible] = useState(false);
     const [messageModalVisible, setMessageModalVisible] = useState(false);
     const [campaignLoading, setCampaignLoading] = useState(false);
-    const [selectedRows, setSelectedRows] = useState([]);
     const [coldCallForm] = Form.useForm();
     const [messageForm] = Form.useForm();
     
@@ -48,6 +61,28 @@ const QualifiedLeadsDetailPage = () => {
     // Pagination state for row numbering
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
+    
+    // Dialer & Status States
+    const [showDialer, setShowDialer] = useState(false);
+    const [dialerNumber, setDialerNumber] = useState("");
+    const [callingEntryId, setCallingEntryId] = useState(null);
+    const [callingLeadId, setCallingLeadId] = useState(null);
+    const [statusModalVisible, setStatusModalVisible] = useState(false);
+    const [selectedCallStatus, setSelectedCallStatus] = useState("interested");
+    const [updatingCallStatus, setUpdatingCallStatus] = useState(false);
+    
+    // Messaging States
+    const [sendMessageModalVisible, setSendMessageModalVisible] = useState(false);
+    const [messageContent, setMessageContent] = useState('');
+    const [messagingEntryId, setMessagingEntryId] = useState(null);
+    const [sendingMessage, setSendingMessage] = useState(false);
+    const [remainingMessages, setRemainingMessages] = useState(10);
+    const [selectedMessageEntries, setSelectedMessageEntries] = useState([]);
+    const [batchSending, setBatchSending] = useState(false);
+    const [whatsappConnectModalOpen, setWhatsappConnectModalOpen] = useState(false);
+    const [whatsappInitialized, setWhatsappInitialized] = useState(false);
+    const [connectedPhoneNumber, setConnectedPhoneNumber] = useState(null);
+    const [disconnecting, setDisconnecting] = useState(false);
 
     const fetchLeadDetails = async () => {
         if (!id) return;
@@ -69,8 +104,59 @@ const QualifiedLeadsDetailPage = () => {
         }
     };
 
+    // Fetch remaining messages for today
+    const fetchRemainingMessages = async () => {
+        try {
+            const userId = user._id || user.id;
+            const res = await axios.get(`${BASE_URL}/api/automate/remaining/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.data.success) {
+                setRemainingMessages(res.data.remaining);
+            }
+        } catch (error) {
+            console.error('Failed to fetch remaining messages');
+        }
+    };
+
+    // Check WhatsApp connection status
+    const checkWhatsAppStatus = async () => {
+        try {
+            const res = await axios.get(`${BASE_URL}/api/verification/status`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.data.success && res.data.data) {
+                setWhatsappInitialized(res.data.data.isConnected);
+                setConnectedPhoneNumber(res.data.data.phoneNumber || null);
+            }
+        } catch (error) {
+            console.error('WhatsApp status check failed');
+        }
+    };
+
+    // Disconnect WhatsApp
+    const handleDisconnectWhatsApp = async () => {
+        setDisconnecting(true);
+        try {
+            const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.data.success) {
+                message.success('WhatsApp disconnected successfully');
+                setWhatsappInitialized(false);
+                setConnectedPhoneNumber(null);
+            }
+        } catch (error) {
+            message.error(error.response?.data?.error || 'Failed to disconnect WhatsApp');
+        } finally {
+            setDisconnecting(false);
+        }
+    };
+
     useEffect(() => {
         fetchLeadDetails();
+        fetchRemainingMessages();
+        checkWhatsAppStatus();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
@@ -295,23 +381,6 @@ const QualifiedLeadsDetailPage = () => {
         }
     };
 
-    // Get active filters for display
-    const getActiveFilters = () => {
-        if (!leadData?.filters) return [];
-        const filters = leadData.filters;
-        const active = [];
-        if (filters.locationSearch) active.push(`Location: "${filters.locationSearch}"`);
-        if (filters.whatsappStatus) active.push(`WhatsApp: ${filters.whatsappStatus}`);
-        if (filters.ratingMin !== null && filters.ratingMin !== undefined) active.push(`Rating ≥ ${filters.ratingMin}`);
-        if (filters.ratingMax !== null && filters.ratingMax !== undefined) active.push(`Rating ≤ ${filters.ratingMax}`);
-        if (filters.reviewsMin !== null && filters.reviewsMin !== undefined) active.push(`Reviews ≥ ${filters.reviewsMin}`);
-        if (filters.reviewsMax !== null && filters.reviewsMax !== undefined) active.push(`Reviews ≤ ${filters.reviewsMax}`);
-        if (filters.hasWebsite) active.push(`Website: ${filters.hasWebsite}`);
-        if (filters.hasPhone) active.push(`Phone: ${filters.hasPhone}`);
-        if (filters.favorite) active.push(`Favorites: ${filters.favorite}`);
-        return active;
-    };
-
     const tableData = getTableData();
     const filteredTableData = getFilteredTableData();
 
@@ -381,16 +450,6 @@ const QualifiedLeadsDetailPage = () => {
         return colors[status] || 'default';
     };
 
-    const getLeadStatusColor = (status) => {
-        const colors = {
-            'not-reached': 'default',
-            'interested': 'success',
-            'not-interested': 'error',
-            'no-response': 'warning'
-        };
-        return colors[status] || 'default';
-    };
-
     // Handle lead status update (overall status in LeadData)
     const handleLeadStatusChange = async (leadId, newStatus) => {
         try {
@@ -410,6 +469,181 @@ const QualifiedLeadsDetailPage = () => {
             message.error('Failed to update lead status');
         }
     };
+
+    // Handle opening dialer
+    const handleCall = (record) => {
+        setDialerNumber(record.phone);
+        setCallingEntryId(record.entryId);
+        setCallingLeadId(record.leadId);
+        setShowDialer(true);
+    };
+
+    // When call ends, show status modal
+    const onCallEnd = () => {
+        if (callingEntryId) {
+            setStatusModalVisible(true);
+        }
+    };
+
+    // Update call status after call ends
+    const handleUpdateCallStatus = async () => {
+        if (!callingEntryId) return;
+        setUpdatingCallStatus(true);
+        try {
+            const res = await axios.put(`${BASE_URL}/api/qualified-leads/update-call-status`, {
+                qualifiedLeadId: id,
+                entryId: callingEntryId,
+                callStatus: selectedCallStatus
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data) {
+                message.success('Call status updated');
+                fetchLeadDetails();
+                setStatusModalVisible(false);
+                setCallingEntryId(null);
+                setCallingLeadId(null);
+            }
+        } catch (error) {
+            console.error('Update call status error:', error);
+            message.error('Failed to update call status');
+        } finally {
+            setUpdatingCallStatus(false);
+        }
+    };
+
+    // Open message modal for single entry
+    const handleOpenMessageModal = (record) => {
+        if (!record.phone) {
+            message.warning('This lead has no phone number');
+            return;
+        }
+        if (remainingMessages <= 0) {
+            message.error('Daily message limit (10) reached. Try again tomorrow.');
+            return;
+        }
+        setMessagingEntryId(record.entryId);
+        setSendMessageModalVisible(true);
+    };
+
+    // Send single message
+    const handleSendSingleMessage = async () => {
+        if (!messagingEntryId || !messageContent.trim()) {
+            message.warning('Please enter a message');
+            return;
+        }
+        if (!whatsappInitialized) {
+            message.warning('Please connect WhatsApp first');
+            setWhatsappConnectModalOpen(true);
+            return;
+        }
+
+        setSendingMessage(true);
+        try {
+            const userId = user._id || user.id;
+            const res = await axios.post(`${BASE_URL}/api/automate/send-single`, {
+                qualifiedLeadId: id,
+                entryId: messagingEntryId,
+                messageContent,
+                userId
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                message.success(`Message sent to ${res.data.businessName}`);
+                setRemainingMessages(res.data.remainingMessages);
+                setSendMessageModalVisible(false);
+                setMessagingEntryId(null);
+                fetchLeadDetails();
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Failed to send message';
+            message.error(errorMsg);
+            if (error.response?.data?.remainingMessages !== undefined) {
+                setRemainingMessages(error.response.data.remainingMessages);
+            }
+        } finally {
+            setSendingMessage(false);
+        }
+    };
+
+    // Send batch messages to selected entries
+    const handleSendBatchMessages = async () => {
+        if (selectedMessageEntries.length === 0) {
+            message.warning('Please select recipients to send messages');
+            return;
+        }
+        if (!messageContent.trim()) {
+            message.warning('Please enter a message content');
+            return;
+        }
+        if (!whatsappInitialized) {
+            message.warning('Please connect WhatsApp first');
+            setWhatsappConnectModalOpen(true);
+            return;
+        }
+        if (remainingMessages <= 0) {
+            message.error('Daily message limit (10) reached. Try again tomorrow.');
+            return;
+        }
+
+        setBatchSending(true);
+        try {
+            const userId = user._id || user.id;
+            const res = await axios.post(`${BASE_URL}/api/automate/send-batch-limit`, {
+                qualifiedLeadId: id,
+                entryIds: selectedMessageEntries,
+                messageContent,
+                userId
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                message.success(`Batch sent: ${res.data.successCount} successful, ${res.data.failedCount} failed`);
+                if (res.data.skipped > 0) {
+                    message.warning(`${res.data.skipped} messages skipped due to daily limit`);
+                }
+                setRemainingMessages(res.data.remainingMessages);
+                setSelectedMessageEntries([]);
+                fetchLeadDetails();
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Failed to send batch';
+            message.error(errorMsg);
+        } finally {
+            setBatchSending(false);
+        }
+    };
+
+    // Toggle entry selection for batch messaging
+    const toggleMessageEntrySelection = (entryId, isSelected) => {
+        if (isSelected) {
+            setSelectedMessageEntries([...selectedMessageEntries, entryId]);
+        } else {
+            setSelectedMessageEntries(selectedMessageEntries.filter(id => id !== entryId));
+        }
+    };
+
+    // Select all pending entries for messaging
+    const selectAllPendingForMessaging = (checked) => {
+        if (checked) {
+            const pendingEntries = filteredTableData
+                .filter(d => d.phone && (d.messageStatus === 'not-sent' || d.messageStatus === 'pending'))
+                .map(d => d.entryId);
+            setSelectedMessageEntries(pendingEntries);
+        } else {
+            setSelectedMessageEntries([]);
+        }
+    };
+
+    // Get current lead being messaged for modal display
+    const currentMessagingLead = filteredTableData.find(d => d.entryId === messagingEntryId);
+
+    // Get current lead being called for modal display
+    const currentCallingLead = filteredTableData.find(d => d.entryId === callingEntryId);
 
     const columns = [
         {
@@ -547,6 +781,71 @@ const QualifiedLeadsDetailPage = () => {
                 <MdFavorite className="text-red-500 text-xl" />
             ) : '-',
         },
+        {
+            title: () => {
+                const pendingEntries = filteredTableData.filter(d => d.phone && (d.messageStatus === 'not-sent' || d.messageStatus === 'pending'));
+                const allSelected = pendingEntries.length > 0 && pendingEntries.every(d => selectedMessageEntries.includes(d.entryId));
+                return (
+                    <Tooltip title="Select for batch messaging">
+                        <Checkbox
+                            checked={allSelected}
+                            indeterminate={selectedMessageEntries.length > 0 && !allSelected}
+                            onChange={(e) => selectAllPendingForMessaging(e.target.checked)}
+                        />
+                    </Tooltip>
+                );
+            },
+            key: 'select',
+            width: 50,
+            render: (_, record) => {
+                if (!record.phone || record.messageStatus === 'sent' || record.messageStatus === 'delivered' || record.messageStatus === 'read') {
+                    return null;
+                }
+                return (
+                    <Checkbox
+                        checked={selectedMessageEntries.includes(record.entryId)}
+                        onChange={(e) => toggleMessageEntrySelection(record.entryId, e.target.checked)}
+                    />
+                );
+            }
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            width: 180,
+            render: (_, record) => record.phone ? (
+                <Space size="small">
+                    <Tooltip title="Call">
+                        <Button
+                            type="primary"
+                            icon={<PhoneOutlined />}
+                            size="small"
+                            onClick={() => handleCall(record)}
+                            style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
+                        />
+                    </Tooltip>
+                    <Tooltip title={
+                        record.messageStatus === 'sent' || record.messageStatus === 'delivered' || record.messageStatus === 'read'
+                            ? 'Already sent'
+                            : remainingMessages <= 0
+                                ? 'Daily limit reached'
+                                : 'Send message'
+                    }>
+                        <Button
+                            icon={<MessageOutlined />}
+                            size="small"
+                            onClick={() => handleOpenMessageModal(record)}
+                            disabled={record.messageStatus === 'sent' || record.messageStatus === 'delivered' || record.messageStatus === 'read' || remainingMessages <= 0}
+                            style={{ 
+                                backgroundColor: record.messageStatus === 'sent' ? '#ccc' : '#25D366',
+                                borderColor: record.messageStatus === 'sent' ? '#ccc' : '#25D366',
+                                color: 'white'
+                            }}
+                        />
+                    </Tooltip>
+                </Space>
+            ) : '-',
+        },
     ];
 
     if (loading) {
@@ -557,371 +856,172 @@ const QualifiedLeadsDetailPage = () => {
         );
     }
 
-    const activeFilters = getActiveFilters();
-
-    // Calculate stats
     const verifiedWhatsApp = tableData.filter(d => d.whatsappStatus === 'verified').length;
     const calledCount = tableData.filter(d => d.callStatus !== 'not-called').length;
     const messagedCount = tableData.filter(d => d.messageStatus !== 'not-sent').length;
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <Button
-                        icon={<MdArrowBack />}
-                        onClick={() => navigate('/dashboard/qualified-leads')}
-                        className="mb-2"
-                    >
-                        Back to Qualified Leads
-                    </Button>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <MdStar className="text-yellow-500" />
-                        {leadData?.name || 'Qualified Lead Details'}
-                    </h1>
-                    {leadData && (
-                        <p className="text-gray-600">
-                            {leadData.totalRecords || tableData.length || 0} records • Created {leadData.createdAt ? new Date(leadData.createdAt).toLocaleString() : 'N/A'}
-                        </p>
-                    )}
-                </div>
+            {/* Dialer Overlay */}
+            {showDialer && (
+                <Dialer
+                    phoneNumber={dialerNumber}
+                    onClose={() => setShowDialer(false)}
+                    onCallEnd={onCallEnd}
+                />
+            )}
 
-                <Space wrap>
-                    <Button
-                        icon={<MdRefresh />}
-                        onClick={fetchLeadDetails}
-                        loading={loading}
-                    >
-                        Refresh
-                    </Button>
-                    <Button
-                        icon={<MdDownload />}
-                        onClick={exportToCSV}
-                        disabled={!filteredTableData.length}
-                    >
-                        Export CSV
-                    </Button>
-                    <Button
-                        type="primary"
-                        icon={<MdPhone />}
-                        onClick={() => setColdCallModalVisible(true)}
-                        disabled={leadsWithPhone.length === 0}
-                        className="bg-blue-600 hover:bg-blue-700 border-blue-600"
-                    >
-                        Create Cold Call Campaign
-                    </Button>
-                    <Button
-                        type="primary"
-                        icon={<BsWhatsapp />}
-                        onClick={() => setMessageModalVisible(true)}
-                        disabled={leadsWithPhone.length === 0}
-                        className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C]"
-                    >
-                        Create Message Campaign
-                    </Button>
-                </Space>
-            </div>
+            {/* Call Status Update Modal */}
+            <CallStatusModal
+                visible={statusModalVisible}
+                onOk={handleUpdateCallStatus}
+                onCancel={() => setStatusModalVisible(false)}
+                confirmLoading={updatingCallStatus}
+                currentLead={currentCallingLead}
+                selectedStatus={selectedCallStatus}
+                onStatusChange={setSelectedCallStatus}
+            />
+
+            {/* Send Message Modal */}
+            <SendMessageModal
+                visible={sendMessageModalVisible}
+                onOk={handleSendSingleMessage}
+                onCancel={() => {
+                    setSendMessageModalVisible(false);
+                    setMessagingEntryId(null);
+                }}
+                confirmLoading={sendingMessage}
+                currentLead={currentMessagingLead}
+                messageContent={messageContent}
+                onMessageChange={setMessageContent}
+                remainingMessages={remainingMessages}
+                whatsappInitialized={whatsappInitialized}
+                onConnectWhatsApp={() => setWhatsappConnectModalOpen(true)}
+            />
+
+            {/* WhatsApp Connect Modal */}
+            <WhatsAppConnectModal
+                visible={whatsappConnectModalOpen}
+                onCancel={() => setWhatsappConnectModalOpen(false)}
+                onConnected={() => {
+                    setWhatsappConnectModalOpen(false);
+                    setWhatsappInitialized(true);
+                    checkWhatsAppStatus(); // Refresh to get phone number
+                }}
+                onDisconnected={() => {
+                    setWhatsappInitialized(false);
+                    setConnectedPhoneNumber(null);
+                }}
+            />
+
+            {/* Header */}
+            <QualifiedLeadsHeader
+                leadData={leadData}
+                tableDataLength={tableData.length}
+                loading={loading}
+                leadsWithPhoneCount={leadsWithPhone.length}
+                filteredDataLength={filteredTableData.length}
+                onBack={() => navigate('/dashboard/qualified-leads')}
+                onRefresh={fetchLeadDetails}
+                onExportCSV={exportToCSV}
+                onCreateColdCallCampaign={() => setColdCallModalVisible(true)}
+                onCreateMessageCampaign={() => setMessageModalVisible(true)}
+            />
 
             {/* Info Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-                    <p className="text-sm text-gray-500">Total Records</p>
-                    <p className="text-3xl font-bold text-[#0F792C]">{leadData?.totalRecords || tableData.length || 0}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-                    <p className="text-sm text-gray-500">WhatsApp Verified</p>
-                    <p className="text-3xl font-bold text-green-600">{verifiedWhatsApp}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-                    <p className="text-sm text-gray-500">Called</p>
-                    <p className="text-3xl font-bold text-blue-600">{calledCount}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-                    <p className="text-sm text-gray-500">Messaged</p>
-                    <p className="text-3xl font-bold text-purple-600">{messagedCount}</p>
-                </div>
-            </div>
+            <QualifiedLeadsInfoCards
+                totalRecords={leadData?.totalRecords || tableData.length || 0}
+                verifiedWhatsApp={verifiedWhatsApp}
+                calledCount={calledCount}
+                messagedCount={messagedCount}
+            />
 
-            {/* Search Query */}
-            {leadData?.searchString && (
-                <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-                    <p className="text-sm text-gray-500">Search Query</p>
-                    <p className="text-lg font-semibold text-gray-800">{leadData.searchString}</p>
-                </div>
-            )}
-
-            {/* Filters Applied */}
-            {activeFilters.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-                    <div className="flex items-center gap-2 mb-3">
-                        <MdFilterList className="text-purple-500 text-xl" />
-                        <h3 className="text-lg font-semibold text-gray-800">Original Filters Applied</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {activeFilters.map((filter, index) => (
-                            <Tag key={index} color="purple" className="text-sm py-1 px-3">
-                                {filter}
-                            </Tag>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {/* Active Filters Display */}
+            <ActiveFiltersDisplay
+                filters={leadData?.filters}
+                searchString={leadData?.searchString}
+            />
 
             {/* Comprehensive Filters Section */}
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <span className="bg-primary/10 p-1 rounded-full"><MdSearch className="text-primary" /></span>
-                    Filters
-                </h3>
-                <div className="space-y-4">
-                    {/* Search */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">
-                            Search (Business Name, Address, City, Phone)
-                        </label>
-                        <Input
-                            placeholder="Search..."
-                            value={filters.searchText}
-                            onChange={(e) => setFilters({ ...filters, searchText: e.target.value })}
-                            prefix={<MdSearch className="text-gray-600" />}
-                            allowClear
-                        />
-                    </div>
+            <QualifiedLeadsFilters
+                filters={filters}
+                onFilterChange={setFilters}
+                onClearFilters={() => setFilters({ ...defaultFilters })}
+                hasActiveFilters={hasActiveFilters()}
+                filteredCount={filteredTableData.length}
+                totalCount={tableData.length}
+            />
 
-                    {/* Row 1: WhatsApp Status & Has Website */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                WhatsApp Status
-                            </label>
-                            <Select
-                                placeholder="Select status"
-                                style={{ width: '100%' }}
-                                value={filters.whatsappStatus || undefined}
-                                onChange={(value) => setFilters({ ...filters, whatsappStatus: value || '' })}
-                                allowClear
-                            >
-                                <Option value="verified">Has WhatsApp</Option>
-                                <Option value="not-verified">No WhatsApp</Option>
-                                <Option value="not-checked">Not Checked</Option>
-                            </Select>
+            {/* WhatsApp Connection Status Bar */}
+            <div className={`rounded-xl p-4 border ${whatsappInitialized 
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' 
+                : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            whatsappInitialized ? 'bg-[#25D366]' : 'bg-gray-300'
+                        }`}>
+                            <MdMessage className="text-white text-lg" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Has Website
-                            </label>
-                            <Select
-                                placeholder="Filter by website"
-                                style={{ width: '100%' }}
-                                value={filters.hasWebsite || undefined}
-                                onChange={(value) => setFilters({ ...filters, hasWebsite: value || '' })}
-                                allowClear
-                            >
-                                <Option value="yes">Has Website</Option>
-                                <Option value="no">No Website</Option>
-                            </Select>
+                            <div className="flex items-center gap-2">
+                                <span className={`font-semibold ${whatsappInitialized ? 'text-green-700' : 'text-gray-600'}`}>
+                                    WhatsApp {whatsappInitialized ? 'Connected' : 'Not Connected'}
+                                </span>
+                                {whatsappInitialized && (
+                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                )}
+                            </div>
+                            {whatsappInitialized && connectedPhoneNumber ? (
+                                <p className="text-sm text-green-600 font-medium m-0">{connectedPhoneNumber}</p>
+                            ) : !whatsappInitialized && (
+                                <p className="text-xs text-gray-500 m-0">Connect to send messages</p>
+                            )}
                         </div>
                     </div>
-
-                    {/* Row 2: Rating */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Rating (min)
-                            </label>
-                            <InputNumber
-                                min={0}
-                                max={5}
-                                step={0.1}
-                                style={{ width: '100%' }}
-                                value={filters.ratingMin}
-                                placeholder="e.g. 3.5"
-                                onChange={(value) => setFilters({ ...filters, ratingMin: value ?? null })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Rating (max)
-                            </label>
-                            <InputNumber
-                                min={0}
-                                max={5}
-                                step={0.1}
-                                style={{ width: '100%' }}
-                                value={filters.ratingMax}
-                                placeholder="e.g. 4.8"
-                                onChange={(value) => setFilters({ ...filters, ratingMax: value ?? null })}
-                            />
-                        </div>
+                    <div className="flex items-center gap-2">
+                        {whatsappInitialized ? (
+                            <>
+                                <Tag color="green" className="m-0">
+                                    {remainingMessages} messages left today
+                                </Tag>
+                                <Button
+                                    danger
+                                    size="small"
+                                    onClick={handleDisconnectWhatsApp}
+                                    loading={disconnecting}
+                                    icon={<MdClose />}
+                                >
+                                    Disconnect
+                                </Button>
+                            </>
+                        ) : (
+                            <Button
+                                type="primary"
+                                size="small"
+                                onClick={() => setWhatsappConnectModalOpen(true)}
+                                style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
+                                icon={<MdMessage />}
+                            >
+                                Connect WhatsApp
+                            </Button>
+                        )}
                     </div>
-
-                    {/* Row 3: Reviews */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Reviews (min)
-                            </label>
-                            <InputNumber
-                                min={0}
-                                style={{ width: '100%' }}
-                                value={filters.reviewsMin}
-                                placeholder="e.g. 50"
-                                onChange={(value) => setFilters({ ...filters, reviewsMin: value ?? null })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Reviews (max)
-                            </label>
-                            <InputNumber
-                                min={0}
-                                style={{ width: '100%' }}
-                                value={filters.reviewsMax}
-                                placeholder="e.g. 500"
-                                onChange={(value) => setFilters({ ...filters, reviewsMax: value ?? null })}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 4: Has Phone & Has Verified WhatsApp */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Has Phone Number
-                            </label>
-                            <Select
-                                placeholder="Filter by phone"
-                                style={{ width: '100%' }}
-                                value={filters.hasPhone || undefined}
-                                onChange={(value) => setFilters({ ...filters, hasPhone: value || '' })}
-                                allowClear
-                            >
-                                <Option value="yes">Has Phone</Option>
-                                <Option value="no">No Phone</Option>
-                            </Select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Has Verified WhatsApp
-                            </label>
-                            <Select
-                                placeholder="Filter by verified WhatsApp"
-                                style={{ width: '100%' }}
-                                value={filters.hasVerifiedWhatsApp || undefined}
-                                onChange={(value) => setFilters({ ...filters, hasVerifiedWhatsApp: value || '' })}
-                                allowClear
-                            >
-                                <Option value="yes">
-                                    <span className="flex items-center gap-2">
-                                        <BsWhatsapp className="text-green-500" /> Has Verified WhatsApp
-                                    </span>
-                                </Option>
-                                <Option value="no">No Verified WhatsApp</Option>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Row 5: Favorites & Call Status */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Favorites
-                            </label>
-                            <Select
-                                placeholder="Filter by favorites"
-                                style={{ width: '100%' }}
-                                value={filters.favorite || undefined}
-                                onChange={(value) => setFilters({ ...filters, favorite: value || '' })}
-                                allowClear
-                            >
-                                <Option value="yes">
-                                    <span className="flex items-center gap-2">
-                                        <MdFavorite className="text-red-500" /> Favorites Only
-                                    </span>
-                                </Option>
-                                <Option value="no">Not Favorites</Option>
-                            </Select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Call Status
-                            </label>
-                            <Select
-                                placeholder="Filter by call status"
-                                style={{ width: '100%' }}
-                                value={filters.callStatus || undefined}
-                                onChange={(value) => setFilters({ ...filters, callStatus: value || '' })}
-                                allowClear
-                            >
-                                <Option value="not-called">Not Called</Option>
-                                <Option value="pending">Pending</Option>
-                                <Option value="successful">Successful</Option>
-                                <Option value="failed">Failed</Option>
-                                <Option value="no-answer">No Answer</Option>
-                                <Option value="callback">Callback</Option>
-                                <Option value="interested">Interested</Option>
-                                <Option value="not-interested">Not Interested</Option>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Row 6: Message Status & Lead Status */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Message Status
-                            </label>
-                            <Select
-                                placeholder="Filter by message status"
-                                style={{ width: '100%' }}
-                                value={filters.messageStatus || undefined}
-                                onChange={(value) => setFilters({ ...filters, messageStatus: value || '' })}
-                                allowClear
-                            >
-                                <Option value="not-sent">Not Sent</Option>
-                                <Option value="pending">Pending</Option>
-                                <Option value="sent">Sent</Option>
-                                <Option value="delivered">Delivered</Option>
-                                <Option value="read">Read</Option>
-                                <Option value="failed">Failed</Option>
-                            </Select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                                Lead Status
-                            </label>
-                            <Select
-                                placeholder="Filter by lead status"
-                                style={{ width: '100%' }}
-                                value={filters.leadStatus || undefined}
-                                onChange={(value) => setFilters({ ...filters, leadStatus: value || '' })}
-                                allowClear
-                            >
-                                <Option value="not-reached">⏳ Not Reached</Option>
-                                <Option value="interested">✅ Interested</Option>
-                                <Option value="not-interested">❌ Not Interested</Option>
-                                <Option value="no-response">📵 No Response</Option>
-                            </Select>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Clear Filters & Count */}
-                <div className="mt-4 flex items-center justify-between">
-                    {hasActiveFilters() && (
-                        <Button
-                            onClick={() => setFilters({ ...defaultFilters })}
-                            size="small"
-                            className="bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                        >
-                            Clear All Filters
-                        </Button>
-                    )}
-                    <span className="text-gray-500 text-sm ml-auto">
-                        Showing {filteredTableData.length} of {tableData.length} records
-                    </span>
                 </div>
             </div>
+
+            {/* Batch Messaging Bar */}
+            <BatchMessagingBar
+                selectedCount={selectedMessageEntries.length}
+                remainingMessages={remainingMessages}
+                messageContent={messageContent}
+                onMessageChange={setMessageContent}
+                onSendBatch={handleSendBatchMessages}
+                onClear={() => setSelectedMessageEntries([])}
+                batchSending={batchSending}
+                whatsappInitialized={whatsappInitialized}
+                onConnectWhatsApp={() => setWhatsappConnectModalOpen(true)}
+            />
 
             {/* Data Table */}
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -944,156 +1044,34 @@ const QualifiedLeadsDetailPage = () => {
             </div>
 
             {/* Cold Call Campaign Modal */}
-            <Modal
-                title={
-                    <div className="flex items-center gap-2">
-                        <MdPhone className="text-blue-600 text-xl" />
-                        <span>Create Cold Call Campaign</span>
-                    </div>
-                }
-                open={coldCallModalVisible}
+            <ColdCallCampaignModal
+                visible={coldCallModalVisible}
                 onCancel={() => {
                     setColdCallModalVisible(false);
                     coldCallForm.resetFields();
                 }}
-                footer={null}
-                destroyOnClose
-            >
-                <Alert
-                    type="info"
-                    showIcon
-                    message={`${leadsWithPhone.length} leads with phone numbers`}
-                    description={`${notCalledLeads.length} not yet called. This campaign will be linked to "${leadData?.name}" for status tracking.`}
-                    className="mb-4"
-                />
-                
-                <Form
-                    form={coldCallForm}
-                    layout="vertical"
-                    onFinish={handleCreateColdCallCampaign}
-                >
-                    <Form.Item
-                        name="name"
-                        label="Campaign Name"
-                        rules={[{ required: true, message: 'Please enter a campaign name' }]}
-                        initialValue={`${leadData?.name} - Cold Calls`}
-                    >
-                        <Input placeholder="e.g. Real Estate Leads - Karachi" />
-                    </Form.Item>
-                    
-                    <Form.Item
-                        name="callScript"
-                        label="Call Script (optional)"
-                    >
-                        <Input.TextArea 
-                            rows={4} 
-                            placeholder="Enter your call script here..."
-                        />
-                    </Form.Item>
-                    
-                    <Form.Item
-                        name="navigateToCampaign"
-                        valuePropName="checked"
-                    >
-                        <Checkbox>Go to Cold Caller page after creating</Checkbox>
-                    </Form.Item>
-                    
-                    <Form.Item className="mb-0">
-                        <div className="flex justify-end gap-2">
-                            <Button onClick={() => {
-                                setColdCallModalVisible(false);
-                                coldCallForm.resetFields();
-                            }}>
-                                Cancel
-                            </Button>
-                            <Button
-                                type="primary"
-                                htmlType="submit"
-                                loading={campaignLoading}
-                                className="bg-blue-600 hover:bg-blue-700 border-blue-600"
-                            >
-                                Create Campaign
-                            </Button>
-                        </div>
-                    </Form.Item>
-                </Form>
-            </Modal>
+                form={coldCallForm}
+                onFinish={handleCreateColdCallCampaign}
+                leadData={leadData}
+                leadsWithPhoneCount={leadsWithPhone.length}
+                notCalledCount={notCalledLeads.length}
+                campaignLoading={campaignLoading}
+            />
 
             {/* Message Campaign Modal */}
-            <Modal
-                title={
-                    <div className="flex items-center gap-2">
-                        <BsWhatsapp className="text-green-600 text-xl" />
-                        <span>Create Message Campaign</span>
-                    </div>
-                }
-                open={messageModalVisible}
+            <MessageCampaignModal
+                visible={messageModalVisible}
                 onCancel={() => {
                     setMessageModalVisible(false);
                     messageForm.resetFields();
                 }}
-                footer={null}
-                destroyOnClose
-            >
-                <Alert
-                    type="info"
-                    showIcon
-                    message={`${leadsWithPhone.length} leads with phone numbers`}
-                    description={`${notMessagedLeads.length} not yet messaged. Use {name} to personalize with business name.`}
-                    className="mb-4"
-                />
-                
-                <Form
-                    form={messageForm}
-                    layout="vertical"
-                    onFinish={handleCreateMessageCampaign}
-                >
-                    <Form.Item
-                        name="name"
-                        label="Campaign Name"
-                        rules={[{ required: true, message: 'Please enter a campaign name' }]}
-                        initialValue={`${leadData?.name} - Messages`}
-                    >
-                        <Input placeholder="e.g. Verified Lawyers - WhatsApp" />
-                    </Form.Item>
-                    
-                    <Form.Item
-                        name="message"
-                        label="Message Template"
-                    >
-                        <Input.TextArea 
-                            rows={4} 
-                            placeholder="Hello {name}, we have a special offer for you..."
-                        />
-                    </Form.Item>
-                    
-                    <Form.Item
-                        name="navigateToCampaign"
-                        valuePropName="checked"
-                    >
-                        <Checkbox>Go to Message Automation page after creating</Checkbox>
-                    </Form.Item>
-                    
-                    <Form.Item className="mb-0">
-                        <div className="flex justify-end gap-2">
-                            <Button onClick={() => {
-                                setMessageModalVisible(false);
-                                messageForm.resetFields();
-                            }}>
-                                Cancel
-                            </Button>
-                            <Button
-                                type="primary"
-                                htmlType="submit"
-                                loading={campaignLoading}
-                                className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C]"
-                            >
-                                Create Campaign
-                            </Button>
-                        </div>
-                    </Form.Item>
-                </Form>
-            </Modal>
+                form={messageForm}
+                onFinish={handleCreateMessageCampaign}
+                leadData={leadData}
+                leadsWithPhoneCount={leadsWithPhone.length}
+                notMessagedCount={notMessagedLeads.length}
+                campaignLoading={campaignLoading}
+            />
         </div>
     );
 };

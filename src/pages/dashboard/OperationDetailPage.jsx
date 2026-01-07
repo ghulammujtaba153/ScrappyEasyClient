@@ -1264,6 +1264,10 @@ const OperationDetailPage = () => {
           setIsConnectModalOpen(false); // Close modal on success
           checkWhatsAppStatus(); // Double check status
         }}
+        onDisconnected={() => {
+          setWhatsappInitialized(false);
+          checkWhatsAppStatus();
+        }}
       />
 
       <SaveNumbersModal
