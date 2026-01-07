@@ -49,6 +49,7 @@ const ColdCallerDetailPage = () => {
           city: entry.leadId.city || '',
           address: entry.leadId.address || '',
           status: entry.callStatus || 'not-called',
+          leadStatus: entry.leadId.status || 'not-reached',
           lastCalled: entry.lastCalledAt,
           recordingUrl: entry.recordingUrl,
           attempts: entry.callAttempts || 0,
@@ -61,6 +62,7 @@ const ColdCallerDetailPage = () => {
     return (campaign.numbers || []).map(n => ({
       ...n,
       businessName: null,
+      leadStatus: 'not-reached',
       isQualifiedLead: false
     }));
   }, [campaign, isQualifiedLeadsCampaign]);
@@ -171,7 +173,7 @@ const ColdCallerDetailPage = () => {
     }
   };
 
-  // Status options for dropdown
+  // Status options for dropdown (Call Status)
   const statusOptions = [
     { value: 'not-called', label: '⏳ Not Called', color: 'default' },
     { value: 'interested', label: '✅ Interested', color: 'success' },
@@ -181,6 +183,34 @@ const ColdCallerDetailPage = () => {
     { value: 'wrong-number', label: '🚫 Wrong Number', color: 'error' },
     { value: 'ignore', label: '🔇 Ignore', color: 'default' },
   ];
+
+  // Lead Status options (overall lead status from LeadData)
+  const leadStatusOptions = [
+    { value: 'not-reached', label: '⏳ Not Reached', color: 'default' },
+    { value: 'interested', label: '✅ Interested', color: 'success' },
+    { value: 'not-interested', label: '❌ Not Interested', color: 'error' },
+    { value: 'no-response', label: '📵 No Response', color: 'warning' },
+  ];
+
+  // Handle lead status update (overall status in LeadData)
+  const handleLeadStatusChange = async (leadId, newStatus) => {
+    try {
+      const res = await axios.post(`${BASE_URL}/api/data/update-lead-status`, {
+        leadId,
+        status: newStatus
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.data.success) {
+        message.success('Lead status updated');
+        fetchCampaignData();
+      }
+    } catch (error) {
+      console.error('Lead status update error:', error);
+      message.error('Failed to update lead status');
+    }
+  };
 
   if (loading) {
     return (
@@ -258,6 +288,24 @@ const ColdCallerDetailPage = () => {
         />
       )
     },
+    ...(isQualifiedLeadsCampaign ? [{
+      title: 'Lead Status',
+      dataIndex: 'leadStatus',
+      key: 'leadStatus',
+      width: 160,
+      render: (leadStatus, record) => (
+        <Select
+          value={leadStatus || 'not-reached'}
+          onChange={(value) => handleLeadStatusChange(record.leadId, value)}
+          style={{ width: 150 }}
+          size="small"
+          options={leadStatusOptions}
+          optionRender={(option) => (
+            <span>{option.data.label}</span>
+          )}
+        />
+      )
+    }] : []),
     ...(isQualifiedLeadsCampaign ? [{
       title: 'Attempts',
       dataIndex: 'attempts',

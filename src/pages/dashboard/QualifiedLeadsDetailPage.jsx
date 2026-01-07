@@ -22,6 +22,7 @@ const defaultFilters = {
     favorite: '',
     callStatus: '',
     messageStatus: '',
+    leadStatus: '',
     searchText: ''
 };
 
@@ -43,6 +44,10 @@ const QualifiedLeadsDetailPage = () => {
     
     // Filters - matching OperationDetailPage structure
     const [filters, setFilters] = useState({ ...defaultFilters });
+    
+    // Pagination state for row numbering
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
 
     const fetchLeadDetails = async () => {
         if (!id) return;
@@ -88,6 +93,7 @@ const QualifiedLeadsDetailPage = () => {
             whatsappStatus: entry.leadId?.whatsappStatus || 'not-checked',
             favorite: entry.leadId?.favorite || false,
             screenshotUrl: entry.leadId?.screenshotUrl || '',
+            leadStatus: entry.leadId?.status || 'not-reached',
             // Status tracking from entry
             callStatus: entry.callStatus || 'not-called',
             lastCalledAt: entry.lastCalledAt,
@@ -200,6 +206,11 @@ const QualifiedLeadsDetailPage = () => {
             data = data.filter(item => item.messageStatus === filters.messageStatus);
         }
         
+        // Lead status filter
+        if (filters.leadStatus) {
+            data = data.filter(item => item.leadStatus === filters.leadStatus);
+        }
+        
         return data;
     };
 
@@ -216,7 +227,8 @@ const QualifiedLeadsDetailPage = () => {
             filters.hasVerifiedWhatsApp ||
             filters.favorite ||
             filters.callStatus ||
-            filters.messageStatus;
+            filters.messageStatus ||
+            filters.leadStatus;
     };
 
     // Create Cold Call Campaign from this qualified leads list
@@ -369,11 +381,41 @@ const QualifiedLeadsDetailPage = () => {
         return colors[status] || 'default';
     };
 
+    const getLeadStatusColor = (status) => {
+        const colors = {
+            'not-reached': 'default',
+            'interested': 'success',
+            'not-interested': 'error',
+            'no-response': 'warning'
+        };
+        return colors[status] || 'default';
+    };
+
+    // Handle lead status update (overall status in LeadData)
+    const handleLeadStatusChange = async (leadId, newStatus) => {
+        try {
+            const res = await axios.post(`${BASE_URL}/api/data/update-lead-status`, {
+                leadId,
+                status: newStatus
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                message.success('Lead status updated');
+                fetchLeadDetails();
+            }
+        } catch (error) {
+            console.error('Lead status update error:', error);
+            message.error('Failed to update lead status');
+        }
+    };
+
     const columns = [
         {
             title: '#',
             width: 60,
-            render: (_, __, index) => index + 1,
+            render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
         },
         {
             title: 'Business Name',
@@ -427,6 +469,26 @@ const QualifiedLeadsDetailPage = () => {
                 }
                 return <Tag color="default">Not Checked</Tag>;
             },
+        },
+        {
+            title: 'Lead Status',
+            dataIndex: 'leadStatus',
+            key: 'leadStatus',
+            width: 150,
+            render: (status, record) => (
+                <Select
+                    value={status || 'not-reached'}
+                    onChange={(value) => handleLeadStatusChange(record.leadId, value)}
+                    style={{ width: 140 }}
+                    size="small"
+                    options={[
+                        { value: 'not-reached', label: '⏳ Not Reached' },
+                        { value: 'interested', label: '✅ Interested' },
+                        { value: 'not-interested', label: '❌ Not Interested' },
+                        { value: 'no-response', label: '📵 No Response' },
+                    ]}
+                />
+            ),
         },
         {
             title: 'Call Status',
@@ -803,7 +865,7 @@ const QualifiedLeadsDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* Row 6: Message Status */}
+                    {/* Row 6: Message Status & Lead Status */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-800 mb-2">
@@ -822,6 +884,23 @@ const QualifiedLeadsDetailPage = () => {
                                 <Option value="delivered">Delivered</Option>
                                 <Option value="read">Read</Option>
                                 <Option value="failed">Failed</Option>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-800 mb-2">
+                                Lead Status
+                            </label>
+                            <Select
+                                placeholder="Filter by lead status"
+                                style={{ width: '100%' }}
+                                value={filters.leadStatus || undefined}
+                                onChange={(value) => setFilters({ ...filters, leadStatus: value || '' })}
+                                allowClear
+                            >
+                                <Option value="not-reached">⏳ Not Reached</Option>
+                                <Option value="interested">✅ Interested</Option>
+                                <Option value="not-interested">❌ Not Interested</Option>
+                                <Option value="no-response">📵 No Response</Option>
                             </Select>
                         </div>
                     </div>
@@ -850,11 +929,16 @@ const QualifiedLeadsDetailPage = () => {
                     columns={columns}
                     dataSource={filteredTableData}
                     loading={loading}
-                    scroll={{ x: 1600 }}
+                    scroll={{ x: 1800 }}
                     pagination={{
-                        pageSize: 20,
+                        current: currentPage,
+                        pageSize: pageSize,
                         showSizeChanger: true,
                         showTotal: (total) => `Total ${total} records`,
+                        onChange: (page, size) => {
+                            setCurrentPage(page);
+                            setPageSize(size);
+                        },
                     }}
                 />
             </div>
