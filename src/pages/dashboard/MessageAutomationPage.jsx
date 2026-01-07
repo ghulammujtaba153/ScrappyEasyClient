@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Popconfirm, Tag, Space, Modal, Progress, Input, Alert, Badge } from 'antd';
+import { Table, Button, message, Popconfirm, Tag, Space, Modal, Progress, Input, Alert, Badge, Tooltip, Checkbox } from 'antd';
 import { FiTrash2, FiEdit2, FiPlay, FiRefreshCw, FiSend, FiUsers } from 'react-icons/fi';
 import { BsWhatsapp } from 'react-icons/bs';
+import { MessageOutlined, SendOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuth } from '../../context/authContext';
 import { BASE_URL } from '../../config/URL';
@@ -20,6 +21,11 @@ const MessageAutomationPage = () => {
     const [connectModalOpen, setConnectModalOpen] = useState(false);
     const [whatsappInitialized, setWhatsappInitialized] = useState(false);
     const [searchText, setSearchText] = useState('');
+    
+    // Daily limit and batch selection
+    const [remainingMessages, setRemainingMessages] = useState(10);
+    const [selectedEntryIds, setSelectedEntryIds] = useState([]);
+    const [sendingEntryId, setSendingEntryId] = useState(null);
 
     // Helper to check if campaign uses qualified leads
     const isQualifiedLeadsCampaign = (record) => {
@@ -61,6 +67,20 @@ const MessageAutomationPage = () => {
             }
         } catch (error) {
             console.error('Status check failed');
+        }
+    };
+
+    const fetchRemainingMessages = async () => {
+        try {
+            const userId = user._id || user.id;
+            const res = await axios.get(`${BASE_URL}/api/automate/remaining/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.data.success) {
+                setRemainingMessages(res.data.remaining);
+            }
+        } catch (error) {
+            console.error('Failed to fetch remaining messages');
         }
     };
 
@@ -107,13 +127,16 @@ const MessageAutomationPage = () => {
     useEffect(() => {
         fetchData();
         checkWhatsAppStatus();
+        fetchRemainingMessages();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, token]);
 
     const handleOpenDetail = (list) => {
         setCurrentList(list);
         setMessageContent(list.message || '');
+        setSelectedEntryIds([]);
         setDetailModalOpen(true);
+        fetchRemainingMessages();
     };
 
     const handleSaveMessage = async () => {
@@ -168,6 +191,93 @@ const MessageAutomationPage = () => {
             if (currentList?._id === id) setDetailModalOpen(false);
         } catch (error) {
             message.error('Failed to delete list');
+        }
+    };
+
+    // Send single message to one recipient
+    const handleSendSingle = async (record) => {
+        if (remainingMessages <= 0) {
+            message.error('Daily message limit (10) reached. Try again tomorrow.');
+            return;
+        }
+        if (!messageContent) {
+            message.error('Please configure a message first');
+            return;
+        }
+        if (!record.isQualifiedLead) {
+            message.warning('Single send only works with qualified leads');
+            return;
+        }
+
+        setSendingEntryId(record._id);
+        try {
+            const userId = user._id || user.id;
+            const res = await axios.post(`${BASE_URL}/api/automate/send-single`, {
+                qualifiedLeadId: currentList.qualifiedLeadsId._id,
+                entryId: record._id,
+                messageContent,
+                userId
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                message.success(`Message sent to ${res.data.businessName}`);
+                setRemainingMessages(res.data.remainingMessages);
+                fetchData();
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Failed to send message';
+            message.error(errorMsg);
+            if (error.response?.data?.remainingMessages !== undefined) {
+                setRemainingMessages(error.response.data.remainingMessages);
+            }
+        } finally {
+            setSendingEntryId(null);
+        }
+    };
+
+    // Send batch messages to selected entries
+    const handleSendSelectedBatch = async () => {
+        if (selectedEntryIds.length === 0) {
+            message.warning('Please select recipients to send messages');
+            return;
+        }
+        if (remainingMessages <= 0) {
+            message.error('Daily message limit (10) reached. Try again tomorrow.');
+            return;
+        }
+        if (!messageContent) {
+            message.error('Please configure a message first');
+            return;
+        }
+
+        setSending(true);
+        try {
+            const userId = user._id || user.id;
+            const res = await axios.post(`${BASE_URL}/api/automate/send-batch-limit`, {
+                qualifiedLeadId: currentList.qualifiedLeadsId._id,
+                entryIds: selectedEntryIds,
+                messageContent,
+                userId
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                message.success(`Batch sent: ${res.data.successCount} successful, ${res.data.failedCount} failed`);
+                if (res.data.skipped > 0) {
+                    message.warning(`${res.data.skipped} messages skipped due to daily limit`);
+                }
+                setRemainingMessages(res.data.remainingMessages);
+                setSelectedEntryIds([]);
+                fetchData();
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Failed to send batch';
+            message.error(errorMsg);
+        } finally {
+            setSending(false);
         }
     };
 
@@ -277,6 +387,45 @@ const MessageAutomationPage = () => {
 
     const detailColumns = [
         {
+            title: () => {
+                const recipients = currentList ? getRecipients(currentList) : [];
+                const pendingRecipients = recipients.filter(r => r.isQualifiedLead && (r.status === 'not-sent' || r.status === 'pending'));
+                const allSelected = pendingRecipients.length > 0 && pendingRecipients.every(r => selectedEntryIds.includes(r._id));
+                return (
+                    <Checkbox
+                        checked={allSelected}
+                        indeterminate={selectedEntryIds.length > 0 && !allSelected}
+                        onChange={(e) => {
+                            if (e.target.checked) {
+                                setSelectedEntryIds(pendingRecipients.map(r => r._id));
+                            } else {
+                                setSelectedEntryIds([]);
+                            }
+                        }}
+                    />
+                );
+            },
+            key: 'select',
+            width: 50,
+            render: (_, record) => {
+                if (!record.isQualifiedLead || record.status === 'sent' || record.status === 'delivered' || record.status === 'read') {
+                    return null;
+                }
+                return (
+                    <Checkbox
+                        checked={selectedEntryIds.includes(record._id)}
+                        onChange={(e) => {
+                            if (e.target.checked) {
+                                setSelectedEntryIds([...selectedEntryIds, record._id]);
+                            } else {
+                                setSelectedEntryIds(selectedEntryIds.filter(id => id !== record._id));
+                            }
+                        }}
+                    />
+                );
+            }
+        },
+        {
             title: 'Business',
             key: 'business',
             render: (_, record) => record.businessName ? (
@@ -322,6 +471,30 @@ const MessageAutomationPage = () => {
             dataIndex: 'sentAt',
             key: 'sentAt',
             render: (date) => date ? new Date(date).toLocaleString() : '-'
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            width: 100,
+            render: (_, record) => {
+                if (!record.isQualifiedLead) return '-';
+                const isSent = record.status === 'sent' || record.status === 'delivered' || record.status === 'read';
+                return (
+                    <Tooltip title={isSent ? 'Already sent' : remainingMessages <= 0 ? 'Daily limit reached' : 'Send message'}>
+                        <Button
+                            type="primary"
+                            icon={<SendOutlined />}
+                            size="small"
+                            onClick={() => handleSendSingle(record)}
+                            loading={sendingEntryId === record._id}
+                            disabled={isSent || remainingMessages <= 0}
+                            style={{ backgroundColor: isSent ? '#ccc' : '#0F792C', borderColor: isSent ? '#ccc' : '#0F792C' }}
+                        >
+                            Send
+                        </Button>
+                    </Tooltip>
+                );
+            }
         }
     ];
 
@@ -441,37 +614,68 @@ const MessageAutomationPage = () => {
                             </div>
                         </div>
 
+                        {/* Daily Limit Alert */}
+                        <Alert
+                            message={
+                                <span>
+                                    <strong>Daily Limit:</strong> {remainingMessages} of 10 messages remaining today
+                                    {selectedEntryIds.length > 0 && (
+                                        <span className="ml-2">• <strong>{selectedEntryIds.length}</strong> selected</span>
+                                    )}
+                                </span>
+                            }
+                            type={remainingMessages <= 0 ? 'error' : remainingMessages <= 3 ? 'warning' : 'info'}
+                            showIcon
+                        />
+
                         {/* Action Bar */}
                         <div className="flex items-center justify-between bg-gray-100 p-4 rounded-lg">
-                            {whatsappInitialized ? (
-                                <Button
-                                    danger
-                                    icon={<FiTrash2 />}
-                                    onClick={disconnectWhatsApp}
-                                >
-                                    Disconnect WhatsApp
-                                </Button>
-                            ) : (
-                                <Button
-                                    icon={<BsWhatsapp />}
-                                    onClick={() => setConnectModalOpen(true)}
-                                    style={{ color: '#0F792C', borderColor: '#0F792C' }}
-                                >
-                                    Connect WhatsApp
-                                </Button>
-                            )}
+                            <Space>
+                                {whatsappInitialized ? (
+                                    <Button
+                                        danger
+                                        icon={<FiTrash2 />}
+                                        onClick={disconnectWhatsApp}
+                                    >
+                                        Disconnect WhatsApp
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        icon={<BsWhatsapp />}
+                                        onClick={() => setConnectModalOpen(true)}
+                                        style={{ color: '#0F792C', borderColor: '#0F792C' }}
+                                    >
+                                        Connect WhatsApp
+                                    </Button>
+                                )}
+                            </Space>
 
-                            <Button
-                                type="primary"
-                                size="large"
-                                icon={<FiSend />}
-                                onClick={handleSendBatch}
-                                loading={sending}
-                                disabled={getStats(currentList).pending === 0}
-                                style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
-                            >
-                                {sending ? 'Sending...' : 'Send Batch (10)'}
-                            </Button>
+                            <Space>
+                                {isQualifiedLeadsCampaign(currentList) && selectedEntryIds.length > 0 && (
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        icon={<FiSend />}
+                                        onClick={handleSendSelectedBatch}
+                                        loading={sending}
+                                        disabled={remainingMessages <= 0}
+                                        style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
+                                    >
+                                        {sending ? 'Sending...' : `Send Selected (${Math.min(selectedEntryIds.length, remainingMessages)})`}
+                                    </Button>
+                                )}
+                                <Button
+                                    type="primary"
+                                    size="large"
+                                    icon={<FiSend />}
+                                    onClick={handleSendBatch}
+                                    loading={sending}
+                                    disabled={getStats(currentList).pending === 0 || remainingMessages <= 0}
+                                    style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
+                                >
+                                    {sending ? 'Sending...' : `Auto Batch (${Math.min(10, remainingMessages)})`}
+                                </Button>
+                            </Space>
                         </div>
 
                         {/* Recipients List */}
@@ -490,6 +694,10 @@ const MessageAutomationPage = () => {
                 visible={connectModalOpen}
                 onCancel={() => setConnectModalOpen(false)}
                 onConnected={() => setConnectModalOpen(false)}
+                onDisconnected={() => {
+                    // Refresh status after disconnect
+                    checkWhatsAppStatus();
+                }}
             />
         </div>
     );
