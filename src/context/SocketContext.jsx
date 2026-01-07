@@ -198,6 +198,12 @@ export const SocketProvider = ({ children }) => {
                 notifyListeners('collaboration_updated');
             });
 
+            // Listen for new notifications and forward to registered listeners
+            socketInstance.on('new_notification', (notification) => {
+                console.log('🔔 New notification received:', notification);
+                notifyListeners('new_notification', notification);
+            });
+
             // Forward events to registered listeners
             socketInstance.on('meeting_request_sent', (data) => {
                 notifyListeners('collaboration_updated', data);

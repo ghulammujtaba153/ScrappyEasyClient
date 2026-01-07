@@ -32,6 +32,8 @@ import CollaborationPage from "./pages/dashboard/CollaborationPage";
 import InviteUserResetPage from "./pages/InviteUserResetPage";
 import QualifiedLeadsPage from "./pages/dashboard/QualifiedLeadsPage";
 import QualifiedLeadsDetailPage from "./pages/dashboard/QualifiedLeadsDetailPage";
+import TeamPage from "./pages/dashboard/TeamPage";
+import TeamDetailPage from "./pages/dashboard/TeamDetailPage";
 
 
 function App() {
@@ -80,6 +82,8 @@ function App() {
                                     <Route path="collaboration" element={<CollaborationPage />} />
                                     <Route path="qualified-leads" element={<QualifiedLeadsPage />} />
                                     <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
+                                    <Route path="team" element={<TeamPage />} />
+                                    <Route path="team/:id" element={<TeamDetailPage />} />
                                 </Route>
 
                                 {/* 404 Page - Must be last */}

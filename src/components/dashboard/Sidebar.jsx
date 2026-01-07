@@ -21,7 +21,8 @@ import {
     MdCardMembership,
     MdAccountCircle,
     MdLogout,
-    MdMeetingRoom
+    MdMeetingRoom,
+    MdGroups
 } from "react-icons/md";
 import { useAuth } from "../../context/authContext";
 
@@ -92,6 +93,11 @@ const Sidebar = () => {
             name: "Collabortion",
             path: "/dashboard/collaboration",
             icon: <MdMeetingRoom className="w-5 h-5" />,
+        },
+        {
+            name: "Team",
+            path: "/dashboard/team",
+            icon: <MdGroups className="w-5 h-5" />,
         },
         // {
         //     name: "Call Automation",
