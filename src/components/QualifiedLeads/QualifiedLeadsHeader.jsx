@@ -13,7 +13,8 @@ const QualifiedLeadsHeader = ({
     onExportCSV,
     onCreateColdCallCampaign,
     onCreateMessageCampaign,
-    filteredDataLength
+    filteredDataLength,
+    onShowDialer
 }) => {
     return (
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -50,6 +51,13 @@ const QualifiedLeadsHeader = ({
                     disabled={!filteredDataLength}
                 >
                     Export CSV
+                </Button>
+                <Button
+                    icon={<MdPhone />}
+                    onClick={onShowDialer}
+                    className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
+                >
+                    Show Dialer
                 </Button>
                 <Button
                     type="primary"
