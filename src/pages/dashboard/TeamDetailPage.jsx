@@ -3,16 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
-import { Table, Select, message, Popconfirm } from 'antd';
-import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaUsers, FaPhone, FaLink, FaEye } from 'react-icons/fa';
+import { useSocket } from '../../context/SocketContext';
+import { Table, Select, message, Popconfirm, Tooltip } from 'antd';
+import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaUsers, FaPhone, FaLink, FaEye, FaCircle } from 'react-icons/fa';
 import Loader from '../../components/common/Loader';
 import TeamDataModal from '../../components/dashboard/TeamDataModal';
+import Dialer from '../../components/Dialer';
 
 const TeamDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user, token } = useAuth();
-    
+    const { onlineUsers } = useSocket();
+
     const [team, setTeam] = useState(null);
     const [teamData, setTeamData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -21,6 +24,11 @@ const TeamDetailPage = () => {
     const [isViewMode, setIsViewMode] = useState(false);
     const [currentData, setCurrentData] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+
+    // Dialer State
+    const [isDialerOpen, setIsDialerOpen] = useState(false);
+    const [dialerNumber, setDialerNumber] = useState('');
+
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -176,6 +184,16 @@ const TeamDetailPage = () => {
         }
     };
 
+    const handleOpenDialer = (phoneNumber = '') => {
+        setDialerNumber(phoneNumber);
+        setIsDialerOpen(true);
+    };
+
+    const handleCloseDialer = () => {
+        setIsDialerOpen(false);
+        setDialerNumber('');
+    };
+
     const columns = [
         {
             title: 'Title',
@@ -189,7 +207,6 @@ const TeamDetailPage = () => {
             key: 'phone',
             render: (phone) => (
                 <span className="flex items-center gap-2">
-                    <FaPhone className="text-gray-400" />
                     {phone}
                 </span>
             )
@@ -206,9 +223,9 @@ const TeamDetailPage = () => {
             dataIndex: 'link',
             key: 'link',
             render: (link) => link ? (
-                <a 
-                    href={link} 
-                    target="_blank" 
+                <a
+                    href={link}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
                 >
@@ -243,6 +260,21 @@ const TeamDetailPage = () => {
                 <span className="text-gray-600">
                     {userData?.name || userData?.email || 'Unknown'}
                 </span>
+            )
+        },
+        {
+            title: 'Call',
+            key: 'call',
+            width: 80,
+            render: (_, record) => (
+                <button
+                    onClick={() => handleOpenDialer(record.phone)}
+                    disabled={!record.phone}
+                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={record.phone ? `Call ${record.phone}` : 'No phone number'}
+                >
+                    <FaPhone />
+                </button>
             )
         },
         {
@@ -322,7 +354,7 @@ const TeamDetailPage = () => {
                     >
                         <FaArrowLeft /> Back to Teams
                     </button>
-                    
+
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -333,13 +365,22 @@ const TeamDetailPage = () => {
                                 {team?.members?.length || 0} members • Owner: {team?.owner?.name || team?.owner?.email}
                             </p>
                         </div>
-                        <button
-                            onClick={() => handleOpenModal()}
-                            className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-md hover:shadow-lg"
-                        >
-                            <FaPlus />
-                            Add Data
-                        </button>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => handleOpenDialer()}
+                                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                            >
+                                <FaPhone />
+                                Show Dialer
+                            </button>
+                            <button
+                                onClick={() => handleOpenModal()}
+                                className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-md hover:shadow-lg"
+                            >
+                                <FaPlus />
+                                Add Data
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -347,22 +388,46 @@ const TeamDetailPage = () => {
                 <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Team Members</h3>
                     <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {/* Owner */}
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                            <div className="relative flex h-2 w-2">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${(onlineUsers.some(u => u.userId === team?.owner?._id) || team?.owner?._id === user?._id)
+                                    ? 'bg-green-400'
+                                    : 'hidden'
+                                    }`}></span>
+                                <span className={`relative inline-flex rounded-full h-2 w-2 ${(onlineUsers.some(u => u.userId === team?.owner?._id) || team?.owner?._id === user?._id)
+                                    ? 'bg-green-500'
+                                    : 'bg-gray-300'
+                                    }`}></span>
+                            </div>
                             {team?.owner?.name || team?.owner?.email} (Owner)
-                        </span>
-                        {team?.members?.map((member) => (
-                            <span
-                                key={member._id}
-                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                    member._id === user._id 
-                                        ? 'bg-blue-100 text-blue-700' 
-                                        : 'bg-gray-100 text-gray-700'
-                                }`}
-                            >
-                                {member.name || member.email}
-                                {member._id === user._id && ' (You)'}
-                            </span>
-                        ))}
+                        </div>
+
+                        {/* Members */}
+                        {team?.members?.map((member) => {
+                            const isOnline = onlineUsers.some(u => u.userId === member._id) || member._id === user?._id;
+
+                            return (
+                                <div
+                                    key={member._id}
+                                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${member._id === user._id
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                        : 'bg-gray-50 text-gray-700 border-gray-200'
+                                        }`}
+                                >
+                                    <Tooltip title={isOnline ? "Online" : "Offline"}>
+                                        <div className="relative flex h-2 w-2 cursor-help">
+                                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOnline ? 'bg-green-400' : 'hidden'
+                                                }`}></span>
+                                            <span className={`relative inline-flex rounded-full h-2 w-2 ${isOnline ? 'bg-green-500' : 'bg-gray-300'
+                                                }`}></span>
+                                        </div>
+                                    </Tooltip>
+                                    {member.name || member.email}
+                                    {member._id === user._id && ' (You)'}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -399,6 +464,14 @@ const TeamDetailPage = () => {
                     isViewMode={isViewMode}
                     submitting={submitting}
                 />
+
+                {/* Dialer Component */}
+                {isDialerOpen && (
+                    <Dialer
+                        onClose={handleCloseDialer}
+                        phoneNumber={dialerNumber}
+                    />
+                )}
             </div>
         </div>
     );

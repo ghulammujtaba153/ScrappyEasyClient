@@ -47,21 +47,21 @@ const QualifiedLeadsDetailPage = () => {
 
     const [loading, setLoading] = useState(false);
     const [leadData, setLeadData] = useState(null);
-    
+
     // Campaign creation modals
     const [coldCallModalVisible, setColdCallModalVisible] = useState(false);
     const [messageModalVisible, setMessageModalVisible] = useState(false);
     const [campaignLoading, setCampaignLoading] = useState(false);
     const [coldCallForm] = Form.useForm();
     const [messageForm] = Form.useForm();
-    
+
     // Filters - matching OperationDetailPage structure
     const [filters, setFilters] = useState({ ...defaultFilters });
-    
+
     // Pagination state for row numbering
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
-    
+
     // Dialer & Status States
     const [showDialer, setShowDialer] = useState(false);
     const [dialerNumber, setDialerNumber] = useState("");
@@ -70,7 +70,7 @@ const QualifiedLeadsDetailPage = () => {
     const [statusModalVisible, setStatusModalVisible] = useState(false);
     const [selectedCallStatus, setSelectedCallStatus] = useState("interested");
     const [updatingCallStatus, setUpdatingCallStatus] = useState(false);
-    
+
     // Messaging States
     const [sendMessageModalVisible, setSendMessageModalVisible] = useState(false);
     const [messageContent, setMessageContent] = useState('');
@@ -195,7 +195,7 @@ const QualifiedLeadsDetailPage = () => {
     // Get filtered table data based on all filters
     const getFilteredTableData = () => {
         let data = getTableData();
-        
+
         // Search text filter (business name, address, city)
         if (filters.searchText) {
             const searchLower = filters.searchText.toLowerCase();
@@ -206,7 +206,7 @@ const QualifiedLeadsDetailPage = () => {
                 item.phone?.includes(filters.searchText)
             );
         }
-        
+
         // WhatsApp status filter
         if (filters.whatsappStatus) {
             data = data.filter(item => {
@@ -221,7 +221,7 @@ const QualifiedLeadsDetailPage = () => {
                 return true;
             });
         }
-        
+
         // Rating filters
         if (filters.ratingMin !== null) {
             data = data.filter(item => {
@@ -235,7 +235,7 @@ const QualifiedLeadsDetailPage = () => {
                 return !Number.isNaN(rating) && rating <= filters.ratingMax;
             });
         }
-        
+
         // Reviews filters
         if (filters.reviewsMin !== null) {
             data = data.filter(item => {
@@ -249,7 +249,7 @@ const QualifiedLeadsDetailPage = () => {
                 return !Number.isNaN(reviews) && reviews <= filters.reviewsMax;
             });
         }
-        
+
         // Has website filter
         if (filters.hasWebsite) {
             data = data.filter(item => {
@@ -257,7 +257,7 @@ const QualifiedLeadsDetailPage = () => {
                 return filters.hasWebsite === 'yes' ? hasWebsite : !hasWebsite;
             });
         }
-        
+
         // Has phone filter
         if (filters.hasPhone) {
             data = data.filter(item => {
@@ -265,7 +265,7 @@ const QualifiedLeadsDetailPage = () => {
                 return filters.hasPhone === 'yes' ? hasPhone : !hasPhone;
             });
         }
-        
+
         // Has verified WhatsApp filter
         if (filters.hasVerifiedWhatsApp) {
             data = data.filter(item => {
@@ -273,7 +273,7 @@ const QualifiedLeadsDetailPage = () => {
                 return filters.hasVerifiedWhatsApp === 'yes' ? hasVerified : !hasVerified;
             });
         }
-        
+
         // Favorite filter
         if (filters.favorite) {
             data = data.filter(item => {
@@ -281,22 +281,22 @@ const QualifiedLeadsDetailPage = () => {
                 return filters.favorite === 'yes' ? isFavorite : !isFavorite;
             });
         }
-        
+
         // Call status filter
         if (filters.callStatus) {
             data = data.filter(item => item.callStatus === filters.callStatus);
         }
-        
+
         // Message status filter
         if (filters.messageStatus) {
             data = data.filter(item => item.messageStatus === filters.messageStatus);
         }
-        
+
         // Lead status filter
         if (filters.leadStatus) {
             data = data.filter(item => item.leadStatus === filters.leadStatus);
         }
-        
+
         return data;
     };
 
@@ -836,7 +836,7 @@ const QualifiedLeadsDetailPage = () => {
                             size="small"
                             onClick={() => handleOpenMessageModal(record)}
                             disabled={record.messageStatus === 'sent' || record.messageStatus === 'delivered' || record.messageStatus === 'read' || remainingMessages <= 0}
-                            style={{ 
+                            style={{
                                 backgroundColor: record.messageStatus === 'sent' ? '#ccc' : '#25D366',
                                 borderColor: record.messageStatus === 'sent' ? '#ccc' : '#25D366',
                                 color: 'white'
@@ -926,6 +926,7 @@ const QualifiedLeadsDetailPage = () => {
                 onExportCSV={exportToCSV}
                 onCreateColdCallCampaign={() => setColdCallModalVisible(true)}
                 onCreateMessageCampaign={() => setMessageModalVisible(true)}
+                onShowDialer={() => setShowDialer(true)}
             />
 
             {/* Info Cards */}
@@ -953,14 +954,13 @@ const QualifiedLeadsDetailPage = () => {
             />
 
             {/* WhatsApp Connection Status Bar */}
-            <div className={`rounded-xl p-4 border ${whatsappInitialized 
-                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' 
+            <div className={`rounded-xl p-4 border ${whatsappInitialized
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
                 : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            whatsappInitialized ? 'bg-[#25D366]' : 'bg-gray-300'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${whatsappInitialized ? 'bg-[#25D366]' : 'bg-gray-300'
+                            }`}>
                             <MdMessage className="text-white text-lg" />
                         </div>
                         <div>
