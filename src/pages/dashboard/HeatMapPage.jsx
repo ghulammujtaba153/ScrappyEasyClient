@@ -18,6 +18,7 @@ const HeatMapPage = () => {
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [heatIntensity, setHeatIntensity] = useState(1.0);
   const [heatRadius, setHeatRadius] = useState(40);
+  const token = localStorage.getItem('token');
 
   const extractCoordinates = (url) => {
     if (!url) return null;
@@ -51,7 +52,7 @@ const HeatMapPage = () => {
       // Get unique coordinate clusters (group nearby points)
       const clusters = [];
       const processedCoords = new Set();
-      
+
       exploredPoints.forEach(point => {
         // Round coordinates to 1 decimal place to cluster nearby points
         const coordKey = `${point.lat.toFixed(1)}-${point.lon.toFixed(1)}`;
@@ -80,7 +81,7 @@ const HeatMapPage = () => {
 
       // Identify HIGH DENSITY areas (density >= 3) - these are already well explored
       const highDensityPoints = exploredPoints.filter(p => p.density >= 3);
-      
+
       // Function to check if a point is too close to high density areas
       const isNearHighDensityArea = (lat, lng, minDistanceKm = 20) => {
         for (const hdPoint of highDensityPoints) {
@@ -111,6 +112,8 @@ const HeatMapPage = () => {
               limit: 20,
               radius: 150, // 150km radius
               minPopulation: 5000 // Only cities with population > 5000
+            }, headers: {
+              Authorization: `Bearer ${token}`
             }
           });
 
@@ -120,14 +123,14 @@ const HeatMapPage = () => {
               const cityNameLower = nearbyCity.city?.toLowerCase().trim();
               const cityAsciiLower = nearbyCity.city_ascii?.toLowerCase().trim();
               const coordArea = `${nearbyCity.lat.toFixed(2)}-${nearbyCity.lng.toFixed(2)}`;
-              
+
               const isExplored = exploredCityNames.has(cityNameLower) ||
-                                 exploredCityNames.has(cityAsciiLower) ||
-                                 exploredCoordAreas.has(coordArea);
-              
+                exploredCityNames.has(cityAsciiLower) ||
+                exploredCoordAreas.has(coordArea);
+
               // Check if it's near a high density area
               const nearHighDensity = isNearHighDensityArea(nearbyCity.lat, nearbyCity.lng, 15);
-              
+
               if (!isExplored && !nearHighDensity) {
                 allNearbyCities.push({
                   ...nearbyCity,
@@ -144,7 +147,7 @@ const HeatMapPage = () => {
       // Remove duplicates and sort by distance (lowest first)
       const uniqueNeighbors = [];
       const seenNeighbors = new Set();
-      
+
       allNearbyCities
         .sort((a, b) => a.distance_km - b.distance_km) // Sort by lowest distance first
         .forEach(neighbor => {
@@ -169,7 +172,9 @@ const HeatMapPage = () => {
     setLoading(true);
     try {
       const res = await axios.get(`${BASE_URL}/api/data/${user._id || user.id}`, {
-        params: { limit: 1000 }
+        params: { limit: 1000 }, headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       if (res.data?.success && res.data.data) {
@@ -198,10 +203,10 @@ const HeatMapPage = () => {
             const coords = extractCoordinates(item.googleMapsLink);
             if (coords) {
               // Get city from cityData map using index as key
-              const city = record.cityData && record.cityData[index.toString()] 
-                ? record.cityData[index.toString()] 
+              const city = record.cityData && record.cityData[index.toString()]
+                ? record.cityData[index.toString()]
                 : 'Unknown';
-              
+
               allPoints.push({
                 lat: coords.lat,
                 lon: coords.lon,
@@ -229,7 +234,7 @@ const HeatMapPage = () => {
     });
 
     setMapData(pointsWithDensity);
-    
+
     // Fetch recommended neighboring cities
     if (pointsWithDensity.length > 0) {
       fetchRecommendedCities(pointsWithDensity);
@@ -309,7 +314,7 @@ const HeatMapPage = () => {
       recommendedCities.forEach(city => {
         // Calculate marker size based on population
         const popSize = city.population ? Math.min(Math.log10(city.population) * 3, 15) : 10;
-        
+
         L.circleMarker([parseFloat(city.lat), parseFloat(city.lng)], {
           radius: popSize,
           fillColor: '#10B981',
@@ -392,7 +397,7 @@ const HeatMapPage = () => {
       <div className="bg-white rounded-lg shadow-md p-6">
 
         {loading ? (
-          <Loader/>
+          <Loader />
         ) : mapData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500">
             <p>No location data available</p>
@@ -408,14 +413,14 @@ const HeatMapPage = () => {
                   <span>High</span>
                 </div>
               </div>
-              
+
               {/* Heat Controls */}
               <div className="mb-3 pt-2 border-t">
                 <label className="text-xs text-gray-600 block mb-1">Radius: {heatRadius}px</label>
-                <input 
-                  type="range" 
-                  min="20" 
-                  max="80" 
+                <input
+                  type="range"
+                  min="20"
+                  max="80"
                   value={heatRadius}
                   onChange={(e) => setHeatRadius(Number(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -423,17 +428,17 @@ const HeatMapPage = () => {
               </div>
               <div className="mb-3">
                 <label className="text-xs text-gray-600 block mb-1">Intensity: {heatIntensity.toFixed(1)}</label>
-                <input 
-                  type="range" 
-                  min="0.3" 
-                  max="2" 
+                <input
+                  type="range"
+                  min="0.3"
+                  max="2"
                   step="0.1"
                   value={heatIntensity}
                   onChange={(e) => setHeatIntensity(Number(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
-              
+
               {/* Recommendations Legend */}
               {showRecommendations && (
                 <>
@@ -449,7 +454,7 @@ const HeatMapPage = () => {
                   </div>
                 </>
               )}
-              
+
               <div className="text-xs text-gray-500 pt-2 border-t mt-2">Click on map for details</div>
               <div className="text-xs mt-2">
                 Total Points: <b>{mapData.length}</b>

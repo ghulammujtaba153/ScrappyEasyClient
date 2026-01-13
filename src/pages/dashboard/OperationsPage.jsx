@@ -77,6 +77,7 @@ const OperationsPage = () => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
+
             if (res.status === 200) {
                 message.success('Operation deleted successfully');
                 fetchUniqueSearches(pagination.current, pagination.pageSize);
@@ -163,7 +164,7 @@ const OperationsPage = () => {
                             Delete
                         </Button>
                     </Popconfirm>
-                    
+
                 </Space>
             ),
         },

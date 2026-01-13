@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Popconfirm, Tag, Space, Modal, Progress, Input, Alert, Badge, Tooltip, Checkbox } from 'antd';
+import { Table, Button, message, Popconfirm, Tag, Space, Modal, Progress, Input, Alert, Badge, Tooltip, Checkbox, Form } from 'antd';
 import { FiTrash2, FiEdit2, FiPlay, FiRefreshCw, FiSend, FiUsers } from 'react-icons/fi';
 import { BsWhatsapp } from 'react-icons/bs';
 import { MessageOutlined, SendOutlined } from '@ant-design/icons';
@@ -21,11 +21,17 @@ const MessageAutomationPage = () => {
     const [connectModalOpen, setConnectModalOpen] = useState(false);
     const [whatsappInitialized, setWhatsappInitialized] = useState(false);
     const [searchText, setSearchText] = useState('');
-    
+
     // Daily limit and batch selection
     const [remainingMessages, setRemainingMessages] = useState(10);
     const [selectedEntryIds, setSelectedEntryIds] = useState([]);
     const [sendingEntryId, setSendingEntryId] = useState(null);
+
+    // Edit Modal State
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [selectedCampaign, setSelectedCampaign] = useState(null);
+    const [editForm] = Form.useForm();
 
     // Helper to check if campaign uses qualified leads
     const isQualifiedLeadsCampaign = (record) => {
@@ -65,8 +71,8 @@ const MessageAutomationPage = () => {
             if (res.data.success && res.data.data) {
                 setWhatsappInitialized(res.data.data.isConnected);
             }
-        } catch (error) {
-            console.error('Status check failed');
+        } catch (fetchError) {
+            console.error('Status check failed:', fetchError);
         }
     };
 
@@ -79,8 +85,8 @@ const MessageAutomationPage = () => {
             if (res.data.success) {
                 setRemainingMessages(res.data.remaining);
             }
-        } catch (error) {
-            console.error('Failed to fetch remaining messages');
+        } catch (fetchError) {
+            console.error('Failed to fetch remaining messages:', fetchError);
         }
     };
 
@@ -93,7 +99,8 @@ const MessageAutomationPage = () => {
                 setWhatsappInitialized(false);
                 message.success('WhatsApp disconnected');
             }
-        } catch (error) {
+        } catch (disconnectError) {
+            console.error('Disconnect error:', disconnectError);
             message.error('Failed to disconnect');
         }
     };
@@ -116,8 +123,8 @@ const MessageAutomationPage = () => {
                     if (updatedList) setCurrentList(updatedList);
                 }
             }
-        } catch (error) {
-            console.error('Fetch error:', error);
+        } catch (fetchError) {
+            console.error('Fetch error:', fetchError);
             message.error('Failed to load automated message lists');
         } finally {
             setLoading(false);
@@ -139,6 +146,30 @@ const MessageAutomationPage = () => {
         fetchRemainingMessages();
     };
 
+    const handleEditClick = (record) => {
+        setSelectedCampaign(record);
+        editForm.setFieldsValue({ name: record.name });
+        setEditModalVisible(true);
+    };
+
+    const handleUpdateCampaign = async (values) => {
+        setEditLoading(true);
+        try {
+            await axios.put(`${BASE_URL}/api/automate/update/${selectedCampaign._id}`,
+                { name: values.name },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            message.success('Campaign updated successfully');
+            setEditModalVisible(false);
+            fetchData();
+        } catch (updateError) {
+            console.error('Update error:', updateError);
+            message.error('Failed to update campaign');
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
     const handleSaveMessage = async () => {
         try {
             await axios.put(`${BASE_URL}/api/automate/update/${currentList._id}`,
@@ -147,7 +178,8 @@ const MessageAutomationPage = () => {
             );
             message.success('Message content updated');
             fetchData();
-        } catch (error) {
+        } catch (saveError) {
+            console.error('Save message error:', saveError);
             message.error('Failed to update message');
         }
     };
@@ -173,9 +205,9 @@ const MessageAutomationPage = () => {
             } else {
                 message.warning(res.data.message || 'No messages processed');
             }
-        } catch (error) {
-            console.error('Batch send error:', error);
-            message.error('Failed to send batch: ' + (error.response?.data?.error || error.message));
+        } catch (batchError) {
+            console.error('Batch send error:', batchError);
+            message.error('Failed to send batch: ' + (batchError.response?.data?.error || batchError.message));
         } finally {
             setSending(false);
         }
@@ -189,7 +221,8 @@ const MessageAutomationPage = () => {
             message.success('List deleted successfully');
             fetchData();
             if (currentList?._id === id) setDetailModalOpen(false);
-        } catch (error) {
+        } catch (deleteError) {
+            console.error('Delete error:', deleteError);
             message.error('Failed to delete list');
         }
     };
@@ -226,11 +259,12 @@ const MessageAutomationPage = () => {
                 setRemainingMessages(res.data.remainingMessages);
                 fetchData();
             }
-        } catch (error) {
-            const errorMsg = error.response?.data?.error || 'Failed to send message';
+        } catch (sendError) {
+            console.error('Send error:', sendError);
+            const errorMsg = sendError.response?.data?.error || 'Failed to send message';
             message.error(errorMsg);
-            if (error.response?.data?.remainingMessages !== undefined) {
-                setRemainingMessages(error.response.data.remainingMessages);
+            if (sendError.response?.data?.remainingMessages !== undefined) {
+                setRemainingMessages(sendError.response.data.remainingMessages);
             }
         } finally {
             setSendingEntryId(null);
@@ -273,8 +307,9 @@ const MessageAutomationPage = () => {
                 setSelectedEntryIds([]);
                 fetchData();
             }
-        } catch (error) {
-            const errorMsg = error.response?.data?.error || 'Failed to send batch';
+        } catch (batchError) {
+            console.error('Batch send error:', batchError);
+            const errorMsg = batchError.response?.data?.error || 'Failed to send batch';
             message.error(errorMsg);
         } finally {
             setSending(false);
@@ -306,8 +341,8 @@ const MessageAutomationPage = () => {
                 <div>
                     <span className="font-semibold text-gray-700">{text}</span>
                     {isQualifiedLeadsCampaign(record) && (
-                        <Badge 
-                            count={<FiUsers className="text-green-600" />} 
+                        <Badge
+                            count={<FiUsers className="text-green-600" />}
                             style={{ marginLeft: 8 }}
                             title="Linked to Qualified Leads"
                         />
@@ -369,6 +404,13 @@ const MessageAutomationPage = () => {
                         style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
                     >
                         Open / Send
+                    </Button>
+                    <Button
+                        icon={<FiEdit2 />}
+                        size="small"
+                        onClick={() => handleEditClick(record)}
+                    >
+                        Edit
                     </Button>
                     <Popconfirm
                         title="Delete this list?"
@@ -528,6 +570,7 @@ const MessageAutomationPage = () => {
                     dataSource={filteredData}
                     rowKey="_id"
                     loading={loading}
+                    scroll={{ x: 'max-content' }}
                     pagination={{
                         pageSize: 10,
                         showSizeChanger: true,
@@ -550,7 +593,7 @@ const MessageAutomationPage = () => {
                 onCancel={() => setDetailModalOpen(false)}
                 width={900}
                 footer={null}
-                
+
             >
                 {currentList && (
                     <div className="space-y-6">
@@ -599,7 +642,7 @@ const MessageAutomationPage = () => {
                                     rows={3}
                                     value={messageContent}
                                     onChange={(e) => setMessageContent(e.target.value)}
-                                    placeholder={isQualifiedLeadsCampaign(currentList) 
+                                    placeholder={isQualifiedLeadsCampaign(currentList)
                                         ? "Hello {name}, we have a special offer for you..."
                                         : "Type your message here..."
                                     }
@@ -699,6 +742,52 @@ const MessageAutomationPage = () => {
                     checkWhatsAppStatus();
                 }}
             />
+
+            {/* Edit Campaign Modal */}
+            <Modal
+                title="Edit Campaign"
+                open={editModalVisible}
+                onCancel={() => {
+                    setEditModalVisible(false);
+                    setSelectedCampaign(null);
+                    editForm.resetFields();
+                }}
+                footer={null}
+                destroyOnClose
+            >
+                <Form
+                    form={editForm}
+                    layout="vertical"
+                    onFinish={handleUpdateCampaign}
+                >
+                    <Form.Item
+                        name="name"
+                        label="Campaign Name"
+                        rules={[{ required: true, message: 'Please enter a campaign name' }]}
+                    >
+                        <Input placeholder="Enter campaign name" />
+                    </Form.Item>
+                    <Form.Item className="mb-0">
+                        <div className="flex justify-end gap-2">
+                            <Button onClick={() => {
+                                setEditModalVisible(false);
+                                setSelectedCampaign(null);
+                                editForm.resetFields();
+                            }}>
+                                Cancel
+                            </Button>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                loading={editLoading}
+                                style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
+                            >
+                                Save Changes
+                            </Button>
+                        </div>
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };
