@@ -11,6 +11,7 @@ export const OperationsProvider = ({ children }) => {
     const [uniqueSearches, setUniqueSearches] = useState([]);
     const [uniqueCities, setUniqueCities] = useState([]);
     const [loading, setLoading] = useState(false);
+    const token = localStorage.getItem('token');
 
     // Pagination & Search States
     const [keyword, setKeyword] = useState('');
@@ -42,6 +43,9 @@ export const OperationsProvider = ({ children }) => {
                     page: targetPage,
                     limit: targetPageSize,
                     search: targetSearch
+                },
+                headers: {
+                    Authorization: `Bearer ${token}`
                 }
             });
 
@@ -65,7 +69,11 @@ export const OperationsProvider = ({ children }) => {
 
             // Fetch global stats (Cities)
             if (uniqueCities.length === 0) {
-                const dataResponse = await axios.get(`${BASE_URL}/api/data/${user._id || user.id}?limit=1000`);
+                const dataResponse = await axios.get(`${BASE_URL}/api/data/${user._id || user.id}?limit=1000`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
                 if (dataResponse.data?.success && dataResponse.data?.uniqueCities) {
                     setUniqueCities(dataResponse.data.uniqueCities || []);
                 }
@@ -89,7 +97,11 @@ export const OperationsProvider = ({ children }) => {
 
         setLoading(true); // Helper loading state (global) - might want to separate local loading?
         try {
-            const response = await axios.get(`${BASE_URL}/api/data/record/${operationId}`);
+            const response = await axios.get(`${BASE_URL}/api/data/record/${operationId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             if (response.data?.success) {
                 const data = response.data.data;
 
@@ -103,7 +115,7 @@ export const OperationsProvider = ({ children }) => {
                     data.leads.forEach((lead, index) => {
                         const leadId = lead._id;
                         const itemKey = leadId || `${data._id}-${index}`;
-                        
+
                         // Extract whatsapp status from lead
                         if (lead.whatsappStatus) {
                             const phone = lead.phone?.replace(/\D/g, '');
@@ -111,12 +123,12 @@ export const OperationsProvider = ({ children }) => {
                                 initialWhatsappStatus[`+${phone}`] = lead.whatsappStatus;
                             }
                         }
-                        
+
                         // Extract city from lead
                         if (lead.city) {
                             initialCityData[itemKey] = lead.city;
                         }
-                        
+
                         // Extract screenshot from lead
                         if (lead.screenshotUrl) {
                             initialScreenshotData[itemKey] = lead.screenshotUrl;

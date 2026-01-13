@@ -19,7 +19,7 @@ const QualifiedLeadsPage = () => {
     const [loading, setLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(null);
     const [keyword, setKeyword] = useState('');
-    
+
     // Edit modal state
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
@@ -29,14 +29,14 @@ const QualifiedLeadsPage = () => {
     // Fetch qualified leads
     const fetchQualifiedLeads = async () => {
         if (!user?._id && !user?.id) return;
-        
+
         setLoading(true);
         try {
             const userId = user._id || user.id;
             const res = await axios.get(`${BASE_URL}/api/qualified-leads/get/${userId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             if (res.data) {
                 setQualifiedLeads(res.data);
                 setFilteredLeads(res.data);
@@ -60,7 +60,7 @@ const QualifiedLeadsPage = () => {
         if (!value) {
             setFilteredLeads(qualifiedLeads);
         } else {
-            const filtered = qualifiedLeads.filter(lead => 
+            const filtered = qualifiedLeads.filter(lead =>
                 lead.name?.toLowerCase().includes(value.toLowerCase()) ||
                 lead.searchString?.toLowerCase().includes(value.toLowerCase())
             );
@@ -353,7 +353,7 @@ const QualifiedLeadsPage = () => {
                     }
                 `}</style>
                 {filteredLeads.length === 0 && !loading ? (
-                    <Empty 
+                    <Empty
                         description="No qualified leads saved yet. Go to Operations and save filtered data as qualified leads."
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
                     />
@@ -363,6 +363,7 @@ const QualifiedLeadsPage = () => {
                         columns={columns}
                         dataSource={filteredLeads}
                         loading={loading}
+                        scroll={{ x: 'max-content' }}
                         pagination={{
                             pageSize: 10,
                             showSizeChanger: true,

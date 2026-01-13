@@ -1051,11 +1051,11 @@ const QualifiedLeadsDetailPage = () => {
                     coldCallForm.resetFields();
                 }}
                 form={coldCallForm}
-                onFinish={handleCreateColdCallCampaign}
-                leadData={leadData}
+                onSubmit={handleCreateColdCallCampaign}
+                leadName={leadData?.name}
                 leadsWithPhoneCount={leadsWithPhone.length}
                 notCalledCount={notCalledLeads.length}
-                campaignLoading={campaignLoading}
+                loading={campaignLoading}
             />
 
             {/* Message Campaign Modal */}
@@ -1066,11 +1066,11 @@ const QualifiedLeadsDetailPage = () => {
                     messageForm.resetFields();
                 }}
                 form={messageForm}
-                onFinish={handleCreateMessageCampaign}
-                leadData={leadData}
+                onSubmit={handleCreateMessageCampaign}
+                leadName={leadData?.name}
                 leadsWithPhoneCount={leadsWithPhone.length}
                 notMessagedCount={notMessagedLeads.length}
-                campaignLoading={campaignLoading}
+                loading={campaignLoading}
             />
         </div>
     );

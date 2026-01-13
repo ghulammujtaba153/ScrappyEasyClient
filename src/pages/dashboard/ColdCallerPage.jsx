@@ -62,7 +62,7 @@ const ColdCallerPage = () => {
       const pending = entries.filter(e => !e.callStatus || e.callStatus === 'pending' || e.callStatus === 'not-called').length;
       return { total, success, failed, pending };
     }
-    
+
     // Legacy numbers array
     const numbers = record.numbers;
     if (!numbers || !Array.isArray(numbers)) return { total: 0, success: 0, failed: 0, pending: 0 };
@@ -238,6 +238,7 @@ const ColdCallerPage = () => {
           dataSource={filteredData}
           rowKey="_id"
           loading={loading}
+          scroll={{ x: 'max-content' }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
