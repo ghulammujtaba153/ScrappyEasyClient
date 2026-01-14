@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../config/URL";
+import { checkAccessStatus } from "../api/subscriptionApi";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
+    const [accessStatus, setAccessStatus] = useState({ isAuthorized: false, type: 'trial' });
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -14,10 +16,11 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const verifyToken = async () => {
             const storedToken = localStorage.getItem("token");
-            const storedUser = localStorage.getItem("user");
+            const storedUserStr = localStorage.getItem("user");
 
-            if (storedToken && storedUser) {
+            if (storedToken && storedUserStr) {
                 try {
+                    const storedUser = JSON.parse(storedUserStr);
                     // Verify token with backend
                     const response = await fetch(`${BASE_URL}/api/auth/verifyToken`, {
                         method: "GET",
@@ -29,7 +32,11 @@ export const AuthProvider = ({ children }) => {
                     if (response.ok) {
                         // Token is valid, set user and token
                         setToken(storedToken);
-                        setUser(JSON.parse(storedUser));
+                        setUser(storedUser);
+
+                        // Also fetch access status
+                        const status = await checkAccessStatus(storedUser._id || storedUser.id, storedToken);
+                        setAccessStatus(status);
                     } else {
                         // Token is invalid, clear localStorage
                         localStorage.removeItem("token");
@@ -53,11 +60,19 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     // Login function
-    const login = (userData, authToken) => {
+    const login = async (userData, authToken) => {
         setUser(userData);
         setToken(authToken);
         localStorage.setItem("token", authToken);
         localStorage.setItem("user", JSON.stringify(userData));
+
+        // Fetch access status on login
+        try {
+            const status = await checkAccessStatus(userData._id || userData.id, authToken);
+            setAccessStatus(status);
+        } catch (error) {
+            console.error("Error fetching access status on login:", error);
+        }
     };
 
     // Logout function
@@ -80,6 +95,7 @@ export const AuthProvider = ({ children }) => {
 
         setUser(null);
         setToken(null);
+        setAccessStatus({ isAuthorized: false, type: 'trial' });
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
@@ -96,14 +112,23 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("user", JSON.stringify(updatedUserData));
     };
 
+    const refreshAccessStatus = async () => {
+        if (user && token) {
+            const status = await checkAccessStatus(user._id || user.id, token);
+            setAccessStatus(status);
+        }
+    };
+
     const value = {
         user,
         token,
+        accessStatus,
         loading,
         login,
         logout,
         isAuthenticated,
         updateUser,
+        refreshAccessStatus,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
