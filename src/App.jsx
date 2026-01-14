@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ConfigProvider } from "antd";
 import { AuthProvider } from "./context/authContext";
 import { SocketProvider } from "./context/SocketContext";
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -38,62 +39,70 @@ import TeamDetailPage from "./pages/dashboard/TeamDetailPage";
 
 function App() {
     return (
-        <Router>
-            <AuthProvider>
-                <SocketProvider>
-                    <OperationsProvider>
-                        <ScreenshotProvider>
-                            <Routes>
-                                <Route path="/" element={<AuthRedirect />} />
-                                <Route path="/register" element={<RegisterPage />} />
-                                <Route path="/login" element={<LoginPage />} />
-                                <Route path="/forgot-password" element={<ForgetPassword />} />
-                                <Route path="/reset-password" element={<InviteUserResetPage />} />
+        <ConfigProvider
+            theme={{
+                token: {
+                    colorPrimary: "#0F792C",
+                },
+            }}
+        >
+            <Router>
+                <AuthProvider>
+                    <SocketProvider>
+                        <OperationsProvider>
+                            <ScreenshotProvider>
+                                <Routes>
+                                    <Route path="/" element={<AuthRedirect />} />
+                                    <Route path="/register" element={<RegisterPage />} />
+                                    <Route path="/login" element={<LoginPage />} />
+                                    <Route path="/forgot-password" element={<ForgetPassword />} />
+                                    <Route path="/reset-password" element={<InviteUserResetPage />} />
 
-                                {/* Protected Routes */}
-                                <Route
-                                    path="/dashboard"
-                                    element={
-                                        <ProtectedRoute>
-                                            <DashboardLayout />
-                                        </ProtectedRoute>
-                                    }
-                                >
-                                    <Route index element={<HomePage />} />
+                                    {/* Protected Routes */}
                                     <Route
-                                        path="location/:category/:country/:state/:city?"
-                                        element={<LocationDetails />}
-                                    />
-                                    <Route path="category" element={<CategoryPage />} />
-                                    <Route path="operations" element={<OperationsPage />} />
-                                    <Route path="operations/:operationId" element={<OperationDetailPage />} />
-                                    <Route path="heat-map" element={<HeatMapPage />} />
-                                    <Route path="cold-caller" element={<ColdCallerPage />} />
-                                    <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
-                                    <Route path="whatsapp-automation" element={<WhatsAppConnectPage />} />
-                                    <Route path="message-automation" element={<MessageAutomationPage />} />
-                                    <Route path="call" element={<CallPage />} />
-                                    <Route path="twilio-settings" element={<TwilioSettingsPage />} />
-                                    <Route path="support" element={<SupportPage />} />
-                                    <Route path="profile-settings" element={<ProfilePage />} />
-                                    <Route path="subscription" element={<SubscriptionPage />} />
-                                    <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
-                                    <Route path="location" element={<LocationPage />} />
-                                    <Route path="collaboration" element={<CollaborationPage />} />
-                                    <Route path="qualified-leads" element={<QualifiedLeadsPage />} />
-                                    <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
-                                    <Route path="team" element={<TeamPage />} />
-                                    <Route path="team/:id" element={<TeamDetailPage />} />
-                                </Route>
+                                        path="/dashboard"
+                                        element={
+                                            <ProtectedRoute>
+                                                <DashboardLayout />
+                                            </ProtectedRoute>
+                                        }
+                                    >
+                                        <Route index element={<HomePage />} />
+                                        <Route
+                                            path="location/:category/:country/:state/:city?"
+                                            element={<LocationDetails />}
+                                        />
+                                        <Route path="category" element={<CategoryPage />} />
+                                        <Route path="operations" element={<OperationsPage />} />
+                                        <Route path="operations/:operationId" element={<OperationDetailPage />} />
+                                        <Route path="heat-map" element={<HeatMapPage />} />
+                                        <Route path="cold-caller" element={<ColdCallerPage />} />
+                                        <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
+                                        <Route path="whatsapp-automation" element={<WhatsAppConnectPage />} />
+                                        <Route path="message-automation" element={<MessageAutomationPage />} />
+                                        <Route path="call" element={<CallPage />} />
+                                        <Route path="twilio-settings" element={<TwilioSettingsPage />} />
+                                        <Route path="support" element={<SupportPage />} />
+                                        <Route path="profile-settings" element={<ProfilePage />} />
+                                        <Route path="subscription" element={<SubscriptionPage />} />
+                                        <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
+                                        <Route path="location" element={<LocationPage />} />
+                                        <Route path="collaboration" element={<CollaborationPage />} />
+                                        <Route path="qualified-leads" element={<QualifiedLeadsPage />} />
+                                        <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
+                                        <Route path="team" element={<TeamPage />} />
+                                        <Route path="team/:id" element={<TeamDetailPage />} />
+                                    </Route>
 
-                                {/* 404 Page - Must be last */}
-                                <Route path="*" element={<NotFoundPage />} />
-                            </Routes>
-                        </ScreenshotProvider>
-                    </OperationsProvider>
-                </SocketProvider>
-            </AuthProvider>
-        </Router>
+                                    {/* 404 Page - Must be last */}
+                                    <Route path="*" element={<NotFoundPage />} />
+                                </Routes>
+                            </ScreenshotProvider>
+                        </OperationsProvider>
+                    </SocketProvider>
+                </AuthProvider>
+            </Router>
+        </ConfigProvider>
     );
 }
 

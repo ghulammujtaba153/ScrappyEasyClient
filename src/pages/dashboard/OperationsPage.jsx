@@ -290,6 +290,7 @@ const OperationsPage = () => {
                     dataSource={uniqueSearches}
                     loading={loading}
                     onChange={handleTableChange}
+                    scroll={{ x: 'max-content' }}
                     pagination={{
                         current: pagination.current,
                         pageSize: pagination.pageSize,

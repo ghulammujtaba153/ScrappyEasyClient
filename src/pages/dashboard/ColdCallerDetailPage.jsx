@@ -1,17 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined, PhoneOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined, UserOutlined } from '@ant-design/icons';
-import { Table, Button, Space, Tag, Progress, Card, Statistic, message, Empty, Modal, Radio, Alert, Badge, Select } from 'antd';
+import { Table, Button, Space, Tag, Progress, Card, Statistic, message, Empty, Modal, Radio, Alert, Badge, Select, Spin } from 'antd';
 import axios from 'axios';
 import { useAuth } from '../../context/authContext';
 import { BASE_URL } from '../../config/URL';
 import Dialer from '../../components/Dialer';
 import Loader from '../../components/common/Loader';
+import { checkAccessStatus } from '../../api/subscriptionApi';
+import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
+import { MdLock } from 'react-icons/md';
 
 const ColdCallerDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [campaign, setCampaign] = useState(null);
 
@@ -23,7 +26,15 @@ const ColdCallerDetailPage = () => {
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("successful");
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  
+
+  // Subscription/Trial State
+  const [isAuthorized, setIsAuthorized] = useState(true);
+  const [accessType, setAccessType] = useState('trial');
+  const [trialInfo, setTrialInfo] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
+  const [lockedFeature, setLockedFeature] = useState('');
+
   // Pagination state for row numbering
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -85,11 +96,28 @@ const ColdCallerDetailPage = () => {
   };
 
   useEffect(() => {
-    if (id) fetchCampaignData();
+    if (!user || !token || !id) return;
+
+    const init = async () => {
+      setCheckingAuth(true);
+      const status = await checkAccessStatus(user?._id || user?.id, token);
+      setIsAuthorized(status.isAuthorized);
+      setAccessType(status.type);
+      setTrialInfo(status.trial);
+      setCheckingAuth(false);
+
+      fetchCampaignData();
+    };
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, user, token]);
 
   const handleCall = (record) => {
+    if (!isAuthorized) {
+      setLockedFeature('Cold Calling');
+      setIsLockedModalOpen(true);
+      return;
+    }
     setDialerNumber(record.number);
     setCallingLeadId(record._id);
     setCallingEntryId(record.entryId || null);
@@ -108,7 +136,7 @@ const ColdCallerDetailPage = () => {
     setUpdatingStatus(true);
     try {
       let res;
-      
+
       if (isQualifiedLeadsCampaign && callingEntryId) {
         // Update status via qualified leads entry
         res = await axios.put(`${BASE_URL}/api/coldcall/update-call-status/${id}`, {
@@ -146,7 +174,7 @@ const ColdCallerDetailPage = () => {
   const handleInlineStatusChange = async (record, newStatus) => {
     try {
       let res;
-      
+
       if (isQualifiedLeadsCampaign && record.entryId) {
         res = await axios.put(`${BASE_URL}/api/coldcall/update-call-status/${id}`, {
           entryId: record.entryId,
@@ -214,7 +242,7 @@ const ColdCallerDetailPage = () => {
 
   if (loading) {
     return (
-      <Loader/>
+      <Loader />
     );
   }
 
@@ -242,8 +270,8 @@ const ColdCallerDetailPage = () => {
   const successRate = total > 0 ? Math.round((interested / total) * 100) : 0;
 
   // Get current lead being called for modal display
-  const currentCallingLead = leads.find(n => 
-    (callingEntryId && n.entryId === callingEntryId) || 
+  const currentCallingLead = leads.find(n =>
+    (callingEntryId && n.entryId === callingEntryId) ||
     (callingLeadId && n._id === callingLeadId)
   );
 
@@ -406,8 +434,8 @@ const ColdCallerDetailPage = () => {
           <h1 className="text-2xl font-bold text-gray-900">
             {campaign.name}
             {isQualifiedLeadsCampaign && (
-              <Badge 
-                count={<UserOutlined className="text-green-600" />} 
+              <Badge
+                count={<UserOutlined className="text-green-600" />}
                 style={{ marginLeft: 8 }}
                 title="Linked to Qualified Leads"
               />
@@ -515,6 +543,7 @@ const ColdCallerDetailPage = () => {
           columns={columns}
           dataSource={leads}
           rowKey={(record) => record._id || record.entryId}
+          scroll={{ x: 'max-content' }}
           pagination={{
             current: currentPage,
             pageSize: pageSize,
@@ -542,6 +571,25 @@ const ColdCallerDetailPage = () => {
           </div>
         </div>
       </Card>
+
+      <SubscriptionRestrictedModal
+        open={isLockedModalOpen}
+        onClose={() => setIsLockedModalOpen(false)}
+        featureName={lockedFeature}
+        accessType={accessType}
+        trialInfo={trialInfo}
+        trialDays={1}
+      />
+
+      {/* Auth Checking Overlay */}
+      {checkingAuth && (
+        <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center">
+            <Spin size="large" />
+            <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
