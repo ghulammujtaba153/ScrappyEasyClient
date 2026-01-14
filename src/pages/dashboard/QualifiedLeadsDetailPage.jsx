@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Table, Tag, Spin, message, Tooltip, Form, Select, Checkbox } from 'antd';
-import { MdOpenInNew, MdCheckCircle, MdClose, MdFavorite, MdPhone, MdMessage } from 'react-icons/md';
+import { MdOpenInNew, MdCheckCircle, MdClose, MdFavorite, MdPhone, MdMessage, MdLock } from 'react-icons/md';
 import { PhoneOutlined, MessageOutlined } from '@ant-design/icons';
-import { Button, Space } from 'antd';
+import { Button, Space, Modal, Alert } from 'antd';
 import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import Dialer from '../../components/Dialer';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
+import { checkAccessStatus } from '../../api/subscriptionApi';
+import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
 
 // Import QualifiedLeads components
 import {
@@ -84,6 +86,23 @@ const QualifiedLeadsDetailPage = () => {
     const [connectedPhoneNumber, setConnectedPhoneNumber] = useState(null);
     const [disconnecting, setDisconnecting] = useState(false);
 
+    const handleConnectWhatsAppClick = () => {
+        if (!isAuthorized) {
+            setLockedFeature('WhatsApp Connection');
+            setIsLockedModalOpen(true);
+            return;
+        }
+        setWhatsappConnectModalOpen(true);
+    };
+
+    // Subscription/Trial State
+    const [isAuthorized, setIsAuthorized] = useState(true);
+    const [accessType, setAccessType] = useState('trial');
+    const [trialInfo, setTrialInfo] = useState(null);
+    const [checkingAuth, setCheckingAuth] = useState(true);
+    const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
+    const [lockedFeature, setLockedFeature] = useState('');
+
     const fetchLeadDetails = async () => {
         if (!id) return;
 
@@ -154,11 +173,25 @@ const QualifiedLeadsDetailPage = () => {
     };
 
     useEffect(() => {
-        fetchLeadDetails();
-        fetchRemainingMessages();
-        checkWhatsAppStatus();
+        if (!user || !token) return;
+
+        const init = async () => {
+            setCheckingAuth(true);
+            const status = await checkAccessStatus(user?._id || user?.id, token);
+            setIsAuthorized(status.isAuthorized);
+            setAccessType(status.type);
+            setTrialInfo(status.trial);
+            setCheckingAuth(false);
+
+            fetchLeadDetails();
+            fetchRemainingMessages();
+            if (status.isAuthorized) {
+                checkWhatsAppStatus();
+            }
+        };
+        init();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+    }, [id, user, token]);
 
     // Transform entries to flat data for table
     const getTableData = () => {
@@ -319,6 +352,11 @@ const QualifiedLeadsDetailPage = () => {
 
     // Create Cold Call Campaign from this qualified leads list
     const handleCreateColdCallCampaign = async (values) => {
+        if (!isAuthorized) {
+            setLockedFeature('Cold Call Campaign');
+            setIsLockedModalOpen(true);
+            return;
+        }
         setCampaignLoading(true);
         try {
             const payload = {
@@ -351,6 +389,11 @@ const QualifiedLeadsDetailPage = () => {
 
     // Create Message Campaign from this qualified leads list
     const handleCreateMessageCampaign = async (values) => {
+        if (!isAuthorized) {
+            setLockedFeature('Message Campaign');
+            setIsLockedModalOpen(true);
+            return;
+        }
         setCampaignLoading(true);
         try {
             const payload = {
@@ -472,6 +515,11 @@ const QualifiedLeadsDetailPage = () => {
 
     // Handle opening dialer
     const handleCall = (record) => {
+        if (!isAuthorized) {
+            setLockedFeature('Dialer/Calling');
+            setIsLockedModalOpen(true);
+            return;
+        }
         setDialerNumber(record.phone);
         setCallingEntryId(record.entryId);
         setCallingLeadId(record.leadId);
@@ -515,6 +563,11 @@ const QualifiedLeadsDetailPage = () => {
 
     // Open message modal for single entry
     const handleOpenMessageModal = (record) => {
+        if (!isAuthorized) {
+            setLockedFeature('WhatsApp Messaging');
+            setIsLockedModalOpen(true);
+            return;
+        }
         if (!record.phone) {
             message.warning('This lead has no phone number');
             return;
@@ -571,6 +624,11 @@ const QualifiedLeadsDetailPage = () => {
 
     // Send batch messages to selected entries
     const handleSendBatchMessages = async () => {
+        if (!isAuthorized) {
+            setLockedFeature('Batch Messaging');
+            setIsLockedModalOpen(true);
+            return;
+        }
         if (selectedMessageEntries.length === 0) {
             message.warning('Please select recipients to send messages');
             return;
@@ -896,7 +954,7 @@ const QualifiedLeadsDetailPage = () => {
                 onMessageChange={setMessageContent}
                 remainingMessages={remainingMessages}
                 whatsappInitialized={whatsappInitialized}
-                onConnectWhatsApp={() => setWhatsappConnectModalOpen(true)}
+                onConnectWhatsApp={handleConnectWhatsAppClick}
             />
 
             {/* WhatsApp Connect Modal */}
@@ -926,7 +984,14 @@ const QualifiedLeadsDetailPage = () => {
                 onExportCSV={exportToCSV}
                 onCreateColdCallCampaign={() => setColdCallModalVisible(true)}
                 onCreateMessageCampaign={() => setMessageModalVisible(true)}
-                onShowDialer={() => setShowDialer(true)}
+                onShowDialer={() => {
+                    if (!isAuthorized) {
+                        setLockedFeature('Dialer');
+                        setIsLockedModalOpen(true);
+                        return;
+                    }
+                    setShowDialer(true);
+                }}
             />
 
             {/* Info Cards */}
@@ -999,7 +1064,7 @@ const QualifiedLeadsDetailPage = () => {
                             <Button
                                 type="primary"
                                 size="small"
-                                onClick={() => setWhatsappConnectModalOpen(true)}
+                                onClick={handleConnectWhatsAppClick}
                                 style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
                                 icon={<MdMessage />}
                             >
@@ -1020,7 +1085,7 @@ const QualifiedLeadsDetailPage = () => {
                 onClear={() => setSelectedMessageEntries([])}
                 batchSending={batchSending}
                 whatsappInitialized={whatsappInitialized}
-                onConnectWhatsApp={() => setWhatsappConnectModalOpen(true)}
+                onConnectWhatsApp={handleConnectWhatsAppClick}
             />
 
             {/* Data Table */}
@@ -1072,6 +1137,25 @@ const QualifiedLeadsDetailPage = () => {
                 notMessagedCount={notMessagedLeads.length}
                 loading={campaignLoading}
             />
+
+            <SubscriptionRestrictedModal
+                open={isLockedModalOpen}
+                onClose={() => setIsLockedModalOpen(false)}
+                featureName={lockedFeature}
+                accessType={accessType}
+                trialInfo={trialInfo}
+                trialDays={1}
+            />
+
+            {/* Auth Checking Overlay */}
+            {checkingAuth && (
+                <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
+                    <div className="text-center">
+                        <Spin size="large" />
+                        <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

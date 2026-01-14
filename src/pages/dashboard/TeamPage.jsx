@@ -7,6 +7,9 @@ import Select from 'react-select';
 import { FaPlus, FaEdit, FaTrash, FaUsers, FaUserPlus, FaArrowRight, FaSignOutAlt } from 'react-icons/fa';
 import { message, Modal, Spin } from 'antd';
 import Loader from '../../components/common/Loader';
+import { checkAccessStatus } from '../../api/subscriptionApi';
+import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
+import { MdLock } from 'react-icons/md';
 
 const TeamPage = () => {
     const { user, token } = useAuth();
@@ -24,6 +27,14 @@ const TeamPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [memberTeams, setMemberTeams] = useState([]); // Teams where user is a member
 
+    // Subscription/Trial State
+    const [isAuthorized, setIsAuthorized] = useState(true);
+    const [accessType, setAccessType] = useState('trial');
+    const [trialInfo, setTrialInfo] = useState(null);
+    const [checkingAuth, setCheckingAuth] = useState(true);
+    const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
+    const [lockedFeature, setLockedFeature] = useState('');
+
     // Fetch all teams for current user (as owner)
     const fetchTeams = async () => {
         try {
@@ -33,7 +44,7 @@ const TeamPage = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setTeams(ownerRes.data);
-            
+
             // Fetch teams where user is a member
             const memberRes = await axios.get(`${BASE_URL}/api/team/get/member/${user._id}`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -68,10 +79,25 @@ const TeamPage = () => {
     };
 
     useEffect(() => {
-        if (user && token) {
+        if (!user || !token) return;
+
+        const init = async () => {
+            setCheckingAuth(true);
+            const status = await checkAccessStatus(user?._id || user?.id, token);
+            setIsAuthorized(status.isAuthorized);
+            setAccessType(status.type);
+            setTrialInfo(status.trial);
+            setCheckingAuth(false);
+
+            if (!status.isAuthorized) {
+                setLockedFeature('Team Management');
+                setIsLockedModalOpen(true);
+            }
+
             fetchTeams();
             fetchUsers();
-        }
+        };
+        init();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, token]);
 
@@ -82,6 +108,12 @@ const TeamPage = () => {
     }));
 
     const handleOpenModal = (team = null) => {
+        if (!isAuthorized) {
+            setLockedFeature('Team Management');
+            setIsLockedModalOpen(true);
+            return;
+        }
+
         if (team) {
             setIsEditMode(true);
             setCurrentTeam(team);
@@ -138,6 +170,12 @@ const TeamPage = () => {
     };
 
     const handleDelete = async (teamId) => {
+        if (!isAuthorized) {
+            setLockedFeature('Team Management');
+            setIsLockedModalOpen(true);
+            return;
+        }
+
         Modal.confirm({
             title: 'Delete Team',
             content: 'Are you sure you want to delete this team? This action cannot be undone.',
@@ -166,6 +204,16 @@ const TeamPage = () => {
         });
     };
 
+    // Handle navigating to team detail
+    const handleViewTeam = (teamId) => {
+        if (!isAuthorized) {
+            setLockedFeature('Team Details');
+            setIsLockedModalOpen(true);
+            return;
+        }
+        navigate(`/dashboard/team/${teamId}`);
+    };
+
     // Handle leaving a team (for members only)
     const handleLeaveTeam = async (team) => {
         Modal.confirm({
@@ -180,7 +228,7 @@ const TeamPage = () => {
                     const updatedMembers = team.members
                         .filter(m => m._id !== user._id)
                         .map(m => m._id);
-                    
+
                     await axios.put(
                         `${BASE_URL}/api/team/update/${team._id}`,
                         { members: updatedMembers },
@@ -305,7 +353,7 @@ const TeamPage = () => {
                                             Created: {new Date(team.createdAt).toLocaleDateString()}
                                         </p>
                                         <button
-                                            onClick={() => navigate(`/dashboard/team/${team._id}`)}
+                                            onClick={() => handleViewTeam(team._id)}
                                             className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                                         >
                                             View Team <FaArrowRight className="text-xs" />
@@ -366,11 +414,10 @@ const TeamPage = () => {
                                                     {team.members.slice(0, 5).map((member) => (
                                                         <span
                                                             key={member._id}
-                                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                                                member._id === user._id 
-                                                                    ? 'bg-blue-100 text-blue-700' 
-                                                                    : 'bg-primary/10 text-primary'
-                                                            }`}
+                                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${member._id === user._id
+                                                                ? 'bg-blue-100 text-blue-700'
+                                                                : 'bg-primary/10 text-primary'
+                                                                }`}
                                                         >
                                                             {member.name || member.email}
                                                             {member._id === user._id && ' (You)'}
@@ -393,7 +440,7 @@ const TeamPage = () => {
                                             Created: {new Date(team.createdAt).toLocaleDateString()}
                                         </p>
                                         <button
-                                            onClick={() => navigate(`/dashboard/team/${team._id}`)}
+                                            onClick={() => handleViewTeam(team._id)}
                                             className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
                                         >
                                             View Team <FaArrowRight className="text-xs" />
@@ -478,10 +525,10 @@ const TeamPage = () => {
                                     }),
                                     option: (base, state) => ({
                                         ...base,
-                                        backgroundColor: state.isSelected 
-                                            ? '#0F792C' 
-                                            : state.isFocused 
-                                                ? 'rgba(15, 121, 44, 0.1)' 
+                                        backgroundColor: state.isSelected
+                                            ? '#0F792C'
+                                            : state.isFocused
+                                                ? 'rgba(15, 121, 44, 0.1)'
                                                 : 'white',
                                         color: state.isSelected ? 'white' : '#374151',
                                         '&:active': {
@@ -525,6 +572,25 @@ const TeamPage = () => {
                     </div>
                 </Modal>
             </div>
+
+            <SubscriptionRestrictedModal
+                open={isLockedModalOpen}
+                onClose={() => setIsLockedModalOpen(false)}
+                featureName={lockedFeature}
+                accessType={accessType}
+                trialInfo={trialInfo}
+                trialDays={1}
+            />
+
+            {/* Auth Checking Overlay */}
+            {checkingAuth && (
+                <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
+                    <div className="text-center">
+                        <Spin size="large" />
+                        <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,23 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { BASE_URL } from "../../config/URL";
-import countries from "../../data/countries";
-import ukCities from "../../data/uk";
 import {
     MdDashboard,
-    MdCategory,
     MdSettings,
     MdMessage,
     MdMap,
     MdPhone,
-    MdWhatsapp,
     MdChevronLeft,
     MdChevronRight,
-    MdLocationOn,
     MdSupport,
     MdBuild,
-    MdCall,
     MdCardMembership,
     MdAccountCircle,
     MdLogout,
@@ -26,32 +18,12 @@ import {
 } from "react-icons/md";
 import { useAuth } from "../../context/authContext";
 
-const Sidebar = () => {
+const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [expandedCategories, setExpandedCategories] = useState({});
-    const [expandedCountries, setExpandedCountries] = useState({});
-    const [expandedStates, setExpandedStates] = useState({});
-    const {logout} = useAuth();
+    const { logout } = useAuth();
 
-    // Fetch all categories
-    const fetchCategories = async () => {
-        setLoading(true);
-        try {
-            const res = await axios.get(`${BASE_URL}/api/category`);
-            setCategories(res.data);
-        } catch (err) {
-            console.error("Failed to load categories:", err);
-        }
-        setLoading(false);
-    };
 
-    useEffect(() => {
-        fetchCategories();
-    }, []);
 
     const menuItems = [
         {
@@ -131,39 +103,7 @@ const Sidebar = () => {
         navigate('/login');
     };
 
-    const countryFlags = {
-        'USA': '🇺🇸',
-        'Canada': '🇨🇦',
-        'Australia': '🇦🇺',
-        'United Kingdom': '🇬🇧'
-    };
 
-    const toggleCategory = (categoryId) => {
-        setExpandedCategories(prev => ({
-            ...prev,
-            [categoryId]: !prev[categoryId]
-        }));
-    };
-
-    const toggleCountry = (categoryId, countryName) => {
-        const key = `${categoryId}-${countryName}`;
-        setExpandedCountries(prev => ({
-            ...prev,
-            [key]: !prev[key]
-        }));
-    };
-
-    const toggleState = (categoryId, countryName, stateName) => {
-        const key = `${categoryId}-${countryName}-${stateName}`;
-        setExpandedStates(prev => ({
-            ...prev,
-            [key]: !prev[key]
-        }));
-    };
-
-    const handleCityClick = (countryName, stateName, cityName) => {
-        navigate(`/dashboard/location/${encodeURIComponent(countryName)}/${encodeURIComponent(stateName)}/${encodeURIComponent(cityName)}`);
-    };
 
     return (
         <aside
@@ -240,8 +180,8 @@ const Sidebar = () => {
                 </button>
 
                 {/* Categories Section */}
-                
-                
+
+
 
 
             </nav>

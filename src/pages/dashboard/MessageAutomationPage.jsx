@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Popconfirm, Tag, Space, Modal, Progress, Input, Alert, Badge, Tooltip, Checkbox, Form } from 'antd';
+import { Table, Button, message, Popconfirm, Tag, Space, Modal, Progress, Input, Alert, Badge, Tooltip, Checkbox, Form, Spin } from 'antd';
 import { FiTrash2, FiEdit2, FiPlay, FiRefreshCw, FiSend, FiUsers } from 'react-icons/fi';
 import { BsWhatsapp } from 'react-icons/bs';
 import { MessageOutlined, SendOutlined } from '@ant-design/icons';
@@ -7,6 +7,12 @@ import axios from 'axios';
 import { useAuth } from '../../context/authContext';
 import { BASE_URL } from '../../config/URL';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
+import { checkAccessStatus } from '../../api/subscriptionApi';
+import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
+import { MdLock } from 'react-icons/md';
+import { isQualifiedLeadsCampaign, getStats } from '../../components/message-automation/utils';
+import AutomationDetailModal from '../../components/message-automation/AutomationDetailModal';
+import EditCampaignModal from '../../components/message-automation/EditCampaignModal';
 
 const MessageAutomationPage = () => {
     const { user, token } = useAuth();
@@ -27,41 +33,30 @@ const MessageAutomationPage = () => {
     const [selectedEntryIds, setSelectedEntryIds] = useState([]);
     const [sendingEntryId, setSendingEntryId] = useState(null);
 
+    // Subscription/Trial State
+    const [isAuthorized, setIsAuthorized] = useState(true);
+    const [accessType, setAccessType] = useState('trial');
+    const [trialInfo, setTrialInfo] = useState(null);
+    const [checkingAuth, setCheckingAuth] = useState(true);
+    const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
+    const [lockedFeature, setLockedFeature] = useState('');
+
     // Edit Modal State
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
     const [selectedCampaign, setSelectedCampaign] = useState(null);
     const [editForm] = Form.useForm();
 
-    // Helper to check if campaign uses qualified leads
-    const isQualifiedLeadsCampaign = (record) => {
-        return record?.qualifiedLeadsId && record.qualifiedLeadsId.entries?.length > 0;
+    const handleConnectWhatsAppClick = () => {
+        if (!isAuthorized) {
+            setLockedFeature('WhatsApp Connection');
+            setIsLockedModalOpen(true);
+            return;
+        }
+        setConnectModalOpen(true);
     };
 
-    // Get recipients list - either from qualified leads or legacy numbers
-    const getRecipients = (record) => {
-        if (isQualifiedLeadsCampaign(record)) {
-            return record.qualifiedLeadsId.entries
-                .filter(entry => entry.leadId?.phone) // Only entries with phone numbers
-                .map(entry => ({
-                    _id: entry._id,
-                    number: entry.leadId.phone,
-                    businessName: entry.leadId.title || 'Unknown',
-                    city: entry.leadId.city || '',
-                    status: entry.messageStatus || 'not-sent',
-                    sentAt: entry.lastMessagedAt,
-                    attempts: entry.messageAttempts || 0,
-                    notes: entry.messageNotes,
-                    isQualifiedLead: true
-                }));
-        }
-        // Legacy numbers array
-        return (record?.numbers || []).map(n => ({
-            ...n,
-            businessName: null,
-            isQualifiedLead: false
-        }));
-    };
+
 
     const checkWhatsAppStatus = async () => {
         try {
@@ -132,9 +127,23 @@ const MessageAutomationPage = () => {
     };
 
     useEffect(() => {
-        fetchData();
-        checkWhatsAppStatus();
-        fetchRemainingMessages();
+        if (!user || !token) return;
+
+        const init = async () => {
+            setCheckingAuth(true);
+            const status = await checkAccessStatus(user?._id || user?.id, token);
+            setIsAuthorized(status.isAuthorized);
+            setAccessType(status.type);
+            setTrialInfo(status.trial);
+            setCheckingAuth(false);
+
+            fetchData();
+            fetchRemainingMessages();
+            if (status.isAuthorized) {
+                checkWhatsAppStatus();
+            }
+        };
+        init();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, token]);
 
@@ -185,6 +194,11 @@ const MessageAutomationPage = () => {
     };
 
     const handleSendBatch = async () => {
+        if (!isAuthorized) {
+            setLockedFeature('Auto Batch Messaging');
+            setIsLockedModalOpen(true);
+            return;
+        }
         if (!messageContent) {
             message.error('Please configure a message first');
             return;
@@ -229,6 +243,11 @@ const MessageAutomationPage = () => {
 
     // Send single message to one recipient
     const handleSendSingle = async (record) => {
+        if (!isAuthorized) {
+            setLockedFeature('Single Messaging');
+            setIsLockedModalOpen(true);
+            return;
+        }
         if (remainingMessages <= 0) {
             message.error('Daily message limit (10) reached. Try again tomorrow.');
             return;
@@ -273,6 +292,11 @@ const MessageAutomationPage = () => {
 
     // Send batch messages to selected entries
     const handleSendSelectedBatch = async () => {
+        if (!isAuthorized) {
+            setLockedFeature('Selected Batch Messaging');
+            setIsLockedModalOpen(true);
+            return;
+        }
         if (selectedEntryIds.length === 0) {
             message.warning('Please select recipients to send messages');
             return;
@@ -316,17 +340,7 @@ const MessageAutomationPage = () => {
         }
     };
 
-    // Calculate Stats - supports both qualified leads and legacy numbers
-    const getStats = (record) => {
-        const recipients = getRecipients(record);
-        if (!recipients.length) return { total: 0, sent: 0, pending: 0, failed: 0 };
 
-        const total = recipients.length;
-        const sent = recipients.filter(r => r.status === 'sent' || r.status === 'delivered' || r.status === 'read').length;
-        const failed = recipients.filter(r => r.status === 'failed').length;
-        const pending = recipients.filter(r => r.status === 'pending' || r.status === 'not-sent').length;
-        return { total, sent, failed, pending };
-    };
 
     const filteredData = data.filter(item =>
         item.name?.toLowerCase().includes(searchText.toLowerCase())
@@ -427,118 +441,7 @@ const MessageAutomationPage = () => {
         },
     ];
 
-    const detailColumns = [
-        {
-            title: () => {
-                const recipients = currentList ? getRecipients(currentList) : [];
-                const pendingRecipients = recipients.filter(r => r.isQualifiedLead && (r.status === 'not-sent' || r.status === 'pending'));
-                const allSelected = pendingRecipients.length > 0 && pendingRecipients.every(r => selectedEntryIds.includes(r._id));
-                return (
-                    <Checkbox
-                        checked={allSelected}
-                        indeterminate={selectedEntryIds.length > 0 && !allSelected}
-                        onChange={(e) => {
-                            if (e.target.checked) {
-                                setSelectedEntryIds(pendingRecipients.map(r => r._id));
-                            } else {
-                                setSelectedEntryIds([]);
-                            }
-                        }}
-                    />
-                );
-            },
-            key: 'select',
-            width: 50,
-            render: (_, record) => {
-                if (!record.isQualifiedLead || record.status === 'sent' || record.status === 'delivered' || record.status === 'read') {
-                    return null;
-                }
-                return (
-                    <Checkbox
-                        checked={selectedEntryIds.includes(record._id)}
-                        onChange={(e) => {
-                            if (e.target.checked) {
-                                setSelectedEntryIds([...selectedEntryIds, record._id]);
-                            } else {
-                                setSelectedEntryIds(selectedEntryIds.filter(id => id !== record._id));
-                            }
-                        }}
-                    />
-                );
-            }
-        },
-        {
-            title: 'Business',
-            key: 'business',
-            render: (_, record) => record.businessName ? (
-                <div>
-                    <div className="font-medium text-gray-800">{record.businessName}</div>
-                    {record.city && <div className="text-xs text-gray-500">{record.city}</div>}
-                </div>
-            ) : '-'
-        },
-        {
-            title: 'Number',
-            dataIndex: 'number',
-            key: 'number',
-            render: (text, record) => typeof record === 'string' ? record : record.number
-        },
-        {
-            title: 'Status',
-            key: 'status',
-            render: (_, record) => {
-                if (typeof record === 'string') return <Tag>Pending</Tag>;
 
-                const statusConfig = {
-                    'sent': { color: 'green', label: 'SENT' },
-                    'delivered': { color: 'cyan', label: 'DELIVERED' },
-                    'read': { color: 'blue', label: 'READ' },
-                    'failed': { color: 'red', label: 'FAILED' },
-                    'pending': { color: 'orange', label: 'PENDING' },
-                    'not-sent': { color: 'default', label: 'NOT SENT' }
-                };
-                const config = statusConfig[record.status] || { color: 'default', label: record.status?.toUpperCase() };
-                return <Tag color={config.color}>{config.label}</Tag>;
-            }
-        },
-        {
-            title: 'Attempts',
-            dataIndex: 'attempts',
-            key: 'attempts',
-            render: (attempts) => attempts || 0,
-            width: 80
-        },
-        {
-            title: 'Sent At',
-            dataIndex: 'sentAt',
-            key: 'sentAt',
-            render: (date) => date ? new Date(date).toLocaleString() : '-'
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            width: 100,
-            render: (_, record) => {
-                if (!record.isQualifiedLead) return '-';
-                const isSent = record.status === 'sent' || record.status === 'delivered' || record.status === 'read';
-                return (
-                    <Tooltip title={isSent ? 'Already sent' : remainingMessages <= 0 ? 'Daily limit reached' : 'Send message'}>
-                        <Button
-                            type="primary"
-                            icon={<SendOutlined />}
-                            size="small"
-                            onClick={() => handleSendSingle(record)}
-                            loading={sendingEntryId === record._id}
-                            disabled={isSent || remainingMessages <= 0}
-                            style={{ backgroundColor: isSent ? '#ccc' : '#0F792C', borderColor: isSent ? '#ccc' : '#0F792C' }}
-                        >
-                            Send
-                        </Button>
-                    </Tooltip>
-                );
-            }
-        }
-    ];
 
     return (
         <div className="p-6">
@@ -579,159 +482,6 @@ const MessageAutomationPage = () => {
                 />
             </div>
 
-            {/* Detail / Send Modal */}
-            <Modal
-                title={
-                    <div>
-                        {currentList?.name || "Campaign Details"}
-                        {currentList && isQualifiedLeadsCampaign(currentList) && (
-                            <Tag color="green" className="ml-2">Qualified Leads</Tag>
-                        )}
-                    </div>
-                }
-                open={detailModalOpen}
-                onCancel={() => setDetailModalOpen(false)}
-                width={900}
-                footer={null}
-
-            >
-                {currentList && (
-                    <div className="space-y-6">
-                        {/* Qualified Leads Info Banner */}
-                        {isQualifiedLeadsCampaign(currentList) && (
-                            <Alert
-                                message={`Linked to: ${currentList.qualifiedLeadsId.name}`}
-                                description="Messages will be sent to leads from your qualified leads list. Use {name} in your message to personalize with the business name."
-                                type="info"
-                                showIcon
-                            />
-                        )}
-
-                        {/* Status Overview */}
-                        <div className="grid grid-cols-4 gap-4 text-center">
-                            <div className="bg-gray-50 p-3 rounded">
-                                <div className="text-xl font-bold">{getStats(currentList).total}</div>
-                                <div className="text-xs text-gray-500">Total</div>
-                            </div>
-                            <div className="bg-green-50 p-3 rounded text-green-700">
-                                <div className="text-xl font-bold">{getStats(currentList).sent}</div>
-                                <div className="text-xs">Sent</div>
-                            </div>
-                            <div className="bg-blue-50 p-3 rounded text-blue-700">
-                                <div className="text-xl font-bold">{getStats(currentList).pending}</div>
-                                <div className="text-xs">Pending</div>
-                            </div>
-                            <div className="bg-red-50 p-3 rounded text-red-700">
-                                <div className="text-xl font-bold">{getStats(currentList).failed}</div>
-                                <div className="text-xs">Failed</div>
-                            </div>
-                        </div>
-
-                        {/* Message Configuration */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Message Content
-                                {isQualifiedLeadsCampaign(currentList) && (
-                                    <span className="text-gray-400 ml-2 font-normal">
-                                        (Use {'{name}'} for business name)
-                                    </span>
-                                )}
-                            </label>
-                            <div className="flex gap-2">
-                                <Input.TextArea
-                                    rows={3}
-                                    value={messageContent}
-                                    onChange={(e) => setMessageContent(e.target.value)}
-                                    placeholder={isQualifiedLeadsCampaign(currentList)
-                                        ? "Hello {name}, we have a special offer for you..."
-                                        : "Type your message here..."
-                                    }
-                                />
-                                <Button
-                                    onClick={handleSaveMessage}
-                                    icon={<FiEdit2 />}
-                                    style={{ color: '#0F792C', borderColor: '#0F792C' }}
-                                >
-                                    Save
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Daily Limit Alert */}
-                        <Alert
-                            message={
-                                <span>
-                                    <strong>Daily Limit:</strong> {remainingMessages} of 10 messages remaining today
-                                    {selectedEntryIds.length > 0 && (
-                                        <span className="ml-2">• <strong>{selectedEntryIds.length}</strong> selected</span>
-                                    )}
-                                </span>
-                            }
-                            type={remainingMessages <= 0 ? 'error' : remainingMessages <= 3 ? 'warning' : 'info'}
-                            showIcon
-                        />
-
-                        {/* Action Bar */}
-                        <div className="flex items-center justify-between bg-gray-100 p-4 rounded-lg">
-                            <Space>
-                                {whatsappInitialized ? (
-                                    <Button
-                                        danger
-                                        icon={<FiTrash2 />}
-                                        onClick={disconnectWhatsApp}
-                                    >
-                                        Disconnect WhatsApp
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        icon={<BsWhatsapp />}
-                                        onClick={() => setConnectModalOpen(true)}
-                                        style={{ color: '#0F792C', borderColor: '#0F792C' }}
-                                    >
-                                        Connect WhatsApp
-                                    </Button>
-                                )}
-                            </Space>
-
-                            <Space>
-                                {isQualifiedLeadsCampaign(currentList) && selectedEntryIds.length > 0 && (
-                                    <Button
-                                        type="primary"
-                                        size="large"
-                                        icon={<FiSend />}
-                                        onClick={handleSendSelectedBatch}
-                                        loading={sending}
-                                        disabled={remainingMessages <= 0}
-                                        style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
-                                    >
-                                        {sending ? 'Sending...' : `Send Selected (${Math.min(selectedEntryIds.length, remainingMessages)})`}
-                                    </Button>
-                                )}
-                                <Button
-                                    type="primary"
-                                    size="large"
-                                    icon={<FiSend />}
-                                    onClick={handleSendBatch}
-                                    loading={sending}
-                                    disabled={getStats(currentList).pending === 0 || remainingMessages <= 0}
-                                    style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
-                                >
-                                    {sending ? 'Sending...' : `Auto Batch (${Math.min(10, remainingMessages)})`}
-                                </Button>
-                            </Space>
-                        </div>
-
-                        {/* Recipients List */}
-                        <Table
-                            columns={detailColumns}
-                            dataSource={getRecipients(currentList)}
-                            rowKey={(record) => record._id || record.number}
-                            size="small"
-                            pagination={{ pageSize: 10 }}
-                        />
-                    </div>
-                )}
-            </Modal>
 
             <WhatsAppConnectModal
                 visible={connectModalOpen}
@@ -743,51 +493,56 @@ const MessageAutomationPage = () => {
                 }}
             />
 
-            {/* Edit Campaign Modal */}
-            <Modal
-                title="Edit Campaign"
-                open={editModalVisible}
+            <AutomationDetailModal
+                open={detailModalOpen}
+                onCancel={() => setDetailModalOpen(false)}
+                currentList={currentList}
+                messageContent={messageContent}
+                onMessageChange={setMessageContent}
+                onSaveMessage={handleSaveMessage}
+                remainingMessages={remainingMessages}
+                whatsappInitialized={whatsappInitialized}
+                onConnectWhatsApp={handleConnectWhatsAppClick}
+                onDisconnectWhatsApp={disconnectWhatsApp}
+                selectedEntryIds={selectedEntryIds}
+                onSelectionChange={setSelectedEntryIds}
+                handleSendSingle={handleSendSingle}
+                handleSendSelectedBatch={handleSendSelectedBatch}
+                handleSendBatch={handleSendBatch}
+                sending={sending}
+                sendingEntryId={sendingEntryId}
+            />
+
+            <EditCampaignModal
+                visible={editModalVisible}
                 onCancel={() => {
                     setEditModalVisible(false);
                     setSelectedCampaign(null);
                     editForm.resetFields();
                 }}
-                footer={null}
-                destroyOnClose
-            >
-                <Form
-                    form={editForm}
-                    layout="vertical"
-                    onFinish={handleUpdateCampaign}
-                >
-                    <Form.Item
-                        name="name"
-                        label="Campaign Name"
-                        rules={[{ required: true, message: 'Please enter a campaign name' }]}
-                    >
-                        <Input placeholder="Enter campaign name" />
-                    </Form.Item>
-                    <Form.Item className="mb-0">
-                        <div className="flex justify-end gap-2">
-                            <Button onClick={() => {
-                                setEditModalVisible(false);
-                                setSelectedCampaign(null);
-                                editForm.resetFields();
-                            }}>
-                                Cancel
-                            </Button>
-                            <Button
-                                type="primary"
-                                htmlType="submit"
-                                loading={editLoading}
-                                style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
-                            >
-                                Save Changes
-                            </Button>
-                        </div>
-                    </Form.Item>
-                </Form>
-            </Modal>
+                onSubmit={handleUpdateCampaign}
+                form={editForm}
+                loading={editLoading}
+            />
+
+            <SubscriptionRestrictedModal
+                open={isLockedModalOpen}
+                onClose={() => setIsLockedModalOpen(false)}
+                featureName={lockedFeature}
+                accessType={accessType}
+                trialInfo={trialInfo}
+                trialDays={1}
+            />
+
+            {/* Auth Checking Overlay */}
+            {checkingAuth && (
+                <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
+                    <div className="text-center">
+                        <Spin size="large" />
+                        <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

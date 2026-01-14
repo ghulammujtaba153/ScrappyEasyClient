@@ -16,16 +16,28 @@ const WebsiteCarouselViewer = ({ isOpen, onClose, websites = [], initialIndex = 
     const [loading, setLoading] = useState(true);
 
     // Sync state with props when modal opens
-    useEffect(() => {
-        if (isOpen) {
-            setCurrentIndex(initialIndex);
-        }
-    }, [isOpen, initialIndex]);
+    // Using a key on the component from parent is better, but here we can check if it changed
+    const [prevInitialIndex, setPrevInitialIndex] = useState(initialIndex);
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+    if (isOpen && !prevIsOpen) {
+        setPrevIsOpen(true);
+        setCurrentIndex(initialIndex);
+    } else if (!isOpen && prevIsOpen) {
+        setPrevIsOpen(false);
+    }
+
+    if (initialIndex !== prevInitialIndex) {
+        setPrevInitialIndex(initialIndex);
+        setCurrentIndex(initialIndex);
+    }
 
     // Update loading state when switching sites
-    useEffect(() => {
+    const [prevCurrentIndex, setPrevCurrentIndex] = useState(currentIndex);
+    if (currentIndex !== prevCurrentIndex) {
+        setPrevCurrentIndex(currentIndex);
         setLoading(true);
-    }, [currentIndex]);
+    }
 
     const handleNext = React.useCallback(() => {
         if (websites.length > 0) {
@@ -66,6 +78,26 @@ const WebsiteCarouselViewer = ({ isOpen, onClose, websites = [], initialIndex = 
     // Use proxy to bypass X-Frame-Options
     const proxyUrl = `${BASE_URL}/api/proxy?url=${encodeURIComponent(siteUrl)}`;
 
+    if (currentSite?.isRestricted) {
+        return (
+            <div className="fixed inset-0 z-50 flex flex-col bg-gray-900/95 backdrop-blur-sm flex items-center justify-center p-8">
+                <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-2xl animate-in zoom-in duration-300">
+                    <div className="h-20 w-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
+                        <MdWeb size={40} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Premium Feature</h2>
+                    <p className="text-gray-600 mb-8">
+                        The live website preview is a premium feature. Please upgrade your plan or start a trial to unlock it.
+                    </p>
+                    <div className="flex gap-4">
+                        <Button className="flex-1" onClick={onClose}>Close</Button>
+                        <Button type="primary" className="flex-1 bg-[#0F792C]" href="/billing">Upgrade</Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="fixed inset-0 z-50 flex flex-col bg-gray-900/95 backdrop-blur-sm animate-in fade-in duration-200">
             {/* Header */}
@@ -94,11 +126,10 @@ const WebsiteCarouselViewer = ({ isOpen, onClose, websites = [], initialIndex = 
                         <Tooltip title={currentSite?.favorite ? "Remove from favorites" : "Add to favorites"}>
                             <button
                                 onClick={() => onToggleFavorite(currentIndex, !currentSite?.favorite)}
-                                className={`p-2 rounded-full transition-all text-xl ${
-                                    currentSite?.favorite 
-                                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                                        : 'hover:bg-white/10 text-gray-300 hover:text-red-400'
-                                }`}
+                                className={`p-2 rounded-full transition-all text-xl ${currentSite?.favorite
+                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                                    : 'hover:bg-white/10 text-gray-300 hover:text-red-400'
+                                    }`}
                             >
                                 {currentSite?.favorite ? <MdFavorite /> : <MdFavoriteBorder />}
                             </button>

@@ -33,11 +33,13 @@ import {
   MdLocationOn,
   MdFavorite,
   MdFavoriteBorder,
-  MdStar
+  MdStar,
+  MdLock
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
 import { QRCodeCanvas } from 'qrcode.react';
+import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import { useOperations } from '../../context/operationsContext';
@@ -46,6 +48,8 @@ import Notes from '../../components/dashboard/Notes';
 import SaveColdCallsModal from '../../components/dashboard/SaveColdCallsModal';
 import ScreenshotViewer from '../../components/dashboard/ScreenshotViewer';
 import WebsiteCarouselViewer from '../../components/dashboard/WebsiteCarouselViewer';
+import { checkAccessStatus } from '../../api/subscriptionApi';
+
 
 const { Option } = Select;
 
@@ -88,9 +92,10 @@ const OperationDetailPage = () => {
 
   const cachedData = operationCache[operationId] || {};
   const record = cachedData.record || null;
-  const cityData = cachedData.cityData || {};
-  const screenshotData = cachedData.screenshotData || {};
-  const whatsappStatus = cachedData.whatsappStatus || {};
+
+  const cityData = useMemo(() => cachedData.cityData || {}, [cachedData.cityData]);
+  const screenshotData = useMemo(() => cachedData.screenshotData || {}, [cachedData.screenshotData]);
+  const whatsappStatus = useMemo(() => cachedData.whatsappStatus || {}, [cachedData.whatsappStatus]);
 
   const { addToQueue, queue, progress } = useScreenshot();
 
@@ -118,6 +123,14 @@ const OperationDetailPage = () => {
   const [recommendedCities, setRecommendedCities] = useState([]);
   const [isRecommendModalOpen, setIsRecommendModalOpen] = useState(false);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+
+  // Subscription/Trial State
+  const [isAuthorized, setIsAuthorized] = useState(true);
+  const [accessType, setAccessType] = useState('trial');
+  const [trialInfo, setTrialInfo] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
+  const [lockedFeature, setLockedFeature] = useState('');
 
   // Wrapper setters to update cache (mimicking local state setters)
   const setCityData = (newData) => {
@@ -205,13 +218,19 @@ const OperationDetailPage = () => {
 
   // Get recommended nearby cities based on Google Maps coordinates in data
   const getRecommendedCities = async () => {
+    if (!isAuthorized) {
+      setLockedFeature('City Recommendations');
+      setIsLockedModalOpen(true);
+      return;
+    }
+
     if (!record || !record.leads) {
       message.warning('No data available to analyze');
       return;
     }
 
     setLoadingRecommendations(true);
-    
+
     try {
       // Collect all coordinates from Google Maps links
       const allCoords = [];
@@ -256,12 +275,18 @@ const OperationDetailPage = () => {
       console.error('Error getting recommended cities:', error);
       message.error('Failed to get city recommendations');
     }
-    
+
     setLoadingRecommendations(false);
   };
 
   // Extract cities for all items in record
   const extractCitiesForRecord = async () => {
+    if (!isAuthorized) {
+      setLockedFeature('City Extraction');
+      setIsLockedModalOpen(true);
+      return;
+    }
+
     if (!record || !record.leads) return;
 
     setExtractingCities(true);
@@ -362,6 +387,7 @@ const OperationDetailPage = () => {
   };
 
   const checkWhatsAppStatus = async () => {
+    if (!isAuthorized) return null;
     try {
       const res = await axios.get(`${BASE_URL}/api/verification/status`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -407,7 +433,7 @@ const OperationDetailPage = () => {
       if (res.data.success) {
         // Update the local cache
         const updatedRecord = { ...record };
-        updatedRecord.leads = record.leads.map((lead, idx) => 
+        updatedRecord.leads = record.leads.map((lead, idx) =>
           (lead._id === leadId || idx === itemIndex) ? { ...lead, favorite } : lead
         );
         updateOperationCache(operationId, { record: updatedRecord });
@@ -420,10 +446,24 @@ const OperationDetailPage = () => {
   };
 
   useEffect(() => {
-    fetchRecord();
-    checkWhatsAppStatus();
+    if (!user || !token) return;
+
+    const init = async () => {
+      setCheckingAuth(true);
+      const status = await checkAccessStatus(user?._id || user?.id, token);
+      setIsAuthorized(status.isAuthorized);
+      setAccessType(status.type);
+      setTrialInfo(status.trial);
+      setCheckingAuth(false);
+
+      fetchRecord();
+      if (status.isAuthorized) {
+        checkWhatsAppStatus();
+      }
+    };
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operationId]);
+  }, [operationId, user, token]);
 
 
 
@@ -487,7 +527,7 @@ const OperationDetailPage = () => {
             message.info('Number does not have WhatsApp');
           }
         }
-        
+
         // Refresh to get updated status from DB
         fetchRecord();
       } else {
@@ -508,6 +548,12 @@ const OperationDetailPage = () => {
   };
 
   const verifyAllNumbers = async (phoneNumbers) => {
+    if (!isAuthorized) {
+      setLockedFeature('Bulk WhatsApp Verification');
+      setIsLockedModalOpen(true);
+      return;
+    }
+
     if (!whatsappInitialized) {
       message.error('Please connect WhatsApp first');
       return;
@@ -561,7 +607,7 @@ const OperationDetailPage = () => {
 
         setWhatsappStatus(prev => ({ ...prev, ...newStatus }));
         message.success(`Verified ${successful} numbers successfully. ${failed} failed.`);
-        
+
         // Refresh record to get updated whatsappStatus from database
         await fetchRecord();
       }
@@ -858,6 +904,11 @@ const OperationDetailPage = () => {
   };
 
   const handleCapture = async (url, key) => {
+    if (!isAuthorized) {
+      setLockedFeature('Website Capture');
+      setIsLockedModalOpen(true);
+      return;
+    }
     if (!url) return;
 
     addToQueue([{
@@ -872,6 +923,11 @@ const OperationDetailPage = () => {
   };
 
   const captureAllScreenshots = async (onlyFiltered = true) => {
+    if (!isAuthorized) {
+      setLockedFeature('Bulk Capture');
+      setIsLockedModalOpen(true);
+      return;
+    }
     const dataToProcess = onlyFiltered ? filteredData : flattenedData;
     const websitesToCapture = dataToProcess.filter(item => item.website && !screenshotData[item.key]);
 
@@ -1589,7 +1645,8 @@ const OperationDetailPage = () => {
             screenshotUrl: item.screenshotUrl || screenshotData[item.key],
             favorite: item.favorite,
             itemIndex: item.itemIndex,
-            leadId: item.leadId
+            leadId: item.leadId,
+            isRestricted: !isAuthorized
           }))}
         onToggleFavorite={(carouselIndex, favorite) => {
           const websitesWithIndex = filteredData.filter(item => item.website);
@@ -1602,6 +1659,25 @@ const OperationDetailPage = () => {
 
 
       <Notes operationId={operationId} />
+
+      <SubscriptionRestrictedModal
+        open={isLockedModalOpen}
+        onClose={() => setIsLockedModalOpen(false)}
+        featureName={lockedFeature}
+        accessType={accessType}
+        trialInfo={trialInfo}
+        trialDays={1}
+      />
+
+      {/* Auth Checking Overlay */}
+      {checkingAuth && (
+        <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center">
+            <Spin size="large" />
+            <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
