@@ -14,11 +14,12 @@ import {
     MdAccountCircle,
     MdLogout,
     MdMeetingRoom,
-    MdGroups
+    MdGroups,
+    MdVerified
 } from "react-icons/md";
 import { useAuth } from "../../context/authContext";
 
-const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
+const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen = false, onCloseMobile }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout } = useAuth();
@@ -44,7 +45,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {
             name: "Qualified Leads",
             path: "/dashboard/qualified-leads",
-            icon: <MdBuild className="w-5 h-5" />,
+            icon: <MdVerified className="w-5 h-5" />,
         },
         {
             name: "Message Automation",
@@ -56,11 +57,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             path: "/dashboard/heat-map",
             icon: <MdMap className="w-5 h-5" />,
         },
-        {
-            name: "Hire Cold Caller",
-            path: "/dashboard/cold-caller",
-            icon: <MdPhone className="w-5 h-5" />,
-        },
+        // {
+        //     name: "Hire Cold Caller",
+        //     path: "/dashboard/cold-caller",
+        //     icon: <MdPhone className="w-5 h-5" />,
+        // },
         {
             name: "Collabortion",
             path: "/dashboard/collaboration",
@@ -107,8 +108,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
     return (
         <aside
-            className={`text-black h-screen fixed left-0 top-0 transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"
-                } shadow-2xl z-50 overflow-y-auto overflow-x-hidden bg-gray-50 custom-scrollbar`}
+            className={`text-black h-screen fixed left-0 top-0 transition-all duration-300 ${
+                isMobile
+                    ? (
+                        isCollapsed ? "hidden" : 
+                        isMobileOpen ? "w-64 z-50" : "-translate-x-full w-64 z-50"
+                    )
+                    : (isCollapsed ? "w-20" : "w-64")
+            } shadow-2xl overflow-y-auto overflow-x-hidden bg-gray-50 custom-scrollbar`}
             style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#0F792C #f3f4f6'
