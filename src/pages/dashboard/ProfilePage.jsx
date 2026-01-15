@@ -123,22 +123,6 @@ const ProfilePage = () => {
             newErrors.email = "Email is invalid";
         }
 
-        if (!form.phone) {
-            newErrors.phone = "Phone number is required";
-        }
-
-        if (!form.address.trim()) {
-            newErrors.address = "Address is required";
-        }
-
-        if (!form.city.trim()) {
-            newErrors.city = "City is required";
-        }
-
-        if (!form.country.trim()) {
-            newErrors.country = "Country is required";
-        }
-
         // Password validation (only if user wants to change password)
         if (form.currentPassword || form.newPassword || form.confirmNewPassword) {
             if (!form.currentPassword) {

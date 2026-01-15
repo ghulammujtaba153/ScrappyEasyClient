@@ -57,32 +57,32 @@ const SubscriptionPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-gray-50 py-8 sm:py-12 px-3 sm:px-6 lg:px-8">
+            <div className="w-full mx-auto">
                 {/* Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Plan</h1>
-                    <p className="text-xl text-gray-600">Select the perfect plan for your scraping needs</p>
+                <div className="text-center mb-8 sm:mb-12 px-2">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">Choose Your Plan</h1>
+                    <p className="text-base sm:text-lg lg:text-xl text-gray-600">Select the perfect plan for your scraping needs</p>
                 </div>
 
                 {/* Current Subscription Banner */}
                 {currentSubscription && (
-                    <div className="mb-8 max-w-6xl mx-auto bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="mb-6 sm:mb-8 mx-auto bg-gradient-to-r from-green-500 to-green-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
                             <div>
-                                <p className="text-green-100 text-sm font-medium">Current Plan</p>
-                                <h3 className="text-2xl font-bold">{currentSubscription.packageName}</h3>
-                                <p className="text-green-100 mt-1">
+                                <p className="text-green-100 text-xs sm:text-sm font-medium">Current Plan</p>
+                                <h3 className="text-lg sm:text-2xl font-bold">{currentSubscription.packageName}</h3>
+                                <p className="text-green-100 text-sm mt-1">
                                     ${currentSubscription.amount}/{currentSubscription.isOneTime ? 'one-time' : currentSubscription.package?.interval}
                                 </p>
                             </div>
                             <div className="flex flex-col items-start md:items-end">
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-white/20 backdrop-blur">
+                                <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold bg-white/20 backdrop-blur">
                                     <span className="w-2 h-2 bg-green-300 rounded-full mr-2 animate-pulse"></span>
                                     {currentSubscription.status}
                                 </span>
                                 {currentSubscription.endDate && (
-                                    <p className="text-green-100 text-sm mt-2">
+                                    <p className="text-green-100 text-xs sm:text-sm mt-2">
                                         Renews on {new Date(currentSubscription.endDate).toLocaleDateString()}
                                     </p>
                                 )}
@@ -92,7 +92,7 @@ const SubscriptionPage = () => {
                 )}
 
                 {/* Pricing Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 w-full px-2 sm:px-4 lg:px-0">
                     {plans.map((plan, index) => (
                         <SubscriptionCard 
                             key={index} 
@@ -103,8 +103,8 @@ const SubscriptionPage = () => {
                 </div>
 
                 {/* Footer Note */}
-                <div className="text-center mt-12">
-                    <p className="text-gray-600">
+                <div className="text-center mt-8 sm:mt-12 px-4">
+                    <p className="text-sm sm:text-base text-gray-600">
                         All plans include free updates and 24/7 customer support
                     </p>
                 </div>

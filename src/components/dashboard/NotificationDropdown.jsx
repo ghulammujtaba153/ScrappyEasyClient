@@ -152,9 +152,9 @@ const NotificationDropdown = () => {
         <div className="relative" ref={notificationRef}>
             <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 bg-gray-100 rounded-full transition-colors hover:bg-gray-200"
+                className="relative p-2 bg-gray-100 rounded-full transition-colors hover:bg-gray-200 flex-shrink-0"
             >
-                <MdNotifications className="w-6 h-6 text-gray-600 m-1" />
+                <MdNotifications className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
                 {unreadCount > 0 && (
                     <span className="absolute top-0 right-0 bg-[#0F792C] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                         {unreadCount > 9 ? '9+' : unreadCount}
@@ -164,52 +164,52 @@ const NotificationDropdown = () => {
 
             {/* Notification Dropdown */}
             {showNotifications && (
-                <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="font-semibold text-gray-800">Notifications</h3>
+                <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 mt-2 w-auto sm:w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[70vh] sm:max-h-96">
+                    <div className="p-3 sm:p-4 border-b border-gray-200 flex justify-between items-center gap-2">
+                        <h3 className="font-semibold text-gray-800 text-sm sm:text-base">Notifications</h3>
                         {unreadCount > 0 && (
                             <button
                                 onClick={markAllAsRead}
-                                className="text-xs text-[#0F792C] hover:underline font-medium flex items-center gap-1"
+                                className="text-xs text-[#0F792C] hover:underline font-medium flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
                             >
-                                <MdCheckCircle /> Mark all as read
+                                <MdCheckCircle className="w-4 h-4" /> <span className="hidden sm:inline">Mark all as read</span>
                             </button>
                         )}
                     </div>
                     
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="overflow-y-auto max-h-[calc(70vh-120px)] sm:max-h-80">
                         {loading ? (
                             <div className="p-8 text-center text-gray-500">
                                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
-                                <p className="mt-2">Loading...</p>
+                                <p className="mt-2 text-sm sm:text-base">Loading...</p>
                             </div>
                         ) : notifications.length > 0 ? (
                             notifications.map((notification) => (
                                 <div
                                     key={notification._id}
                                     onClick={() => !notification.isRead && markAsRead(notification._id)}
-                                    className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                                    className={`p-3 sm:p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
                                         !notification.isRead ? 'bg-blue-50' : ''
                                     }`}
                                 >
                                     <div className="flex justify-between items-start gap-2">
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 {!notification.isRead && (
-                                                    <span className="w-2 h-2 bg-[#0F792C] rounded-full"></span>
+                                                    <span className="w-2 h-2 bg-[#0F792C] rounded-full flex-shrink-0"></span>
                                                 )}
-                                                <p className="text-sm font-medium text-gray-800">
+                                                <p className="text-xs sm:text-sm font-medium text-gray-800 truncate">
                                                     {notification.title}
                                                 </p>
                                             </div>
-                                            <p className="text-sm text-gray-600 mt-1">
+                                            <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
                                                 {notification.description}
                                             </p>
                                             <p className="text-xs text-gray-400 mt-2">
                                                 {formatTimeAgo(notification.createdAt)}
                                             </p>
                                         </div>
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-1 flex-shrink-0">
                                             {!notification.isRead && (
                                                 <button
                                                     onClick={(e) => {
@@ -236,16 +236,16 @@ const NotificationDropdown = () => {
                         ) : (
                             <div className="p-8 text-center text-gray-500">
                                 <MdNotifications className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-                                <p>No notifications</p>
+                                <p className="text-sm sm:text-base">No notifications</p>
                             </div>
                         )}
                     </div>
                     
                     {notifications.length > 0 && (
-                        <div className="p-3 border-t border-gray-200 text-center">
+                        <div className="p-2 sm:p-3 border-t border-gray-200 text-center">
                             <button 
                                 onClick={() => setShowNotifications(false)}
-                                className="text-sm text-gray-500 hover:text-gray-700 font-medium"
+                                className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 font-medium"
                             >
                                 Close
                             </button>
