@@ -33,7 +33,7 @@ const TeamDetailPage = () => {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        phone: '',
+        phone: [],
         link: '',
         status: 'new'
     });
@@ -90,7 +90,7 @@ const TeamDetailPage = () => {
             setFormData({
                 title: data.title || '',
                 description: data.description || '',
-                phone: data.phone || '',
+                phone: Array.isArray(data.phone) ? data.phone : [],
                 link: data.link || '',
                 status: data.status || 'new'
             });
@@ -101,7 +101,7 @@ const TeamDetailPage = () => {
             setFormData({
                 title: '',
                 description: '',
-                phone: '',
+                phone: [],
                 link: '',
                 status: 'new'
             });
@@ -115,7 +115,7 @@ const TeamDetailPage = () => {
         setFormData({
             title: '',
             description: '',
-            phone: '',
+            phone: [],
             link: '',
             status: 'new'
         });
@@ -124,8 +124,9 @@ const TeamDetailPage = () => {
     };
 
     const handleSubmit = async () => {
-        if (!formData.phone.trim()) {
-            message.error('Phone number is required');
+        const phones = Array.isArray(formData.phone) ? formData.phone : [];
+        if (!phones || phones.length === 0) {
+            message.error('At least one phone number is required');
             return;
         }
 
@@ -134,14 +135,14 @@ const TeamDetailPage = () => {
             if (isEditMode) {
                 await axios.put(
                     `${BASE_URL}/api/team-data/update/${currentData._id}`,
-                    { ...formData, team: id, user: user._id },
+                    { ...formData, phone: phones, team: id, user: user._id },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 message.success('Data updated successfully');
             } else {
                 await axios.post(
                     `${BASE_URL}/api/team-data/create`,
-                    { ...formData, team: id, user: user._id },
+                    { ...formData, phone: phones, team: id, user: user._id },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 message.success('Data created successfully');
@@ -198,7 +199,7 @@ const TeamDetailPage = () => {
     };
 
     // Get rows with phone numbers
-    const rowsWithPhone = teamData.filter(data => data.phone && data.phone.trim());
+    const rowsWithPhone = teamData.filter(data => Array.isArray(data.phone) && data.phone.length > 0);
 
     // Find current index based on selected data
     const currentIndex = selectedDataId
@@ -209,14 +210,18 @@ const TeamDetailPage = () => {
     const handleDialerPrevious = () => {
         if (currentIndex > 0) {
             const prevData = rowsWithPhone[currentIndex - 1];
-            handleOpenDialer(prevData.phone, prevData._id);
+            // Use first phone number for dialer
+            const firstPhone = prevData.phone[0]?.number || '';
+            handleOpenDialer(firstPhone, prevData._id);
         }
     };
 
     const handleDialerNext = () => {
         if (currentIndex < rowsWithPhone.length - 1) {
             const nextData = rowsWithPhone[currentIndex + 1];
-            handleOpenDialer(nextData.phone, nextData._id);
+            // Use first phone number for dialer
+            const firstPhone = nextData.phone[0]?.number || '';
+            handleOpenDialer(firstPhone, nextData._id);
         }
     };
 
@@ -237,11 +242,18 @@ const TeamDetailPage = () => {
             title: 'Phone',
             dataIndex: 'phone',
             key: 'phone',
-            render: (phone) => (
-                <span className="flex items-center gap-2">
-                    {phone}
-                </span>
-            )
+            render: (phones) => {
+                if (!Array.isArray(phones) || phones.length === 0) return '-';
+                return (
+                    <div className="space-y-1">
+                        {phones.map((phone, index) => (
+                            <div key={index} className="text-xs">
+                                <span className="text-gray-500">{phone.title || 'Phone'}:</span> {phone.number}
+                            </div>
+                        ))}
+                    </div>
+                );
+            }
         },
         {
             title: 'Description',
@@ -298,16 +310,20 @@ const TeamDetailPage = () => {
             title: 'Call',
             key: 'call',
             width: 80,
-            render: (_, record) => (
-                <button
-                    onClick={() => handleOpenDialer(record.phone, record._id)}
-                    disabled={!record.phone}
-                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={record.phone ? `Call ${record.phone}` : 'No phone number'}
-                >
-                    <FaPhone />
-                </button>
-            )
+            render: (_, record) => {
+                const hasPhone = Array.isArray(record.phone) && record.phone.length > 0;
+                const firstPhone = hasPhone ? record.phone[0]?.number : '';
+                return (
+                    <button
+                        onClick={() => handleOpenDialer(firstPhone, record._id)}
+                        disabled={!hasPhone}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={hasPhone ? `Call ${firstPhone}` : 'No phone number'}
+                    >
+                        <FaPhone />
+                    </button>
+                );
+            }
         },
         {
             title: 'Created',

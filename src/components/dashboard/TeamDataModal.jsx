@@ -1,6 +1,6 @@
-import React from 'react';
-import { Modal, Input, Select } from 'antd';
-import { FaPlus, FaEdit, FaEye, FaPhone, FaLink } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { Modal, Input, Select, Button } from 'antd';
+import { FaPlus, FaEdit, FaEye, FaPhone, FaLink, FaTrash } from 'react-icons/fa';
 
 const { TextArea } = Input;
 
@@ -14,6 +14,8 @@ const TeamDataModal = ({
     isViewMode,
     submitting 
 }) => {
+    const [newPhoneTitle, setNewPhoneTitle] = useState('');
+    const [newPhoneNumber, setNewPhoneNumber] = useState('');
     const getModalTitle = () => {
         if (isViewMode) {
             return (
@@ -49,6 +51,26 @@ const TeamDataModal = ({
         }
     };
 
+    const handleAddPhone = () => {
+        if (newPhoneTitle.trim() && newPhoneNumber.trim()) {
+            const phones = Array.isArray(formData.phone) ? formData.phone : [];
+            setFormData({
+                ...formData,
+                phone: [...phones, { title: newPhoneTitle, number: newPhoneNumber }]
+            });
+            setNewPhoneTitle('');
+            setNewPhoneNumber('');
+        }
+    };
+
+    const handleRemovePhone = (index) => {
+        const phones = Array.isArray(formData.phone) ? formData.phone : [];
+        setFormData({
+            ...formData,
+            phone: phones.filter((_, i) => i !== index)
+        });
+    };
+
     return (
         <Modal
             title={getModalTitle()}
@@ -77,10 +99,25 @@ const TeamDataModal = ({
 
                         <div>
                             <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
-                            <p className="text-gray-900 flex items-center gap-2">
-                                <FaPhone className="text-gray-400" />
-                                {formData.phone}
-                            </p>
+                            <div className="space-y-2">
+                                {Array.isArray(formData.phone) && formData.phone.length > 0 ? (
+                                    <>
+                                        {formData.phone.map((phone, index) => (
+                                            <div key={index} className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
+                                                <div className="flex-1">
+                                                    <p className="text-xs font-medium text-gray-500">{phone.title || 'Untitled'}</p>
+                                                    <p className="text-gray-900 flex items-center gap-2">
+                                                        <FaPhone className="text-gray-400 text-xs" />
+                                                        {phone.number}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <p className="text-gray-500">-</p>
+                                )}
+                            </div>
                         </div>
 
                         <div>
@@ -129,16 +166,59 @@ const TeamDataModal = ({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Phone <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                placeholder="Enter phone number"
-                                size="large"
-                                prefix={<FaPhone className="text-gray-400" />}
-                            />
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                            <div className="space-y-2">
+                                {Array.isArray(formData.phone) && formData.phone.length > 0 ? (
+                                    <div className="space-y-2 mb-3">
+                                        {formData.phone.map((phone, index) => (
+                                            <div key={index} className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
+                                                <div className="flex-1">
+                                                    <p className="text-xs font-medium text-gray-500">{phone.title || 'Untitled'}</p>
+                                                    <p className="text-gray-900 flex items-center gap-2">
+                                                        <FaPhone className="text-gray-400 text-xs" />
+                                                        {phone.number}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleRemovePhone(index)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    title="Remove"
+                                                >
+                                                    <FaTrash size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : null}
+                                
+                                <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <Input
+                                        value={newPhoneTitle}
+                                        onChange={(e) => setNewPhoneTitle(e.target.value)}
+                                        placeholder="Phone title (e.g., Main, Mobile, Office)"
+                                        size="small"
+                                    />
+                                    <Input
+                                        value={newPhoneNumber}
+                                        onChange={(e) => setNewPhoneNumber(e.target.value)}
+                                        placeholder="Phone number"
+                                        size="small"
+                                        prefix={<FaPhone className="text-gray-400" />}
+                                    />
+                                    <Button
+                                        onClick={handleAddPhone}
+                                        type="primary"
+                                        size="small"
+                                        block
+                                        icon={<FaPlus />}
+                                    >
+                                        Add Phone
+                                    </Button>
+                                </div>
+                                {(!Array.isArray(formData.phone) || formData.phone.length === 0) && (
+                                    <p className="text-xs text-red-600">At least one phone number is required</p>
+                                )}
+                            </div>
                         </div>
 
                         <div>
