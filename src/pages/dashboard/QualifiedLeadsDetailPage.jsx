@@ -526,6 +526,37 @@ const QualifiedLeadsDetailPage = () => {
         setShowDialer(true);
     };
 
+    // Handle navigating to previous row with phone number
+    const handleDialerPrevious = () => {
+        const currentIndex = filteredTableData.findIndex(d => d.entryId === callingEntryId);
+        if (currentIndex > 0) {
+            const prevRecord = filteredTableData[currentIndex - 1];
+            setDialerNumber(prevRecord.phone);
+            setCallingEntryId(prevRecord.entryId);
+            setCallingLeadId(prevRecord.leadId);
+        }
+    };
+
+    // Handle navigating to next row with phone number
+    const handleDialerNext = () => {
+        const currentIndex = filteredTableData.findIndex(d => d.entryId === callingEntryId);
+        if (currentIndex < filteredTableData.length - 1) {
+            const nextRecord = filteredTableData[currentIndex + 1];
+            setDialerNumber(nextRecord.phone);
+            setCallingEntryId(nextRecord.entryId);
+            setCallingLeadId(nextRecord.leadId);
+        }
+    };
+
+    // Get current row navigation state
+    const getCurrentRowNavigationState = () => {
+        const currentIndex = filteredTableData.findIndex(d => d.entryId === callingEntryId);
+        return {
+            hasPrevious: currentIndex > 0,
+            hasNext: currentIndex < filteredTableData.length - 1
+        };
+    };
+
     // When call ends, show status modal
     const onCallEnd = () => {
         if (callingEntryId) {
@@ -926,6 +957,11 @@ const QualifiedLeadsDetailPage = () => {
                     phoneNumber={dialerNumber}
                     onClose={() => setShowDialer(false)}
                     onCallEnd={onCallEnd}
+                    onPrevious={handleDialerPrevious}
+                    onNext={handleDialerNext}
+                    hasPrevious={getCurrentRowNavigationState().hasPrevious}
+                    hasNext={getCurrentRowNavigationState().hasNext}
+                    currentLeadName={currentCallingLead?.title}
                 />
             )}
 
@@ -1095,6 +1131,7 @@ const QualifiedLeadsDetailPage = () => {
                     dataSource={filteredTableData}
                     loading={loading}
                     scroll={{ x: 1800 }}
+                    rowClassName={(record) => callingEntryId === record.entryId ? 'bg-blue-100 opacity-80' : ''}
                     pagination={{
                         current: currentPage,
                         pageSize: pageSize,
