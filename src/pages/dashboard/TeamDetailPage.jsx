@@ -28,6 +28,7 @@ const TeamDetailPage = () => {
     // Dialer State
     const [isDialerOpen, setIsDialerOpen] = useState(false);
     const [dialerNumber, setDialerNumber] = useState('');
+    const [selectedDataId, setSelectedDataId] = useState(null);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -184,14 +185,45 @@ const TeamDetailPage = () => {
         }
     };
 
-    const handleOpenDialer = (phoneNumber = '') => {
+    const handleOpenDialer = (phoneNumber = '', dataId = null) => {
         setDialerNumber(phoneNumber);
+        setSelectedDataId(dataId);
         setIsDialerOpen(true);
     };
 
     const handleCloseDialer = () => {
         setIsDialerOpen(false);
         setDialerNumber('');
+        setSelectedDataId(null);
+    };
+
+    // Get rows with phone numbers
+    const rowsWithPhone = teamData.filter(data => data.phone && data.phone.trim());
+
+    // Find current index based on selected data
+    const currentIndex = selectedDataId
+        ? rowsWithPhone.findIndex(data => data._id === selectedDataId)
+        : -1;
+
+    // Handle dialer navigation
+    const handleDialerPrevious = () => {
+        if (currentIndex > 0) {
+            const prevData = rowsWithPhone[currentIndex - 1];
+            handleOpenDialer(prevData.phone, prevData._id);
+        }
+    };
+
+    const handleDialerNext = () => {
+        if (currentIndex < rowsWithPhone.length - 1) {
+            const nextData = rowsWithPhone[currentIndex + 1];
+            handleOpenDialer(nextData.phone, nextData._id);
+        }
+    };
+
+    // When call ends, optionally show next entry
+    const onCallEnd = () => {
+        // You can add logic here if needed, e.g., automatically navigate to next
+        // For now, just keep the dialer open
     };
 
     const columns = [
@@ -268,7 +300,7 @@ const TeamDetailPage = () => {
             width: 80,
             render: (_, record) => (
                 <button
-                    onClick={() => handleOpenDialer(record.phone)}
+                    onClick={() => handleOpenDialer(record.phone, record._id)}
                     disabled={!record.phone}
                     className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title={record.phone ? `Call ${record.phone}` : 'No phone number'}
@@ -437,6 +469,12 @@ const TeamDetailPage = () => {
                         columns={columns}
                         dataSource={teamData}
                         rowKey="_id"
+                        rowClassName={(record) =>
+                            selectedDataId === record._id
+                                ? 'bg-blue-50 hover:bg-blue-100'
+                                : ''
+                        }
+                        scroll={{ x: 1200 }}
                         pagination={{
                             pageSize: 10,
                             showSizeChanger: true,
@@ -470,6 +508,14 @@ const TeamDetailPage = () => {
                     <Dialer
                         onClose={handleCloseDialer}
                         phoneNumber={dialerNumber}
+                        onCallEnd={onCallEnd}
+                        onPrevious={handleDialerPrevious}
+                        onNext={handleDialerNext}
+                        hasPrevious={currentIndex > 0}
+                        hasNext={currentIndex >= 0 && currentIndex < rowsWithPhone.length - 1}
+                        currentLeadName={selectedDataId
+                            ? teamData.find(d => d._id === selectedDataId)?.title
+                            : ''}
                     />
                 )}
             </div>
