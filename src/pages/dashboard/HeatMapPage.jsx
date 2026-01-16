@@ -261,7 +261,8 @@ const HeatMapPage = () => {
     const map = L.map("leaflet-map", {
       center: [avgLat, avgLon],
       zoom: 10,
-      worldCopyJump: true
+      worldCopyJump: true,
+      renderer: L.canvas() // Use canvas renderer for better performance
     });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -270,46 +271,66 @@ const HeatMapPage = () => {
 
     // Create heat map data points with intensity based on density
     const heatData = mapData.map(p => [p.lat, p.lon, Math.max(p.density, 1) * heatIntensity]);
+    
+    // Calculate dynamic max to prevent over-saturation to black
+    const maxIntensity = Math.max(...heatData.map(d => d[2]));
+    const adjustedMax = Math.max(maxIntensity, 1);
 
-    // Add heat layer with gradient colors (green -> yellow -> orange -> red -> dark red)
+    // Add heat layer with reduced blur for faster rendering
     const heat = L.heatLayer(heatData, {
       radius: heatRadius,
-      blur: 20,
+      blur: 10,
       maxZoom: 18,
-      max: 1.0,
-      minOpacity: 0.4,
+      max: adjustedMax,
+      minOpacity: 0.3,
       gradient: {
         0.0: '#00ff00',
         0.25: '#ffff00',
         0.5: '#ffae00',
         0.75: '#ff5e00',
-        0.9: '#ff0000',
-        1.0: '#8b0000'
+        0.9: '#ff2626',
+        1.0: '#ff6666'
       }
     }).addTo(map);
 
-    // Add clickable markers for data points (smaller, semi-transparent)
-    mapData.forEach(p => {
-      L.circleMarker([p.lat, p.lon], {
-        radius: 4,
-        fillColor: 'transparent',
-        color: 'transparent',
-        weight: 0,
-        opacity: 0,
-        fillOpacity: 0
-      }).bindPopup(`
-        <div style="min-width: 200px;">
-          <b style="font-size: 14px;">${p.title}</b><br/>
-          <span style="color: #2563eb; font-weight: 600;">🏙️ ${p.city}</span><br/>
-          ${p.rating !== 'N/A' ? `<span style="color: #f59e0b;">⭐ ${p.rating}</span><br/>` : ''}
-          ${p.phone ? `<span style="color: #059669;">📞 ${p.phone}</span><br/>` : ''}
-          <span style="color: #6b7280; font-size: 12px;">${p.address}</span><br/>
-          <span style="color: #dc2626; font-size: 12px; font-weight: 600;">🔥 Density: ${p.density}</span>
-        </div>
-      `).addTo(map);
-    });
+    // Create a layer group for markers - lazy load only visible markers
+    const markerGroup = L.layerGroup().addTo(map);
+    
+    // Add markers only when zoomed in (zoom level 12+) for performance
+    const updateMarkers = () => {
+      const currentZoom = map.getZoom();
+      
+      if (currentZoom >= 12) {
+        // Clear existing markers
+        markerGroup.clearLayers();
+        
+        // Add clickable markers for data points on demand
+        mapData.forEach(p => {
+          L.circleMarker([p.lat, p.lon], {
+            radius: 3,
+            fillColor: '#dc2626',
+            color: '#991b1b',
+            weight: 1,
+            opacity: 0.7,
+            fillOpacity: 0.6
+          }).bindPopup(`
+            <div style="min-width: 200px;">
+              <b style="font-size: 14px;">${p.title}</b><br/>
+              <span style="color: #2563eb; font-weight: 600;">🏙️ ${p.city}</span><br/>
+              ${p.rating !== 'N/A' ? `<span style="color: #f59e0b;">⭐ ${p.rating}</span><br/>` : ''}
+              ${p.phone ? `<span style="color: #059669;">📞 ${p.phone}</span><br/>` : ''}
+              <span style="color: #6b7280; font-size: 12px;">${p.address}</span><br/>
+              <span style="color: #dc2626; font-size: 12px; font-weight: 600;">🔥 Density: ${p.density}</span>
+            </div>
+          `).addTo(markerGroup);
+        });
+      } else if (markerGroup.getLayers().length > 0) {
+        // Clear markers when zoomed out for performance
+        markerGroup.clearLayers();
+      }
+    };
 
-    // Add recommended cities as green markers
+    // Add recommended cities as green markers (always visible)
     if (showRecommendations && recommendedCities.length > 0) {
       recommendedCities.forEach(city => {
         // Calculate marker size based on population
@@ -341,8 +362,13 @@ const HeatMapPage = () => {
       });
     }
 
+    // Listen to zoom changes to update markers
+    map.on('zoomend', updateMarkers);
+    updateMarkers(); // Initial call
+
     // Cleanup function
     return () => {
+      map.off('zoomend', updateMarkers);
       map.remove();
     };
   }, [mapData, recommendedCities, showRecommendations, heatIntensity, heatRadius]);
@@ -407,7 +433,7 @@ const HeatMapPage = () => {
             <div className="absolute top-4 right-4 z-[1000] bg-white p-3 rounded-lg shadow-md" style={{ maxWidth: '200px' }}>
               <div className="text-sm font-semibold mb-2">Heat Intensity</div>
               <div className="flex flex-col gap-1 text-xs mb-3">
-                <div className="h-4 rounded" style={{ background: 'linear-gradient(to right, #00ff00, #ffff00, #ffae00, #ff5e00, #ff0000, #8b0000)' }}></div>
+                <div className="h-4 rounded" style={{ background: 'linear-gradient(to right, #00ff00, #ffff00, #ffae00, #ff5e00, #ff2626, #ff6666)' }}></div>
                 <div className="flex justify-between text-gray-500">
                   <span>Low</span>
                   <span>High</span>
