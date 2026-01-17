@@ -561,7 +561,7 @@ const TeamDetailPage = () => {
                         >
                             <FaEdit />
                         </button>
-                        {hasPhone && record.whatsappStatus !== 'verified' && record.whatsappStatus !== 'not-verified' && (
+                        {/* {hasPhone && record.whatsappStatus !== 'verified' && record.whatsappStatus !== 'not-verified' && (
                             <Tooltip title="Verify WhatsApp">
                                 <button
                                     onClick={() => handleVerifyWhatsApp(record._id, firstPhone)}
@@ -582,7 +582,7 @@ const TeamDetailPage = () => {
                                     <MdClose />
                                 </button>
                             </Tooltip>
-                        )}
+                        )} */}
                         <Popconfirm
                             title="Delete this data?"
                             description="This action cannot be undone."
