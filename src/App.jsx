@@ -35,6 +35,7 @@ import QualifiedLeadsPage from "./pages/dashboard/QualifiedLeadsPage";
 import QualifiedLeadsDetailPage from "./pages/dashboard/QualifiedLeadsDetailPage";
 import TeamPage from "./pages/dashboard/TeamPage";
 import TeamDetailPage from "./pages/dashboard/TeamDetailPage";
+import PrivacyPage from "./pages/privacyPage";
 
 
 function App() {
@@ -57,6 +58,8 @@ function App() {
                                     <Route path="/login" element={<LoginPage />} />
                                     <Route path="/forgot-password" element={<ForgetPassword />} />
                                     <Route path="/reset-password" element={<InviteUserResetPage />} />
+                                    <Route path="/privacy" element={<PrivacyPage />} />
+                                    <Route path="/support" element={<SupportPage />} />
 
                                     {/* Protected Routes */}
                                     <Route
@@ -92,6 +95,7 @@ function App() {
                                         <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
                                         <Route path="team" element={<TeamPage />} />
                                         <Route path="team/:id" element={<TeamDetailPage />} />
+
                                     </Route>
 
                                     {/* 404 Page - Must be last */}
