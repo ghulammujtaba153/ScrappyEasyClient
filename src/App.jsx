@@ -35,7 +35,7 @@ import QualifiedLeadsPage from "./pages/dashboard/QualifiedLeadsPage";
 import QualifiedLeadsDetailPage from "./pages/dashboard/QualifiedLeadsDetailPage";
 import TeamPage from "./pages/dashboard/TeamPage";
 import TeamDetailPage from "./pages/dashboard/TeamDetailPage";
-import PrivacyPage from "./pages/privacyPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 
 function App() {
