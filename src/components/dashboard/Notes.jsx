@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button, Empty, Space, Popconfirm, message as antMessage, Timeline } from "antd";
-import { MdEdit, MdDelete, MdAdd, MdAccessTime } from "react-icons/md";
+import { Button, Empty, Popconfirm, message as antMessage, Tooltip } from "antd";
+import { MdEdit, MdDelete, MdAdd, MdPushPin, MdOutlinePushPin } from "react-icons/md";
 import NotesEditor from "./NotesEditor";
+import NoteContent from "./NoteContent";
 import { BASE_URL } from "../../config/URL";
 import axios from "axios";
 
 const Notes = ({ operationId }) => {
   const [notesList, setNotesList] = useState([]);
   const [content, setContent] = useState("");
+  const [title, setTitle] = useState(""); // Title state
+  const [color, setColor] = useState("#ffffff"); // Color state
   const [editId, setEditId] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
 
-  const fetchNotes = async () => {
+  const fetchNotes = React.useCallback(async () => {
     if (!operationId) return;
     try {
       const res = await axios.get(`${BASE_URL}/api/notes/${operationId}`);
@@ -19,45 +22,57 @@ const Notes = ({ operationId }) => {
     } catch (error) {
       console.log("Error fetching notes", error);
     }
-  };
+  }, [operationId]);
 
   useEffect(() => {
     fetchNotes();
-  }, [operationId]);
+  }, [fetchNotes]);
 
   const openAddPopup = () => {
     setContent("");
+    setTitle("");
+    setColor("#ffffff");
     setEditId(null);
     setShowEditor(true);
   };
 
   const openEditPopup = (note) => {
     setContent(note.content);
+    setTitle(note.title || "");
+    setColor(note.color || "#ffffff");
     setEditId(note._id);
     setShowEditor(true);
   };
 
   const closePopup = () => {
     setContent("");
+    setTitle("");
+    setColor("#ffffff");
     setEditId(null);
     setShowEditor(false);
   };
 
   const saveNote = async () => {
-    if (!content.trim()) {
-      antMessage.warning("Note content cannot be empty");
+    // Allow empty content if title is present, or vice versa? 
+    // Usually content is required, but let's fit the "Post-it" vibe.
+    if (!content.trim() && !title.trim()) {
+      antMessage.warning("Note content or title must be provided");
       return;
     }
 
     try {
+      const payload = {
+        dataId: operationId,
+        content,
+        title,
+        color
+      };
+
       if (editId) {
-        await axios.put(`${BASE_URL}/api/notes/${editId}`, { content });
+        await axios.put(`${BASE_URL}/api/notes/${editId}`, payload);
         antMessage.success("Note updated successfully");
       } else {
-        await axios.post(`${BASE_URL}/api/notes/create`, {
-          dataId: operationId,
-          content,
-        });
+        await axios.post(`${BASE_URL}/api/notes/create`, payload);
         antMessage.success("Note created successfully");
       }
 
@@ -80,12 +95,35 @@ const Notes = ({ operationId }) => {
     }
   };
 
+  const togglePin = async (e, note) => {
+    e.stopPropagation(); // Prevent opening edit or other clicks
+    try {
+      const newPinStatus = !note.isPinned;
+      // Optimistic update
+      const newNotes = notesList.map(n => n._id === note._id ? { ...n, isPinned: newPinStatus } : n);
+      // Sort: Pinned first, then date
+      newNotes.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+      setNotesList(newNotes);
+
+      await axios.put(`${BASE_URL}/api/notes/${note._id}`, { isPinned: newPinStatus });
+      fetchNotes(); // Sync strictly
+    } catch (error) {
+      console.log("Error toggling pin:", error);
+      antMessage.error("Failed to update pin status");
+      fetchNotes(); // Revert on error
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-700">Notes</h3>
+        <h3 className="text-xl font-bold text-gray-800">Notes</h3>
         <Button
-          className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C] text-white"
+          className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C] text-white flex items-center gap-1 shadow-sm"
           type="primary"
           icon={<MdAdd />}
           onClick={openAddPopup}
@@ -98,6 +136,10 @@ const Notes = ({ operationId }) => {
         <NotesEditor
           value={content}
           onChange={setContent}
+          title={title}
+          setTitle={setTitle}
+          color={color}
+          setColor={setColor}
           onSave={saveNote}
           onClose={closePopup}
           isEdit={!!editId}
@@ -105,80 +147,69 @@ const Notes = ({ operationId }) => {
       )}
 
       {notesList.length === 0 ? (
-        <Empty description="No notes yet. Create your first note!" />
+        <Empty description="No notes yet. Create your first note!" className="py-10" />
       ) : (
-        <Timeline
-          mode="left"
-          items={notesList
-            .slice()
-            .reverse()
-            .map((note) => ({
-              dot: <MdAccessTime className="text-lg text-[#0F792C]" />,
-              color: 'green',
-              children: (
-                <Card
-                  className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-[#0F792C]"
-                  size="small"
-                  title={
-                    <span className="text-sm font-medium text-gray-600">
-                      {new Date(note.createdAt).toLocaleString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  }
-                  extra={
-                    <Space>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<MdEdit className="text-[#0F792C]" />}
-                        onClick={() => openEditPopup(note)}
-                        className="hover:bg-green-50"
-                      >
-                        <span className="text-[#0F792C]">Edit</span>
-                      </Button>
-                      <Popconfirm
-                        title="Delete this note?"
-                        description="This action cannot be undone."
-                        onConfirm={() => deleteNote(note._id)}
-                        okText="Yes"
-                        cancelText="No"
-                      >
-                        <Button
-                          type="text"
-                          size="small"
-                          danger
-                          icon={<MdDelete />}
-                          className="hover:bg-red-50"
-                        >
-                          Delete
-                        </Button>
-                      </Popconfirm>
-                    </Space>
-                  }
-                >
-                  <div
-                    dangerouslySetInnerHTML={{ __html: note.content }}
-                    className="prose max-w-none text-gray-700"
-                  />
-                  {note.updatedAt && note.updatedAt !== note.createdAt && (
-                    <div className="text-xs text-gray-400 mt-2 border-t pt-2">
-                      Last edited: {new Date(note.updatedAt).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </div>
-                  )}
-                </Card>
-              )
-            }))}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {notesList.map((note) => (
+            <div
+              key={note._id}
+              className="relative p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow group flex flex-col min-h-[200px]"
+              style={{ backgroundColor: note.color || '#ffffff' }}
+            >
+              {/* Pin Button */}
+              <button
+                onClick={(e) => togglePin(e, note)}
+                className={`absolute top-3 right-3 p-1 rounded-full transition-colors ${note.isPinned ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100'
+                  }`}
+                title={note.isPinned ? "Unpin note" : "Pin note"}
+              >
+                {note.isPinned ? <MdPushPin className="text-xl" /> : <MdOutlinePushPin className="text-xl" />}
+              </button>
+
+              {/* Title */}
+              {note.title && (
+                <h4 className="font-bold text-lg text-gray-800 mb-2 pr-6 truncate">
+                  {note.title}
+                </h4>
+              )}
+
+              {/* Content */}
+              <NoteContent
+                content={note.content}
+                title={note.title}
+                color={note.color}
+                maxHeight="150px"
+              />
+
+              {/* Footer Actions */}
+              <div className="flex justify-between items-center mt-4 pt-3 border-t border-black/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-xs text-gray-500 font-medium">
+                  {new Date(note.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+                <div className="flex gap-1">
+                  <Tooltip title="Edit">
+                    <button
+                      onClick={() => openEditPopup(note)}
+                      className="p-1.5 hover:bg-black/5 rounded-full text-gray-600 transition-colors"
+                    >
+                      <MdEdit />
+                    </button>
+                  </Tooltip>
+                  <Popconfirm
+                    title="Delete this note?"
+                    onConfirm={() => deleteNote(note._id)}
+                    okText="Yes"
+                    cancelText="Cancel"
+                  >
+                    <button className="p-1.5 hover:bg-red-100 rounded-full text-red-500 transition-colors">
+                      <MdDelete />
+                    </button>
+                  </Popconfirm>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

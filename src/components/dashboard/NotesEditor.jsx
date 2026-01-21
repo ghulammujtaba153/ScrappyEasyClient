@@ -20,7 +20,8 @@ import {
   MdFormatAlignJustify,
   MdLink,
   MdImage,
-  MdTitle
+  MdTitle,
+  MdCheck
 } from "react-icons/md";
 
 // TipTap Extensions
@@ -43,7 +44,17 @@ const ToolbarButton = ({ icon: Icon, onClick, isActive, label, title }) => (
   </button>
 );
 
-const NotesEditor = ({ value, onChange, onSave, onClose, isEdit }) => {
+const COLORS = [
+  "#ffffff", // White
+  "#FCD34D", // Yellow (Darker)
+  "#7DD3FC", // Blue (Darker)
+  "#F9A8D4", // Pink (Darker)
+  "#86EFAC", // Green (Darker)
+  "#D8B4FE", // Purple (Darker)
+  "#FDBA74", // Orange (Darker)
+];
+
+const NotesEditor = ({ value, onChange, onSave, onClose, isEdit, title, setTitle, color, setColor }) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -60,10 +71,16 @@ const NotesEditor = ({ value, onChange, onSave, onClose, isEdit }) => {
         types: ["heading", "paragraph"],
       }),
     ],
-    content: value || "",
+    content: value || "", // Ensure content is initialized
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    onCreate: ({ editor }) => {
+      // Ensure content is set when editor is created (fixes empty editor on reopen)
+      if (value && editor.getHTML() !== value) {
+        editor.commands.setContent(value);
+      }
+    }
   });
 
   // Update external value
@@ -107,6 +124,20 @@ const NotesEditor = ({ value, onChange, onSave, onClose, isEdit }) => {
       onCancel={onClose}
       width={950}
       footer={[
+        <div key="colors" className="flex-1 flex gap-2 items-center">
+          <span className="text-sm text-gray-500 mr-2">Color:</span>
+          {COLORS.map((c) => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              className={`w-8 h-8 rounded-full border-2 transition-transform flex items-center justify-center ${color === c ? 'border-[#0F792C] scale-110' : 'border-gray-300 hover:scale-105'}`}
+              style={{ backgroundColor: c }}
+              title={c}
+            >
+              {color === c && <MdCheck className={`text-lg ${c === '#ffffff' || c === '#FCD34D' || c === '#7DD3FC' || c === '#F9A8D4' || c === '#86EFAC' || c === '#D8B4FE' || c === '#FDBA74' ? 'text-gray-800' : 'text-white'}`} />}
+            </button>
+          ))}
+        </div>,
         <Button key="cancel" onClick={onClose}>
           Cancel
         </Button>,
@@ -120,6 +151,16 @@ const NotesEditor = ({ value, onChange, onSave, onClose, isEdit }) => {
         </Button>,
       ]}
     >
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Note Title (Optional)"
+          className="w-full text-xl font-semibold border-b border-gray-300 pb-2 focus:outline-none focus:border-[#0F792C] bg-transparent"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
+
       {/* Toolbar */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
         {/* Row 1: History & Text Formatting */}
@@ -209,12 +250,6 @@ const NotesEditor = ({ value, onChange, onSave, onClose, isEdit }) => {
             title="Quote"
           />
           <ToolbarButton
-            icon={MdCode}
-            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-            isActive={editor.isActive("codeBlock")}
-            title="Code Block"
-          />
-          <ToolbarButton
             icon={MdHorizontalRule}
             onClick={() => editor.chain().focus().setHorizontalRule().run()}
             title="Horizontal Rule"
@@ -294,8 +329,14 @@ const NotesEditor = ({ value, onChange, onSave, onClose, isEdit }) => {
             font-weight: bold;
             margin: 1em 0;
           }
-          .ProseMirror ul, .ProseMirror ol {
-            padding-left: 1.5em;
+          .ProseMirror ul {
+            list-style-type: disc !important;
+            padding-left: 1.5em !important;
+            margin: 0.5em 0;
+          }
+          .ProseMirror ol {
+            list-style-type: decimal !important;
+            padding-left: 1.5em !important;
             margin: 0.5em 0;
           }
           .ProseMirror blockquote {
