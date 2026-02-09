@@ -117,7 +117,8 @@ const LoginPage = () => {
             <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md animate-slideUp">
 
                 <div className="text-center mb-8">
-                    <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" />
+                    {/* <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" /> */}
+                    <img src="/map.png" alt="" className="mb-7 mx-auto w-[50px] object-contain" />
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
                     <p className="text-gray-600 text-sm">Sign in to your account</p>
                 </div>
