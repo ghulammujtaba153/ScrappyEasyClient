@@ -58,8 +58,8 @@ function App() {
                                     <Route path="/login" element={<LoginPage />} />
                                     <Route path="/forgot-password" element={<ForgetPassword />} />
                                     <Route path="/reset-password" element={<InviteUserResetPage />} />
-                                    <Route path="/privacy" element={<PrivacyPage />} />
-                                    <Route path="/support" element={<SupportPage />} />
+                                    <Route path="/lead-buddy-privacy" element={<PrivacyPage />} />
+                                    <Route path="/lead-buddy-support" element={<SupportPage />} />
 
                                     {/* Protected Routes */}
                                     <Route
