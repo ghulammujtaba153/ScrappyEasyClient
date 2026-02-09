@@ -226,7 +226,8 @@ const RegisterPage = () => {
 
 
             <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-4xl animate-slideUp">
-                <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" />
+                {/* <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" /> */}
+                <img src="/map.png" alt="" className="mb-7 mx-auto w-[50px] object-contain" />
 
                 {/* Step 1: Registration Form */}
                 {step === 1 && (
