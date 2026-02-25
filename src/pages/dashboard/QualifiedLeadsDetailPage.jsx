@@ -156,8 +156,9 @@ const QualifiedLeadsDetailPage = () => {
     // Disconnect WhatsApp
     const handleDisconnectWhatsApp = async () => {
         setDisconnecting(true);
+        const userId = user?._id || user?.id;
         try {
-            const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, {}, {
+            const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, { userId }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.data.success) {
