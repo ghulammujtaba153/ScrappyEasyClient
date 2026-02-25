@@ -73,20 +73,24 @@ export const SocketProvider = ({ children }) => {
         console.log('🔌 Initializing socket connection for user:', user.name);
 
         const socketInstance = io(BASE_URL, {
-                // Start with polling then upgrade to websocket (more reliable for cloud platforms like Render)
-                transports: ['polling', 'websocket'],
+                // Try WebSocket first (more reliable), fall back to polling if needed
+                transports: ['websocket', 'polling'],
                 upgrade: true,
                 reconnection: true,
                 reconnectionAttempts: Infinity,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
                 timeout: 30000,
-                // Don't use credentials with wildcard CORS origin
-                withCredentials: false,
+                // Match server CORS credentials setting
+                withCredentials: true,
                 // Force new connection
                 forceNew: true,
                 // Auto connect
                 autoConnect: true,
+                // Response timeout for polling
+                httpCompression: true,
+                // Disable reconnection on auth errors
+                reconnectionDelayMax: 5000
             });
 
             socketRef.current = socketInstance;
@@ -107,8 +111,25 @@ export const SocketProvider = ({ children }) => {
             });
 
             socketInstance.on('connect_error', (error) => {
-                console.error('🔌 Socket connection error:', error.message);
+                console.error('🔌 Socket connection error:', error);
+                
+                // Log detailed error info
+                if (error.message) {
+                    console.error('Error message:', error.message);
+                }
+                if (error.type) {
+                    console.error('Error type:', error.type);
+                }
+                if (error.description) {
+                    console.error('Error description:', error.description);
+                }
+                
                 setIsConnected(false);
+                
+                // Show user-friendly error message
+                if (error.message?.includes('xhr poll error')) {
+                    console.warn('⚠️ Polling transport failed, Socket.IO will retry with WebSocket');
+                }
             });
 
             socketInstance.on('disconnect', (reason) => {

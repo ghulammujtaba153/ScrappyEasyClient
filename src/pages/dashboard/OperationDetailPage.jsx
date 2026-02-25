@@ -404,8 +404,9 @@ const OperationDetailPage = () => {
   };
 
   const disconnectWhatsApp = async () => {
+    const userId = user?._id || user?.id;
     try {
-      const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, {}, {
+      const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, { userId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -1133,140 +1134,150 @@ const OperationDetailPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <Button
-            icon={<MdArrowBack />}
-            onClick={() => navigate('/dashboard/operations')}
-            className="mb-2"
-          >
-            Back to Operations
-          </Button>
-          <h1 className="text-2xl font-bold text-gray-900">{record?.searchString || 'Operation Detail'}</h1>
-          {record && (
-            <div className="space-y-1">
-              <p className="text-gray-600">
-                {record.leads?.length || 0} records • Last updated {record.updatedAt ? new Date(record.updatedAt).toLocaleString() : 'N/A'}
-              </p>
+      {/* Premium Header Section */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-gradient-to-r from-primary/5 to-transparent p-6 md:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-4">
+              <Button
+                icon={<MdArrowBack />}
+                onClick={() => navigate('/dashboard/operations')}
+                type="text"
+                className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors p-0 h-auto"
+              >
+                Back to Operations
+              </Button>
+              
+              <div>
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                  {record?.searchString || 'Operation Detail'}
+                </h1>
+                <div className="flex items-center gap-2 mt-2 text-gray-500">
+                  <MdRefresh className="animate-spin-slow" />
+                  <span>
+                    {record.leads?.length || 0} leads discovered • {record.updatedAt ? `Synced ${new Date(record.updatedAt).toLocaleDateString()}` : 'Not synced'}
+                  </span>
+                </div>
+              </div>
+
               {verificationStats.total > 0 && (
-                <div className="flex gap-3 text-sm">
-                  <span className="text-gray-600">
-                    📞 Total: <span className="font-semibold">{verificationStats.total}</span>
-                  </span>
-                  <span className="text-green-600">
-                    ✓ Verified: <span className="font-semibold">{verificationStats.verified}</span>
-                  </span>
-                  <span className="text-red-600">
-                    ✗ No WhatsApp: <span className="font-semibold">{verificationStats.notVerified}</span>
-                  </span>
-                  <span className="text-orange-600">
-                    ⏳ Not Checked: <span className="font-semibold">{verificationStats.notChecked}</span>
-                  </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-white/50 backdrop-blur-sm p-3 rounded-xl border border-gray-100 shadow-sm">
+                    <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Total Leads</p>
+                    <p className="text-xl font-bold text-gray-900">{verificationStats.total}</p>
+                  </div>
+                  <div className="bg-green-50/50 backdrop-blur-sm p-3 rounded-xl border border-green-100 shadow-sm">
+                    <p className="text-[10px] uppercase tracking-wider text-green-600 font-bold">Verified</p>
+                    <p className="text-xl font-bold text-green-700">{verificationStats.verified}</p>
+                  </div>
+                  <div className="bg-red-50/50 backdrop-blur-sm p-3 rounded-xl border border-red-100 shadow-sm">
+                    <p className="text-[10px] uppercase tracking-wider text-red-600 font-bold">No WhatsApp</p>
+                    <p className="text-xl font-bold text-red-700">{verificationStats.notVerified}</p>
+                  </div>
+                  <div className="bg-orange-50/50 backdrop-blur-sm p-3 rounded-xl border border-orange-100 shadow-sm">
+                    <p className="text-[10px] uppercase tracking-wider text-orange-600 font-bold">Pending</p>
+                    <p className="text-xl font-bold text-orange-700">{verificationStats.notChecked}</p>
+                  </div>
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2 justify-end">
-            <Button
-              type="default"
-              icon={<MdLocationOn />}
-              onClick={extractCitiesForRecord}
-              loading={extractingCities}
-              disabled={extractingCities || !record}
-            >
-              {extractingCities ? 'Extracting Cities...' : 'Extract Cities'}
-            </Button>
-            <Button
-              type="primary"
-              icon={<MdLocationOn />}
-              onClick={getRecommendedCities}
-              loading={loadingRecommendations}
-              disabled={loadingRecommendations || !record}
-              className="bg-blue-600 hover:bg-blue-700 border-blue-600"
-            >
-              {loadingRecommendations ? 'Finding...' : 'Recommend Cities'}
-            </Button>
-            <Button
-              type="default"
-              icon={<MdWeb />}
-              onClick={() => setIsCarouselOpen(true)}
-              disabled={filteredData.filter(item => item.website).length === 0}
-            >
-              Show in iFrame
-            </Button>
-            <Button
-              type="default"
-              icon={<MdCameraAlt />}
-              onClick={() => captureAllScreenshots(true)}
-              loading={progress.isProcessing && progress.operationId === record?._id}
-              disabled={progress.isProcessing || filteredData.length === 0}
-            >
-              {progress.isProcessing ? 'Capture Pending...' : 'Capture Filtered Websites'}
-            </Button>
-            <Button
-              icon={<MdSave />}
-              onClick={() => setIsSaveModalOpen(true)}
-              disabled={filteredData.filter(item => item.phone && item.leadId).length === 0}
-              className="bg-white text-[#0F792C] border-[#0F792C] hover:bg-[#0F792C] hover:text-white transition-all"
-            >
-              Save for Messages
-            </Button>
-            <Button
-              icon={<MdPhone />}
-              onClick={() => setIsColdCallModalOpen(true)}
-              disabled={filteredData.filter(item => item.phone && item.leadId).length === 0}
-              className="bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white transition-all"
-            >
-              Save for Cold Calls
-            </Button>
-            <Button
-              icon={<MdStar />}
-              onClick={() => setIsQualifiedLeadsModalOpen(true)}
-              disabled={filteredData.length === 0}
-              className="bg-white text-yellow-600 border-yellow-500 hover:bg-yellow-500 hover:text-white transition-all"
-            >
-              Save to Qualified Leads
-            </Button>
-          </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button
+                  type="default"
+                  icon={<MdLocationOn />}
+                  onClick={extractCitiesForRecord}
+                  loading={extractingCities}
+                  disabled={extractingCities || !record}
+                  className="rounded-lg h-10 px-4 font-medium"
+                >
+                  {extractingCities ? 'Processing...' : 'Extract Cities'}
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<MdLocationOn />}
+                  onClick={getRecommendedCities}
+                  loading={loadingRecommendations}
+                  disabled={loadingRecommendations || !record}
+                  className="bg-blue-600 hover:bg-blue-700 border-none rounded-lg h-10 px-4 font-medium"
+                >
+                  Recommend Nearby Location
+                </Button>
+                <Button
+                  icon={<MdWeb />}
+                  onClick={() => setIsCarouselOpen(true)}
+                  disabled={filteredData.filter(item => item.website).length === 0}
+                  className="rounded-lg h-10 px-4 font-medium"
+                >
+                  iFrame View
+                </Button>
+                <Button
+                  icon={<MdCameraAlt />}
+                  onClick={() => captureAllScreenshots(true)}
+                  loading={progress.isProcessing && progress.operationId === record?._id}
+                  disabled={progress.isProcessing || filteredData.length === 0}
+                  className="rounded-lg h-10 px-4 font-medium"
+                >
+                  Capture All
+                </Button>
+                <Button
+                  icon={<MdSave />}
+                  onClick={() => setIsSaveModalOpen(true)}
+                  disabled={filteredData.filter(item => item.phone && item.leadId).length === 0}
+                  className="text-[#0F792C] border-[#0F792C] hover:text-white hover:bg-[#0F792C] rounded-lg h-10 px-4 font-medium"
+                >
+                  Message Export
+                </Button>
+                <Button
+                  icon={<MdStar />}
+                  onClick={() => setIsQualifiedLeadsModalOpen(true)}
+                  disabled={filteredData.length === 0}
+                  className="text-amber-600 border-amber-500 hover:text-white hover:bg-amber-500 rounded-lg h-10 px-4 font-medium"
+                >
+                  Save Qualify Leads
+                </Button>
+              </div>
 
-
-          <div className="flex flex-wrap gap-2 justify-end">
-            {whatsappInitialized && (
-              <Button
-                className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C] text-white"
-                type="primary"
-                icon={<BsWhatsapp />}
-                onClick={handleVerifyAllClick}
-                loading={verifyingAll}
-                disabled={verifyingAll || filteredData.length === 0}
-              >
-                {verifyingAll ? 'Verifying...' : 'Verify Visible Numbers'}
-              </Button>
-            )}
-            <Button
-              icon={<MdDownload />}
-              onClick={exportToCSV}
-              disabled={filteredData.length === 0}
-            >
-              Export CSV
-            </Button>
-            <Button
-              icon={<MdDescription />}
-              onClick={exportToXLS}
-              disabled={filteredData.length === 0}
-            >
-              Export XLS
-            </Button>
-            <Button
-              icon={<MdRefresh />}
-              onClick={fetchRecord}
-              loading={loading}
-            >
-              Refresh Data
-            </Button>
+              <div className="flex flex-wrap gap-2 justify-end">
+                {whatsappInitialized && (
+                  <Button
+                    className="bg-[#0F792C] hover:bg-[#0a5a20] text-white border-none rounded-lg h-10 px-6 font-bold"
+                    type="primary"
+                    icon={<BsWhatsapp />}
+                    onClick={handleVerifyAllClick}
+                    loading={verifyingAll}
+                    disabled={verifyingAll || filteredData.length === 0}
+                  >
+                    Verify List ({filteredData.length})
+                  </Button>
+                )}
+                <Button
+                  icon={<MdDownload />}
+                  onClick={exportToCSV}
+                  disabled={filteredData.length === 0}
+                  className="rounded-lg h-10 px-4"
+                >
+                  CSV
+                </Button>
+                <Button
+                  icon={<MdDescription />}
+                  onClick={exportToXLS}
+                  disabled={filteredData.length === 0}
+                  className="rounded-lg h-10 px-4"
+                >
+                  XLS
+                </Button>
+                <Button
+                  icon={<MdRefresh />}
+                  onClick={fetchRecord}
+                  loading={loading}
+                  className="rounded-lg h-10 px-4"
+                >
+                  Sync
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1409,69 +1420,87 @@ const OperationDetailPage = () => {
         </div>
       </Modal>
 
-      <div className="bg-white rounded-lg shadow-md p-6 border border-gray-100 table-container">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <span className="bg-primary/10 p-1 rounded-full"><MdSearch className="text-primary" /></span>
-          Filters
+      <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-gray-100 table-container">
+        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <div className="bg-primary/10 p-2 rounded-lg"><MdSearch className="text-primary text-xl" /></div>
+          Smart Filters
         </h3>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Location Search (Country, State, City)
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-3">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Unified Location Search
               </label>
               <Input
-                placeholder="Search by city, state, or country..."
+                placeholder="Region, Province, Municipality or Country..."
                 value={filters.locationSearch}
                 onChange={(e) => setFilters({ ...filters, locationSearch: e.target.value })}
-                prefix={<MdSearch className="text-gray-600" />}
+                prefix={<MdSearch className="text-gray-400" />}
                 allowClear
-                className=" border-primary/20 focus:bg-primary/50 placeholder-gray-600 font-medium"
+                className="h-12 border-gray-200 rounded-xl hover:border-primary focus:border-primary transition-all shadow-sm"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                WhatsApp status
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                WhatsApp Availability
               </label>
               <Select
-                placeholder="Select status"
+                placeholder="Choose status"
                 style={{ width: '100%' }}
                 value={filters.whatsappStatus || undefined}
                 onChange={(value) => setFilters({ ...filters, whatsappStatus: value || '' })}
                 allowClear
-                className="custom-select-primary"
-                popupClassName="bg-white"
+                className="custom-select-premium h-12"
+                popupClassName="bg-white rounded-xl shadow-lg border-gray-100"
               >
-                <Option value="verified">Has WhatsApp</Option>
-                <Option value="not-verified">No WhatsApp</Option>
-                <Option value="not-checked">Not checked</Option>
+                <Option value="verified">Authorized WhatsApp</Option>
+                <Option value="not-verified">Unavailable</Option>
+                <Option value="not-checked">Pending Check</Option>
               </Select>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Has website
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Digital Presence
               </label>
               <Select
-                placeholder="Filter by website"
+                placeholder="Website status"
                 style={{ width: '100%' }}
                 value={filters.hasWebsite || undefined}
                 onChange={(value) => setFilters({ ...filters, hasWebsite: value || '' })}
                 allowClear
-                className="custom-select-primary"
+                className="custom-select-premium h-12"
               >
-                <Option value="yes">Has website</Option>
-                <Option value="no">No website</Option>
+                <Option value="yes">Domain Active</Option>
+                <Option value="no">No Website</Option>
               </Select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Rating (min)
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Lead Interest
+              </label>
+              <Select
+                placeholder="Collection status"
+                style={{ width: '100%' }}
+                value={filters.favorite || undefined}
+                onChange={(value) => setFilters({ ...filters, favorite: value || '' })}
+                allowClear
+                className="custom-select-premium h-12"
+              >
+                <Option value="yes">
+                  <span className="flex items-center gap-2">
+                    <MdFavorite className="text-red-500" /> Curated List
+                  </span>
+                </Option>
+                <Option value="no">General Leads</Option>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Minimum Rating
               </label>
               <InputNumber
                 min={0}
@@ -1479,14 +1508,15 @@ const OperationDetailPage = () => {
                 step={0.1}
                 style={{ width: '100%' }}
                 value={filters.ratingMin}
-                placeholder="e.g. 3.5"
+                placeholder="0.0"
                 onChange={(value) => setFilters({ ...filters, ratingMin: value ?? null })}
-                className="border-primary/20 w-full rounded-md"
+                className="h-12 border-gray-200 rounded-xl flex items-center"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Rating (max)
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Maximum Rating
               </label>
               <InputNumber
                 min={0}
@@ -1494,100 +1524,75 @@ const OperationDetailPage = () => {
                 step={0.1}
                 style={{ width: '100%' }}
                 value={filters.ratingMax}
-                placeholder="e.g. 4.8"
+                placeholder="5.0"
                 onChange={(value) => setFilters({ ...filters, ratingMax: value ?? null })}
-                className=" border-primary/20 w-full rounded-md"
+                className="h-12 border-gray-200 rounded-xl flex items-center"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Reviews (min)
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Minimum Engagement (Reviews)
               </label>
               <InputNumber
                 min={0}
                 style={{ width: '100%' }}
                 value={filters.reviewsMin}
-                placeholder="e.g. 50"
+                placeholder="Min total"
                 onChange={(value) => setFilters({ ...filters, reviewsMin: value ?? null })}
-                className=" border-primary/20 w-full rounded-md"
+                className="h-12 border-gray-200 rounded-xl flex items-center"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Reviews (max)
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Maximum Engagement (Reviews)
               </label>
               <InputNumber
                 min={0}
                 style={{ width: '100%' }}
                 value={filters.reviewsMax}
-                placeholder="e.g. 500"
+                placeholder="Max total"
                 onChange={(value) => setFilters({ ...filters, reviewsMax: value ?? null })}
-                className=" border-primary/20 w-full rounded-md"
+                className="h-12 border-gray-200 rounded-xl flex items-center"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Has phone number
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Contact Discovery
               </label>
               <Select
-                placeholder="Filter by phone"
+                placeholder="Phone availability"
                 style={{ width: '100%' }}
                 value={filters.hasPhone || undefined}
                 onChange={(value) => setFilters({ ...filters, hasPhone: value || '' })}
                 allowClear
-                className="custom-select-primary"
+                className="custom-select-premium h-12"
               >
-                <Option value="yes">Has phone</Option>
-                <Option value="no">No phone</Option>
+                <Option value="yes">With Phone</Option>
+                <Option value="no">Missing Phone</Option>
               </Select>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Has Verified WhatsApp
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Verified Outreach
               </label>
               <Select
-                placeholder="Filter by verified WhatsApp"
+                placeholder="Identity match"
                 style={{ width: '100%' }}
                 value={filters.hasVerifiedWhatsApp || undefined}
                 onChange={(value) => setFilters({ ...filters, hasVerifiedWhatsApp: value || '' })}
                 allowClear
-                className="custom-select-primary"
+                className="custom-select-premium h-12"
               >
                 <Option value="yes">
-                  <span className="flex items-center gap-2">
-                    <BsWhatsapp className="text-green-500" /> Has Verified WhatsApp
+                  <span className="flex items-center gap-2 text-green-600 font-semibold">
+                    <BsWhatsapp /> Verified Identity
                   </span>
                 </Option>
-                <Option value="no">No Verified WhatsApp</Option>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Favorites
-              </label>
-              <Select
-                placeholder="Filter by favorites"
-                style={{ width: '100%' }}
-                value={filters.favorite || undefined}
-                onChange={(value) => setFilters({ ...filters, favorite: value || '' })}
-                allowClear
-                className="custom-select-primary"
-              >
-                <Option value="yes">
-                  <span className="flex items-center gap-2">
-                    <MdFavorite className="text-red-500" /> Favorites only
-                  </span>
-                </Option>
-                <Option value="no">Not favorites</Option>
+                <Option value="no">Unverified Identity</Option>
               </Select>
             </div>
           </div>

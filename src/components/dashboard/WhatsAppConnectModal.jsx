@@ -8,15 +8,21 @@ import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 
 const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }) => {
-    const { token } = useAuth();
+    const { user } = useAuth();
+    const userId = user?._id || user?.id;
     const [loading, setLoading] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
     const [qrCode, setQrCode] = useState(null);
     const [status, setStatus] = useState('initializing'); // initializing, qr_ready, connected, error, waiting
     const [errorMessage, setErrorMessage] = useState(null);
     const [connectedPhone, setConnectedPhone] = useState(null);
+    const [rateLimitRetryIn, setRateLimitRetryIn] = useState(0);
+    const [initializationTime, setInitializationTime] = useState(0);
     const pollIntervalRef = useRef(null);
+    const retryTimeoutRef = useRef(null);
     const initAttemptRef = useRef(0);
+    const retryCounterRef = useRef(null);
+    const initTimerRef = useRef(null);
 
     // Poll status when modal is open
     useEffect(() => {
@@ -31,10 +37,14 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
             // Initial setup
             initializeSession();
 
-            // Start polling
+            // Start polling (guard against duplicate intervals)
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
             pollIntervalRef.current = setInterval(async () => {
                 await checkStatus();
-            }, 2000);
+            }, 3000); // Increased polling speed to 3s
         } else {
             // Clean up on close
             if (pollIntervalRef.current) {
@@ -51,6 +61,18 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
                 clearInterval(pollIntervalRef.current);
                 pollIntervalRef.current = null;
             }
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
+                retryTimeoutRef.current = null;
+            }
+            if (retryCounterRef.current) {
+                clearInterval(retryCounterRef.current);
+                retryCounterRef.current = null;
+            }
+            if (initTimerRef.current) {
+                clearInterval(initTimerRef.current);
+                initTimerRef.current = null;
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visible]);
@@ -58,7 +80,7 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
     const checkStatus = async () => {
         try {
             const res = await axios.get(`${BASE_URL}/api/verification/status`, {
-                headers: { Authorization: `Bearer ${token}` }
+                params: { userId }
             });
 
             if (res.data.success && res.data.data) {
@@ -85,12 +107,56 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
                     setStatus('waiting');
                 }
 
-                if (data.lastError && !data.qrCode && !data.isInitializing) {
+                if (data.isInCooldown) {
+                    setStatus('rate_limited');
+                    setRateLimitRetryIn(data.remainingCooldown);
+                }
+
+                if (data.lastError && !data.qrCode && !data.isInitializing && !data.isInCooldown) {
                     setErrorMessage(`Connection error: ${data.lastError.errorMessage || 'Unknown error'}`);
+                    setStatus('error');
+                    if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                    }
                 }
             }
         } catch (error) {
             console.error('Status check failed', error);
+            // Handle rate limiting (429) - pause polling and retry after a delay
+            const statusCode = error.response?.status;
+            if (statusCode === 429) {
+                setStatus('rate_limited');
+                setRateLimitRetryIn(30);
+                message.warning('Too many requests — pausing WhatsApp status checks for 30s');
+                if (pollIntervalRef.current) {
+                    clearInterval(pollIntervalRef.current);
+                    pollIntervalRef.current = null;
+                }
+                // Update countdown every second
+                if (retryCounterRef.current) clearInterval(retryCounterRef.current);
+                retryCounterRef.current = setInterval(() => {
+                    setRateLimitRetryIn(prev => {
+                        if (prev <= 1) {
+                            if (retryCounterRef.current) clearInterval(retryCounterRef.current);
+                            retryCounterRef.current = null;
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                // Retry after backoff
+                if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+                retryTimeoutRef.current = setTimeout(() => {
+                    retryTimeoutRef.current = null;
+                    setRateLimitRetryIn(0);
+                    // try to reinitialize and restart polling
+                    initializeSession().catch(() => {});
+                    if (!pollIntervalRef.current) {
+                        pollIntervalRef.current = setInterval(checkStatus, 5000);
+                    }
+                }, 30000);
+            }
         }
     };
 
@@ -98,17 +164,25 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
         setLoading(true);
         setStatus('initializing');
         setErrorMessage(null);
+        setInitializationTime(0);
+        
+        // Start initialization timer
+        if (initTimerRef.current) clearInterval(initTimerRef.current);
+        initTimerRef.current = setInterval(() => {
+            setInitializationTime(prev => prev + 1);
+        }, 1000);
         
         try {
             // Check current status first
             const statusRes = await axios.get(`${BASE_URL}/api/verification/status`, {
-                headers: { Authorization: `Bearer ${token}` }
+                params: { userId }
             });
 
             if (statusRes.data.success && statusRes.data.data?.isConnected) {
                 setStatus('connected');
                 setConnectedPhone(statusRes.data.data.phoneNumber || null);
                 setLoading(false);
+                if (initTimerRef.current) clearInterval(initTimerRef.current);
                 return;
             }
 
@@ -116,22 +190,67 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
             const shouldForceNew = statusRes.data.data?.needsReinitialization || 
                                    statusRes.data.data?.lastError;
             
-            await axios.post(`${BASE_URL}/api/verification/initialize`, 
-                { forceNew: shouldForceNew }, 
-                { headers: { Authorization: `Bearer ${token}` } }
+            const initRes = await axios.post(`${BASE_URL}/api/verification/initialize`, 
+                { userId, forceNew: shouldForceNew }, 
+                { 
+                    timeout: 40_000 // Reduced timeout to match backend 30s + safety
+                }
             );
 
-            // Wait a moment then fetch QR
-            setStatus('waiting');
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            await refreshQrCode();
+            if (initRes.data.success) {
+                console.log('✅ Initialization started, waiting for QR code...');
+                // Wait a moment then fetch QR
+                setStatus('waiting');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                await refreshQrCode();
+            } else {
+                setErrorMessage(initRes.data.error || 'Initialization failed');
+                setStatus('error');
+            }
 
         } catch (error) {
             console.error('Initialization failed', error);
             setStatus('error');
-            setErrorMessage(error.response?.data?.error || error.message);
+            
+            const errorMsg = error.response?.data?.error || error.message;
+            
+            // Check if this is a 405 cooldown error
+            if (errorMsg?.includes('cooldown') || errorMsg?.includes('wait') || error.response?.status === 429) {
+                setStatus('rate_limited');
+                setErrorMessage(errorMsg);
+                
+                // Extract wait time if available
+                const waitMatch = errorMsg.match(/wait (\d+)/);
+                const waitSeconds = waitMatch ? parseInt(waitMatch[1]) : (error.response?.data?.remainingCooldown || 30);
+                
+                setRateLimitRetryIn(waitSeconds);
+                    
+                    // Start countdown
+                    if (retryCounterRef.current) clearInterval(retryCounterRef.current);
+                    retryCounterRef.current = setInterval(() => {
+                        setRateLimitRetryIn(prev => {
+                            if (prev <= 1) {
+                                if (retryCounterRef.current) clearInterval(retryCounterRef.current);
+                                retryCounterRef.current = null;
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+                    
+                    // Stop polling during cooldown
+                    if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                    }
+            } else if (error.code === 'ECONNABORTED') {
+                setErrorMessage('Initialization took too long (timeout). The server may be busy. Try again later.');
+            } else {
+                setErrorMessage(errorMsg);
+            }
         } finally {
             setLoading(false);
+            if (initTimerRef.current) clearInterval(initTimerRef.current);
         }
     };
 
@@ -141,7 +260,7 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
         
         try {
             const res = await axios.get(`${BASE_URL}/api/verification/qr`, {
-                headers: { Authorization: `Bearer ${token}` }
+                params: { userId }
             });
 
             if (res.data.success && res.data.data?.qrCode) {
@@ -165,8 +284,44 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
                 }
             }
         } catch (error) {
-            setErrorMessage(error.response?.data?.error || 'Failed to refresh QR code');
-            setStatus('error');
+            const statusCode = error.response?.status;
+            if (statusCode === 429) {
+                setErrorMessage('Rate limited by server (429). Please wait and try again.');
+                setStatus('rate_limited');
+                setRateLimitRetryIn(30);
+                message.warning('Server rate limit hit while fetching QR. Pausing for 30s');
+                if (pollIntervalRef.current) {
+                    clearInterval(pollIntervalRef.current);
+                    pollIntervalRef.current = null;
+                }
+                // Update countdown every second
+                if (retryCounterRef.current) clearInterval(retryCounterRef.current);
+                retryCounterRef.current = setInterval(() => {
+                    setRateLimitRetryIn(prev => {
+                        if (prev <= 1) {
+                            if (retryCounterRef.current) clearInterval(retryCounterRef.current);
+                            retryCounterRef.current = null;
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+                retryTimeoutRef.current = setTimeout(() => {
+                    retryTimeoutRef.current = null;
+                    setRateLimitRetryIn(0);
+                    refreshQrCode().catch(() => {});
+                    if (!pollIntervalRef.current) {
+                        pollIntervalRef.current = setInterval(checkStatus, 5000);
+                    }
+                }, 30000);
+            } else if (statusCode === 405) {
+                setErrorMessage('Server returned 405 Method Not Allowed when requesting QR. Check server route/method.');
+                setStatus('error');
+            } else {
+                setErrorMessage(error.response?.data?.error || 'Failed to refresh QR code');
+                setStatus('error');
+            }
         } finally {
             setLoading(false);
         }
@@ -175,9 +330,7 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
     const handleDisconnect = async () => {
         setDisconnecting(true);
         try {
-            const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axios.post(`${BASE_URL}/api/verification/disconnect`, { userId });
 
             if (res.data.success) {
                 message.success('WhatsApp disconnected successfully');
@@ -212,8 +365,7 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
         try {
             // Force new session
             await axios.post(`${BASE_URL}/api/verification/initialize`, 
-                { forceNew: true }, 
-                { headers: { Authorization: `Bearer ${token}` } }
+                { userId, forceNew: true }
             );
             
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -363,8 +515,56 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
                             </div>
                         </div>
 
+                        {/* Initialization Timer Alert */}
+                        {(status === 'initializing' || status === 'waiting') && initializationTime > 0 && (
+                            <Alert
+                                message={
+                                    <div className="flex items-center justify-between">
+                                        <span>
+                                            Initializing for {initializationTime}s
+                                            {initializationTime >= 15 && ' (taking longer than expected)'}
+                                        </span>
+                                        {initializationTime >= 15 && (
+                                            <span className="text-xs text-red-700 font-semibold ml-4">
+                                                Manual reset available
+                                            </span>
+                                        )}
+                                    </div>
+                                }
+                                description={
+                                    <div className="space-y-2 mt-2">
+                                        <div className="relative w-full bg-gray-300 rounded-full h-2">
+                                            <div 
+                                                className={`h-2 rounded-full transition-all duration-500 ${
+                                                    initializationTime >= 30 
+                                                        ? 'bg-red-500' 
+                                                        : initializationTime >= 15 
+                                                        ? 'bg-orange-500' 
+                                                        : 'bg-blue-500'
+                                                }`}
+                                                style={{ width: `${Math.min((initializationTime / 30) * 100, 100)}%` }}
+                                            ></div>
+                                        </div>
+                                        {initializationTime >= 10 && initializationTime < 30 && (
+                                            <p className="text-sm text-orange-700">
+                                                <strong>Connecting...:</strong> Still initializing. You can wait or reset manually.
+                                            </p>
+                                        )}
+                                        {initializationTime >= 30 && (
+                                            <p className="text-sm text-red-700">
+                                                <strong>Connection initialization timed out.</strong> Click "Force Reconnect" below to try again immediately.
+                                            </p>
+                                        )}
+                                    </div>
+                                }
+                                type={initializationTime >= 30 ? 'error' : initializationTime >= 15 ? 'warning' : 'info'}
+                                showIcon
+                                className="rounded-lg"
+                            />
+                        )}
+
                         {/* Error Alert */}
-                        {errorMessage && (
+                        {errorMessage && status !== 'rate_limited' && status !== 'error' && (
                             <Alert
                                 message="Connection Error"
                                 description={errorMessage}
@@ -374,19 +574,84 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
                             />
                         )}
 
+                        {/* WhatsApp Blocking Error */}
+                        {status === 'error' && errorMessage?.includes('blocked') && (
+                            <Alert
+                                message="WhatsApp is Blocking Connections"
+                                description={
+                                    <div className="space-y-2">
+                                        <p className="mb-0">{errorMessage}</p>
+                                        <p className="text-xs text-gray-600 mb-0">
+                                            <strong>Why this happens:</strong> WhatsApp detected unusual connection activity and temporarily blocked connections from your device or network.
+                                        </p>
+                                        <p className="text-xs text-gray-600 mb-0">
+                                            <strong>What to do:</strong> Wait a few minutes and try again. If the issue persists, try using a different device or network.
+                                        </p>
+                                    </div>
+                                }
+                                type="error"
+                                showIcon
+                                className="rounded-lg"
+                            />
+                        )}
+
+                        {/* Generic Error Alert */}
+                        {status === 'error' && errorMessage && !errorMessage?.includes('blocked') && (
+                            <Alert
+                                message="Connection Error"
+                                description={errorMessage}
+                                type="error"
+                                showIcon
+                                className="rounded-lg"
+                            />
+                        )}
+
+                        {/* Rate Limit Alert */}
+                        {status === 'rate_limited' && (
+                            <Alert
+                                message="Rate Limit Paused"
+                                description={
+                                    <div className="space-y-2">
+                                        <p className="mb-2">Too many requests detected. WhatsApp checks are paused temporarily.</p>
+                                        <div className="relative w-full bg-gray-300 rounded-full h-2">
+                                            <div 
+                                                className="bg-green-500 h-2 rounded-full transition-all duration-1000"
+                                                style={{ width: `${((30 - rateLimitRetryIn) / 30) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <p className="text-sm font-semibold text-orange-700">
+                                            Resuming in {rateLimitRetryIn}s...
+                                        </p>
+                                        <Button 
+                                            size="small" 
+                                            type="primary" 
+                                            ghost 
+                                            onClick={handleForceReconnect}
+                                            className="mt-1"
+                                        >
+                                            Try Again Now
+                                        </Button>
+                                    </div>
+                                }
+                                type="warning"
+                                showIcon
+                                className="rounded-lg"
+                            />
+                        )}
+
                         {/* Action Buttons */}
-                        <div className="flex justify-center gap-3">
+                        <div className="flex justify-center gap-3 flex-wrap">
                             <Button
                                 icon={<FiRefreshCw />}
                                 onClick={refreshQrCode}
                                 loading={loading}
-                                disabled={status === 'initializing'}
+                                disabled={status === 'initializing' || status === 'rate_limited' || (status === 'waiting' && initializationTime < 90)}
                                 size="large"
                                 className="font-medium"
                             >
                                 Refresh QR
                             </Button>
-                            {(status === 'error' || errorMessage) && (
+                            {(status === 'error' && !errorMessage?.includes('rate limited')) && (
                                 <Button
                                     type="primary"
                                     onClick={handleForceReconnect}
@@ -395,6 +660,18 @@ const WhatsAppConnectModal = ({ visible, onCancel, onConnected, onDisconnected }
                                     className="bg-blue-600 font-medium"
                                 >
                                     Force Reconnect
+                                </Button>
+                            )}
+                            {(status === 'waiting' || status === 'initializing') && initializationTime >= 10 && (
+                                <Button
+                                    type="primary"
+                                    danger
+                                    onClick={handleForceReconnect}
+                                    loading={loading}
+                                    size="large"
+                                    className="font-medium"
+                                >
+                                    Reset & Try Again
                                 </Button>
                             )}
                         </div>

@@ -83,13 +83,12 @@ const LoginPage = () => {
                     );
 
                     // Show message and close tab after delay
-                    setNotification({ message: "✅ Authentication successful! You can close this tab.", type: "success" });
+                    setNotification({ message: "✅ Authentication successful! Return to the extension popup.", type: "success" });
 
                     // Try to close the tab (will only work if opened by extension)
                     setTimeout(() => {
                         window.close();
-                        // If window.close() didn't work, navigate to dashboard
-                        setTimeout(() => navigate("/dashboard"), 500);
+                        // If window.close() didn't work, we just stay here with the success notification
                     }, 2000);
                 } else {
                     setTimeout(() => navigate("/dashboard"), 1000);
