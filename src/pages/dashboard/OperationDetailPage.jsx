@@ -49,6 +49,7 @@ import SaveColdCallsModal from '../../components/dashboard/SaveColdCallsModal';
 import ScreenshotViewer from '../../components/dashboard/ScreenshotViewer';
 import WebsiteCarouselViewer from '../../components/dashboard/WebsiteCarouselViewer';
 import { checkAccessStatus } from '../../api/subscriptionApi';
+import Loader from '../../components/common/Loader';
 
 
 const { Option } = Select;
@@ -126,9 +127,6 @@ const OperationDetailPage = () => {
 
   // Subscription/Trial State
   const [isAuthorized, setIsAuthorized] = useState(true);
-  const [accessType, setAccessType] = useState('trial');
-  const [trialInfo, setTrialInfo] = useState(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
   const [lockedFeature, setLockedFeature] = useState('');
 
@@ -450,12 +448,8 @@ const OperationDetailPage = () => {
     if (!user || !token) return;
 
     const init = async () => {
-      setCheckingAuth(true);
       const status = await checkAccessStatus(user?._id || user?.id, token);
       setIsAuthorized(status.isAuthorized);
-      setAccessType(status.type);
-      setTrialInfo(status.trial);
-      setCheckingAuth(false);
 
       fetchRecord();
       if (status.isAuthorized) {
@@ -849,6 +843,11 @@ const OperationDetailPage = () => {
   };
 
   const exportToCSV = () => {
+    if (!isAuthorized) {
+      setLockedFeature('CSV Export');
+      setIsLockedModalOpen(true);
+      return;
+    }
     if (!filteredData.length) {
       message.warning('No data to export');
       return;
@@ -881,6 +880,11 @@ const OperationDetailPage = () => {
   };
 
   const exportToXLS = () => {
+    if (!isAuthorized) {
+      setLockedFeature('XLS Export');
+      setIsLockedModalOpen(true);
+      return;
+    }
     if (!filteredData.length) {
       message.warning('No data to export');
       return;
@@ -1132,6 +1136,31 @@ const OperationDetailPage = () => {
     },
   ];
 
+  if (loading) {
+    return <Loader />;
+  }
+
+  if (!record) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MdClose size={32} />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Operation Not Found</h2>
+          <p className="text-gray-500 mb-6">The operation data you're looking for could not be found or has been removed.</p>
+          <Button 
+            type="primary" 
+            onClick={() => navigate('/dashboard/operations')}
+            className="h-11 px-8 rounded-xl font-bold border-none bg-primary"
+          >
+            Back to Operations
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Premium Header Section */}
@@ -1155,7 +1184,7 @@ const OperationDetailPage = () => {
                 <div className="flex items-center gap-2 mt-2 text-gray-500">
                   <MdRefresh className="animate-spin-slow" />
                   <span>
-                    {record.leads?.length || 0} leads discovered • {record.updatedAt ? `Synced ${new Date(record.updatedAt).toLocaleDateString()}` : 'Not synced'}
+                    {record?.leads?.length || 0} leads discovered • {record?.updatedAt ? `Synced ${new Date(record.updatedAt).toLocaleDateString()}` : 'Not synced'}
                   </span>
                 </div>
               </div>
@@ -1206,7 +1235,10 @@ const OperationDetailPage = () => {
                 </Button>
                 <Button
                   icon={<MdWeb />}
-                  onClick={() => setIsCarouselOpen(true)}
+                  onClick={() => {
+                    if (!isAuthorized) { setLockedFeature('iFrame View'); setIsLockedModalOpen(true); return; }
+                    setIsCarouselOpen(true);
+                  }}
                   disabled={filteredData.filter(item => item.website).length === 0}
                   className="rounded-lg h-10 px-4 font-medium"
                 >
@@ -1223,7 +1255,10 @@ const OperationDetailPage = () => {
                 </Button>
                 <Button
                   icon={<MdSave />}
-                  onClick={() => setIsSaveModalOpen(true)}
+                  onClick={() => {
+                    if (!isAuthorized) { setLockedFeature('Message Export'); setIsLockedModalOpen(true); return; }
+                    setIsSaveModalOpen(true);
+                  }}
                   disabled={filteredData.filter(item => item.phone && item.leadId).length === 0}
                   className="text-[#0F792C] border-[#0F792C] hover:text-white hover:bg-[#0F792C] rounded-lg h-10 px-4 font-medium"
                 >
@@ -1231,7 +1266,10 @@ const OperationDetailPage = () => {
                 </Button>
                 <Button
                   icon={<MdStar />}
-                  onClick={() => setIsQualifiedLeadsModalOpen(true)}
+                  onClick={() => {
+                    if (!isAuthorized) { setLockedFeature('Save Qualified Leads'); setIsLockedModalOpen(true); return; }
+                    setIsQualifiedLeadsModalOpen(true);
+                  }}
                   disabled={filteredData.length === 0}
                   className="text-amber-600 border-amber-500 hover:text-white hover:bg-amber-500 rounded-lg h-10 px-4 font-medium"
                 >
@@ -1313,7 +1351,10 @@ const OperationDetailPage = () => {
             <Button
               type="primary"
               icon={<BsWhatsapp />}
-              onClick={() => setIsConnectModalOpen(true)}
+              onClick={() => {
+                if (!isAuthorized) { setLockedFeature('WhatsApp Connect'); setIsLockedModalOpen(true); return; }
+                setIsConnectModalOpen(true);
+              }}
               size="large"
               className="bg-[#0F792C] hover:bg-[#0a5a20] border-none"
             >
@@ -1428,7 +1469,7 @@ const OperationDetailPage = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-3">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Unified Location Search
               </label>
               <Input
@@ -1442,7 +1483,7 @@ const OperationDetailPage = () => {
             </div>
             
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 WhatsApp Availability
               </label>
               <Select
@@ -1461,7 +1502,7 @@ const OperationDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Digital Presence
               </label>
               <Select
@@ -1478,7 +1519,7 @@ const OperationDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Lead Interest
               </label>
               <Select
@@ -1499,7 +1540,7 @@ const OperationDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Minimum Rating
               </label>
               <InputNumber
@@ -1515,7 +1556,7 @@ const OperationDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Maximum Rating
               </label>
               <InputNumber
@@ -1531,7 +1572,7 @@ const OperationDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Minimum Engagement (Reviews)
               </label>
               <InputNumber
@@ -1545,7 +1586,7 @@ const OperationDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Maximum Engagement (Reviews)
               </label>
               <InputNumber
@@ -1559,7 +1600,7 @@ const OperationDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Contact Discovery
               </label>
               <Select
@@ -1576,7 +1617,7 @@ const OperationDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Verified Outreach
               </label>
               <Select
@@ -1669,20 +1710,10 @@ const OperationDetailPage = () => {
         open={isLockedModalOpen}
         onClose={() => setIsLockedModalOpen(false)}
         featureName={lockedFeature}
-        accessType={accessType}
-        trialInfo={trialInfo}
-        trialDays={1}
+
       />
 
-      {/* Auth Checking Overlay */}
-      {checkingAuth && (
-        <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
-          <div className="text-center">
-            <Spin size="large" />
-            <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

@@ -2,15 +2,34 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../config/URL";
 import { checkAccessStatus } from "../api/subscriptionApi";
+import axios from "axios";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
-    const [accessStatus, setAccessStatus] = useState({ isAuthorized: false, type: 'trial' });
+    const [accessStatus, setAccessStatus] = useState({ isAuthorized: false, type: 'subscription' });
     const [loading, setLoading] = useState(true);
+    const [activeTeam, setActiveTeam] = useState(null);
     const navigate = useNavigate();
+
+    // Derived effective user state based on active team
+    const effectiveUser = activeTeam ? (activeTeam.owner?._id ? activeTeam.owner : { _id: activeTeam.owner }) : user;
+
+    // Axios interceptor for active team context
+    useEffect(() => {
+        const interceptor = axios.interceptors.request.use((config) => {
+            if (activeTeam && activeTeam._id) {
+                config.headers['x-active-team'] = activeTeam._id;
+            }
+            return config;
+        });
+
+        return () => {
+            axios.interceptors.request.eject(interceptor);
+        };
+    }, [activeTeam]);
 
     // Verify token with backend on mount
     useEffect(() => {
@@ -97,7 +116,7 @@ export const AuthProvider = ({ children }) => {
 
         setUser(null);
         setToken(null);
-        setAccessStatus({ isAuthorized: false, type: 'trial' });
+        setAccessStatus({ isAuthorized: false, type: 'subscription' });
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
@@ -115,17 +134,29 @@ export const AuthProvider = ({ children }) => {
     };
 
     const refreshAccessStatus = async () => {
-        if (user && token) {
+        if (activeTeam && activeTeam.owner) {
+            const ownerId = activeTeam.owner._id || activeTeam.owner;
+            const status = await checkAccessStatus(ownerId, token);
+            setAccessStatus(status);
+        } else if (user && token) {
             const status = await checkAccessStatus(user._id || user.id, token);
             setAccessStatus(status);
         }
     };
+
+    // React to activeTeam changes
+    useEffect(() => {
+        refreshAccessStatus();
+    }, [activeTeam]);
 
     const value = {
         user,
         token,
         accessStatus,
         loading,
+        activeTeam,
+        setActiveTeam,
+        effectiveUser,
         login,
         logout,
         isAuthenticated,

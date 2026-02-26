@@ -7,12 +7,10 @@ import Select from 'react-select';
 import { FaPlus, FaEdit, FaTrash, FaUsers, FaUserPlus, FaArrowRight, FaSignOutAlt } from 'react-icons/fa';
 import { message, Modal, Spin } from 'antd';
 import Loader from '../../components/common/Loader';
-import { checkAccessStatus } from '../../api/subscriptionApi';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
-import { MdLock } from 'react-icons/md';
 
 const TeamPage = () => {
-    const { user, token } = useAuth();
+    const { user, token, accessStatus } = useAuth();
     const navigate = useNavigate();
     const [teams, setTeams] = useState([]);
     const [users, setUsers] = useState([]);
@@ -27,11 +25,8 @@ const TeamPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [memberTeams, setMemberTeams] = useState([]); // Teams where user is a member
 
-    // Subscription/Trial State
-    const [isAuthorized, setIsAuthorized] = useState(true);
-    const [accessType, setAccessType] = useState('trial');
-    const [trialInfo, setTrialInfo] = useState(null);
-    const [checkingAuth, setCheckingAuth] = useState(true);
+    // Subscription State - driven by shared authContext accessStatus
+    const isAuthorized = accessStatus.isAuthorized;
     const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
     const [lockedFeature, setLockedFeature] = useState('');
 
@@ -80,24 +75,8 @@ const TeamPage = () => {
 
     useEffect(() => {
         if (!user || !token) return;
-
-        const init = async () => {
-            setCheckingAuth(true);
-            const status = await checkAccessStatus(user?._id || user?.id, token);
-            setIsAuthorized(status.isAuthorized);
-            setAccessType(status.type);
-            setTrialInfo(status.trial);
-            setCheckingAuth(false);
-
-            if (!status.isAuthorized) {
-                setLockedFeature('Team Management');
-                setIsLockedModalOpen(true);
-            }
-
-            fetchTeams();
-            fetchUsers();
-        };
-        init();
+        fetchTeams();
+        fetchUsers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, token]);
 
@@ -198,6 +177,10 @@ const TeamPage = () => {
     };
 
     const handleMembersChange = (selectedOptions) => {
+        if (selectedOptions && selectedOptions.length > 2) {
+            message.warning('Maximum of 2 sub-accounts allowed per team.');
+            return;
+        }
         setFormData({
             ...formData,
             members: selectedOptions ? selectedOptions.map(opt => opt.value) : []
@@ -249,114 +232,138 @@ const TeamPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-            <div className=" mx-auto">
+        <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto space-y-12 animate-fadeIn">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <FaUsers className="text-primary" />
-                            Team Management
-                        </h1>
-                        <p className="text-gray-600 mt-1">Create and manage your teams</p>
+                        <div className="flex items-center gap-4 mb-2">
+                             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
+                                <FaUsers size={24} />
+                             </div>
+                             <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                                Team Workspace
+                             </h1>
+                        </div>
+                        <p className="text-slate-500 font-medium ml-1">Orchestrate your collaborative efforts and manage permissions</p>
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-md hover:shadow-lg"
+                        className="group flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-2xl hover:bg-primary/90 transition-all duration-300 font-black shadow-xl shadow-primary/30 active:scale-95"
                     >
-                        <FaPlus />
-                        Create Team
+                        <FaPlus className="group-hover:rotate-90 transition-transform duration-300" />
+                        Create New Team
                     </button>
                 </div>
 
                 {/* My Teams Section (Owner) */}
-                <div className="mb-10">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <span className="w-2 h-2 bg-primary rounded-full"></span>
-                        My Teams
-                    </h2>
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                        <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-3">
+                            <span className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary text-xs">01</span>
+                            My Owned Teams
+                        </h2>
+                        <span className="text-slate-500 text-xs font-medium bg-slate-100 px-3 py-1 rounded-full">
+                            {teams.length} Workspace{teams.length !== 1 && 's'}
+                        </span>
+                    </div>
+
                     {teams.length === 0 ? (
-                        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-                            <FaUsers className="mx-auto text-6xl text-gray-300 mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-700 mb-2">No Teams Yet</h3>
-                            <p className="text-gray-500 mb-6">Create your first team to start collaborating with others</p>
-                            <button
-                                onClick={() => handleOpenModal()}
-                                className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-all duration-300"
-                            >
-                                <FaPlus />
-                                Create Your First Team
-                            </button>
+                        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-20 text-center border border-slate-100 relative overflow-hidden group">
+                           <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+                            <div className="relative z-10 max-w-sm mx-auto">
+                                <div className="w-24 h-24 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 mx-auto mb-6 group-hover:text-primary transition-colors duration-500">
+                                    <FaUsers size={48} />
+                                </div>
+                                <h3 className="text-2xl font-black text-slate-800 mb-3">No active teams</h3>
+                                <p className="text-slate-400 font-medium mb-8">Ready to start collaborating? Create your first team and invite your partners to the workspace.</p>
+                                <button
+                                    onClick={() => handleOpenModal()}
+                                    className="inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl hover:bg-slate-800 transition-all duration-300 font-bold shadow-xl shadow-slate-200 active:scale-95"
+                                >
+                                    <FaPlus />
+                                    Launch First Team
+                                </button>
+                            </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {teams.map((team) => (
                                 <div
                                     key={team._id}
-                                    className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
+                                    className="group bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 overflow-hidden border border-slate-100 flex flex-col h-full active:scale-[0.99]"
                                 >
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <h3 className="text-xl font-bold text-gray-900">{team.name}</h3>
-                                            <div className="flex gap-2">
+                                    <div className="p-8 flex-grow">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div className="space-y-1">
+                                                <h3 className="text-2xl font-black text-slate-900 leading-tight group-hover:text-primary transition-colors duration-300">{team.name}</h3>
+                                                <div className="flex items-center gap-2 text-primary font-medium text-xs">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+                                                    Active
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-1">
                                                 <button
-                                                    onClick={() => handleOpenModal(team)}
-                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    onClick={(e) => { e.stopPropagation(); handleOpenModal(team); }}
+                                                    className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                                                     title="Edit Team"
                                                 >
-                                                    <FaEdit />
+                                                    <FaEdit size={16} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(team._id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    onClick={(e) => { e.stopPropagation(); handleDelete(team._id); }}
+                                                    className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                                                     title="Delete Team"
                                                 >
-                                                    <FaTrash />
+                                                    <FaTrash size={14} />
                                                 </button>
                                             </div>
                                         </div>
 
-                                        <div className="mb-4">
-                                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                                                <FaUserPlus />
-                                                <span>{team.members?.length || 0} Members</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Members List */}
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-700">Team Members:</p>
-                                            {team.members?.length > 0 ? (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {team.members.slice(0, 5).map((member) => (
-                                                        <span
-                                                            key={member._id}
-                                                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                                                        >
-                                                            {member.name || member.email}
-                                                        </span>
-                                                    ))}
-                                                    {team.members.length > 5 && (
-                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                                            +{team.members.length - 5} more
-                                                        </span>
-                                                    )}
+                                        <div className="space-y-4 mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500">
+                                                    <FaUserPlus size={12} />
                                                 </div>
-                                            ) : (
-                                                <p className="text-sm text-gray-400 italic">No members added yet</p>
-                                            )}
+                                                <span className="text-sm font-bold text-slate-600">{team.members?.length || 0} Professional{team.members?.length !== 1 && 's'}</span>
+                                            </div>
+                                            
+                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                {team.members?.length > 0 ? (
+                                                    <>
+                                                        {team.members.slice(0, 4).map((member) => (
+                                                            <div
+                                                                key={member._id}
+                                                                className="w-9 h-9 border-2 border-white rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shadow-sm hover:z-10 transition-transform hover:scale-110"
+                                                                title={member.name || member.email}
+                                                            >
+                                                                {(member.name || member.email)?.[0]?.toUpperCase()}
+                                                            </div>
+                                                        ))}
+                                                        {team.members.length > 4 && (
+                                                            <div className="w-9 h-9 border-2 border-white rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
+                                                                +{team.members.length - 4}
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <p className="text-xs text-slate-400 font-medium italic opacity-70">No collaborators added</p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-gray-50 px-6 py-3 border-t border-gray-100 flex justify-between items-center">
-                                        <p className="text-xs text-gray-500">
-                                            Created: {new Date(team.createdAt).toLocaleDateString()}
-                                        </p>
+                                    <div className="bg-slate-50/50 p-6 flex justify-between items-center group-hover:bg-primary/[0.02] transition-colors border-t border-slate-50">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-slate-400 font-medium">Created</span>
+                                            <span className="text-xs font-bold text-slate-700">{new Date(team.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>
+                                        </div>
                                         <button
                                             onClick={() => handleViewTeam(team._id)}
-                                            className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                                            className="group/btn flex items-center gap-2 bg-white text-slate-700 px-5 py-3 rounded-2xl border border-slate-200 hover:border-primary hover:text-primary font-semibold text-sm transition-all duration-300 shadow-sm"
                                         >
-                                            View Team <FaArrowRight className="text-xs" />
+                                            Open Workspace
+                                            <FaArrowRight className="group-hover/btn:translate-x-1 transition-transform" size={10} />
                                         </button>
                                     </div>
                                 </div>
@@ -367,83 +374,78 @@ const TeamPage = () => {
 
                 {/* Teams I'm In Section (Member) */}
                 {memberTeams.length > 0 && (
-                    <div className="mb-10">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            Teams I'm In
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-6 pt-6">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                            <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-3">
+                                <span className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-600 text-xs">02</span>
+                                Shared Workspaces
+                            </h2>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {memberTeams.map((team) => (
                                 <div
                                     key={team._id}
-                                    className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-blue-100"
+                                    className="group bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 overflow-hidden border border-blue-50 flex flex-col h-full active:scale-[0.99]"
                                 >
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <h3 className="text-xl font-bold text-gray-900">{team.name}</h3>
-                                            <div className="flex items-center gap-2">
-                                                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                                                    Member
-                                                </span>
-                                                <button
-                                                    onClick={() => handleLeaveTeam(team)}
-                                                    className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                                                    title="Leave Team"
-                                                >
-                                                    <FaSignOutAlt />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="mb-4">
-                                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                                                <FaUserPlus />
-                                                <span>{team.members?.length || 0} Members</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                <FaUsers />
-                                                <span>Owner: {team.owner?.name || team.owner?.email || 'Unknown'}</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Members List */}
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-700">Team Members:</p>
-                                            {team.members?.length > 0 ? (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {team.members.slice(0, 5).map((member) => (
-                                                        <span
-                                                            key={member._id}
-                                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${member._id === user._id
-                                                                ? 'bg-blue-100 text-blue-700'
-                                                                : 'bg-primary/10 text-primary'
-                                                                }`}
-                                                        >
-                                                            {member.name || member.email}
-                                                            {member._id === user._id && ' (You)'}
-                                                        </span>
-                                                    ))}
-                                                    {team.members.length > 5 && (
-                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                                            +{team.members.length - 5} more
-                                                        </span>
-                                                    )}
+                                    <div className="p-8 flex-grow">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div className="space-y-1">
+                                                <h3 className="text-2xl font-black text-slate-900 leading-tight group-hover:text-blue-600 transition-colors duration-300">{team.name}</h3>
+                                                <div className="flex items-center gap-2 text-blue-500 font-medium text-xs">
+                                                    Guest Contributor
                                                 </div>
-                                            ) : (
-                                                <p className="text-sm text-gray-400 italic">No members added yet</p>
+                                            </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleLeaveTeam(team); }}
+                                                className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all"
+                                                title="Leave Team"
+                                            >
+                                                <FaSignOutAlt size={16} />
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-3 mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-50/50 flex items-center justify-center text-blue-400">
+                                                    <FaUsers size={12} />
+                                                </div>
+                                                <span className="text-sm font-bold text-slate-600">Managed by {team.owner?.name || team.owner?.email?.split('@')[0]}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2">
+                                            {team.members?.slice(0, 3).map((member) => (
+                                                <div
+                                                    key={member._id}
+                                                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider ${member._id === user._id
+                                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                                                        : 'bg-slate-50 text-slate-500'
+                                                        }`}
+                                                >
+                                                    {member.name || member.email?.split('@')[0]}
+                                                    {member._id === user._id && ' (You)'}
+                                                </div>
+                                            ))}
+                                            {team.members?.length > 3 && (
+                                                <span className="px-3 py-1.5 text-[10px] font-black text-slate-400">+{team.members.length - 3}</span>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="bg-blue-50 px-6 py-3 border-t border-blue-100 flex justify-between items-center">
-                                        <p className="text-xs text-gray-500">
-                                            Created: {new Date(team.createdAt).toLocaleDateString()}
-                                        </p>
+                                    <div className="bg-blue-50/30 p-6 flex justify-between items-center group-hover:bg-blue-500/[0.01] transition-colors border-t border-blue-50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center text-blue-500 font-semibold text-xs">
+                                                {team.members?.length || 0}
+                                            </div>
+                                            <span className="text-xs font-medium text-slate-500">Members</span>
+                                        </div>
                                         <button
                                             onClick={() => handleViewTeam(team._id)}
-                                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                                            className="group/btn flex items-center gap-2 bg-white text-blue-600 px-5 py-3 rounded-2xl border border-blue-100 hover:bg-blue-600 hover:text-white font-semibold text-sm transition-all duration-300 shadow-sm"
                                         >
-                                            View Team <FaArrowRight className="text-xs" />
+                                            Enter Dashboard
+                                            <FaArrowRight className="group-hover/btn:translate-x-1 transition-transform" size={10} />
                                         </button>
                                     </div>
                                 </div>
@@ -455,9 +457,16 @@ const TeamPage = () => {
                 {/* Create/Edit Modal */}
                 <Modal
                     title={
-                        <div className="flex items-center gap-2 text-lg font-semibold">
-                            {isEditMode ? <FaEdit className="text-blue-600" /> : <FaPlus className="text-green-600" />}
-                            {isEditMode ? 'Edit Team' : 'Create New Team'}
+                        <div className="flex items-center gap-4 py-2">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${isEditMode ? 'bg-blue-50 text-blue-600 shadow-blue-100' : 'bg-green-50 text-green-600 shadow-green-100'}`}>
+                                {isEditMode ? <FaEdit size={24} /> : <FaPlus size={24} />}
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                                    {isEditMode ? 'Refine Team' : 'New Workspace'}
+                                </h2>
+                                <p className="text-slate-400 text-xs font-medium italic mt-0.5">Define your collaboration boundaries</p>
+                            </div>
                         </div>
                     }
                     open={isModalOpen}
@@ -465,88 +474,114 @@ const TeamPage = () => {
                     footer={null}
                     width={600}
                     centered
+                    className="premium-modal"
+                    transitionName="ant-zoom"
+                    maskClosable={false}
                 >
-                    <div className="py-4 space-y-6">
+                    <div className="py-6 space-y-8">
                         {/* Team Name */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Team Name <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="Enter team name"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                            />
+                            <div className="flex items-center justify-between mb-2 px-1">
+                                <label className="text-sm font-semibold text-slate-600">
+                                    Team Name
+                                </label>
+                                <span className="text-xs font-medium text-red-400">Required</span>
+                            </div>
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="e.g. Apollo Strategy Team"
+                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-primary/50 outline-none transition-all font-bold text-slate-800 placeholder:text-slate-300 shadow-inner group-hover:bg-slate-100/50"
+                                />
+                            </div>
                         </div>
 
                         {/* Members Selection */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Invite Members
-                            </label>
+                             <div className="flex items-center justify-between mb-2 px-1">
+                                <label className="text-sm font-semibold text-slate-600">
+                                    Add Members
+                                </label>
+                            </div>
                             <Select
                                 isMulti
                                 options={userOptions}
                                 value={userOptions.filter(opt => formData.members.includes(opt.value))}
                                 onChange={handleMembersChange}
-                                placeholder="Select users to invite..."
+                                placeholder="Search by name or email..."
                                 className="react-select-container"
                                 classNamePrefix="react-select"
-                                noOptionsMessage={() => "No users found"}
                                 styles={{
                                     control: (base, state) => ({
                                         ...base,
-                                        borderColor: state.isFocused ? '#0F792C' : '#d1d5db',
-                                        boxShadow: state.isFocused ? '0 0 0 2px rgba(15, 121, 44, 0.2)' : 'none',
+                                        borderRadius: '1rem',
+                                        borderWidth: '2px',
+                                        backgroundColor: '#f8fafc',
+                                        borderColor: state.isFocused ? 'rgba(15, 121, 44, 0.4)' : '#f8fafc',
+                                        padding: '0.6rem',
+                                        boxShadow: 'none',
+                                        transition: 'all 0.3s ease',
                                         '&:hover': {
-                                            borderColor: '#0F792C'
-                                        },
-                                        padding: '4px'
+                                            borderColor: 'rgba(15, 121, 44, 0.2)'
+                                        }
                                     }),
                                     multiValue: (base) => ({
                                         ...base,
-                                        backgroundColor: 'rgba(15, 121, 44, 0.1)',
-                                        borderRadius: '6px'
+                                        backgroundColor: '#E7F2EA',
+                                        borderRadius: '0.75rem',
+                                        padding: '2px 8px'
                                     }),
                                     multiValueLabel: (base) => ({
                                         ...base,
                                         color: '#0F792C',
-                                        fontWeight: '500'
+                                        fontWeight: '800',
+                                        fontSize: '11px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.025em'
                                     }),
                                     multiValueRemove: (base) => ({
                                         ...base,
                                         color: '#0F792C',
                                         '&:hover': {
                                             backgroundColor: '#0F792C',
-                                            color: 'white'
+                                            color: 'white',
+                                            borderRadius: '6px'
                                         }
                                     }),
                                     option: (base, state) => ({
                                         ...base,
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        padding: '12px 16px',
                                         backgroundColor: state.isSelected
                                             ? '#0F792C'
                                             : state.isFocused
-                                                ? 'rgba(15, 121, 44, 0.1)'
+                                                ? 'rgba(15, 121, 44, 0.05)'
                                                 : 'white',
-                                        color: state.isSelected ? 'white' : '#374151',
+                                        color: state.isSelected ? 'white' : '#1e293b',
                                         '&:active': {
                                             backgroundColor: '#0F792C'
                                         }
+                                    }),
+                                    menu: (base) => ({
+                                        ...base,
+                                        borderRadius: '1.25rem',
+                                        boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                                        border: '1px solid #f1f5f9',
+                                        marginTop: '8px',
+                                        overflow: 'hidden'
                                     })
                                 }}
                             />
-                            <p className="text-xs text-gray-500 mt-2">
-                                You can select multiple users to add to your team
-                            </p>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex justify-end gap-3 pt-4 border-t">
+                        <div className="flex gap-4 pt-6 border-t border-slate-50">
                             <button
                                 onClick={handleCloseModal}
-                                className="px-6 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                                className="flex-1 px-6 py-4 text-slate-500 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all font-semibold text-sm active:scale-95"
                                 disabled={submitting}
                             >
                                 Cancel
@@ -554,17 +589,16 @@ const TeamPage = () => {
                             <button
                                 onClick={handleSubmit}
                                 disabled={submitting}
-                                className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium flex items-center gap-2 disabled:opacity-50"
+                                className="flex-[1.5] px-6 py-4 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-all font-semibold text-sm flex items-center justify-center gap-3 shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50"
                             >
                                 {submitting ? (
                                     <>
-                                        <Spin size="small" />
+                                        <Spin size="small" className="text-white" />
                                         Saving...
                                     </>
                                 ) : (
                                     <>
-                                        {isEditMode ? <FaEdit /> : <FaPlus />}
-                                        {isEditMode ? 'Update Team' : 'Create Team'}
+                                        {isEditMode ? <><FaEdit size={16} /> Update Team</> : <><FaPlus size={16} /> Create Team</>}
                                     </>
                                 )}
                             </button>
@@ -577,20 +611,10 @@ const TeamPage = () => {
                 open={isLockedModalOpen}
                 onClose={() => setIsLockedModalOpen(false)}
                 featureName={lockedFeature}
-                accessType={accessType}
-                trialInfo={trialInfo}
-                trialDays={1}
+
             />
 
-            {/* Auth Checking Overlay */}
-            {checkingAuth && (
-                <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
-                    <div className="text-center">
-                        <Spin size="large" />
-                        <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 };
