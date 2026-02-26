@@ -38,8 +38,8 @@ const QualifiedLeadsFilters = ({
                     />
                 </div>
 
-                {/* Row 1: WhatsApp Status & Has Website */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Row 1: WhatsApp Status, Has Website, Has Phone */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             WhatsApp Status
@@ -71,10 +71,25 @@ const QualifiedLeadsFilters = ({
                             <Option value="no">No Website</Option>
                         </Select>
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-2">
+                            Has Phone Number
+                        </label>
+                        <Select
+                            placeholder="Filter by phone"
+                            style={{ width: '100%' }}
+                            value={filters.hasPhone || undefined}
+                            onChange={(value) => updateFilter('hasPhone', value || '')}
+                            allowClear
+                        >
+                            <Option value="yes">Has Phone</Option>
+                            <Option value="no">No Phone</Option>
+                        </Select>
+                    </div>
                 </div>
 
-                {/* Row 2: Rating */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Row 2: Rating Min, Rating Max, Has Verified WhatsApp */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             Rating (min)
@@ -103,10 +118,29 @@ const QualifiedLeadsFilters = ({
                             onChange={(value) => updateFilter('ratingMax', value ?? null)}
                         />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-2">
+                            Has Verified WhatsApp
+                        </label>
+                        <Select
+                            placeholder="Filter by verified WhatsApp"
+                            style={{ width: '100%' }}
+                            value={filters.hasVerifiedWhatsApp || undefined}
+                            onChange={(value) => updateFilter('hasVerifiedWhatsApp', value || '')}
+                            allowClear
+                        >
+                            <Option value="yes">
+                                <span className="flex items-center gap-2">
+                                    <BsWhatsapp className="text-green-500" /> Has Verified WhatsApp
+                                </span>
+                            </Option>
+                            <Option value="no">No Verified WhatsApp</Option>
+                        </Select>
+                    </div>
                 </div>
 
-                {/* Row 3: Reviews */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Row 3: Reviews Min, Reviews Max, Favorites */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             Reviews (min)
@@ -131,48 +165,6 @@ const QualifiedLeadsFilters = ({
                             onChange={(value) => updateFilter('reviewsMax', value ?? null)}
                         />
                     </div>
-                </div>
-
-                {/* Row 4: Has Phone & Has Verified WhatsApp */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">
-                            Has Phone Number
-                        </label>
-                        <Select
-                            placeholder="Filter by phone"
-                            style={{ width: '100%' }}
-                            value={filters.hasPhone || undefined}
-                            onChange={(value) => updateFilter('hasPhone', value || '')}
-                            allowClear
-                        >
-                            <Option value="yes">Has Phone</Option>
-                            <Option value="no">No Phone</Option>
-                        </Select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">
-                            Has Verified WhatsApp
-                        </label>
-                        <Select
-                            placeholder="Filter by verified WhatsApp"
-                            style={{ width: '100%' }}
-                            value={filters.hasVerifiedWhatsApp || undefined}
-                            onChange={(value) => updateFilter('hasVerifiedWhatsApp', value || '')}
-                            allowClear
-                        >
-                            <Option value="yes">
-                                <span className="flex items-center gap-2">
-                                    <BsWhatsapp className="text-green-500" /> Has Verified WhatsApp
-                                </span>
-                            </Option>
-                            <Option value="no">No Verified WhatsApp</Option>
-                        </Select>
-                    </div>
-                </div>
-
-                {/* Row 5: Favorites & Call Status */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             Favorites
@@ -192,6 +184,10 @@ const QualifiedLeadsFilters = ({
                             <Option value="no">Not Favorites</Option>
                         </Select>
                     </div>
+                </div>
+
+                {/* Row 4: Call Status, Message Status, Lead Status */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             Call Status
@@ -213,10 +209,6 @@ const QualifiedLeadsFilters = ({
                             <Option value="not-interested">Not Interested</Option>
                         </Select>
                     </div>
-                </div>
-
-                {/* Row 6: Message Status & Lead Status */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             Message Status

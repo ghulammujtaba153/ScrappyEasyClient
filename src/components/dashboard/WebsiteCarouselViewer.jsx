@@ -87,11 +87,11 @@ const WebsiteCarouselViewer = ({ isOpen, onClose, websites = [], initialIndex = 
                     </div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Premium Feature</h2>
                     <p className="text-gray-600 mb-8">
-                        The live website preview is a premium feature. Please upgrade your plan or start a trial to unlock it.
+                        The live website preview is a premium feature. Please upgrade your plan to unlock it.
                     </p>
                     <div className="flex gap-4">
                         <Button className="flex-1" onClick={onClose}>Close</Button>
-                        <Button type="primary" className="flex-1 bg-[#0F792C]" href="/billing">Upgrade</Button>
+                        <Button type="primary" className="flex-1 bg-[#0F792C]" href="/dashboard/support">Upgrade</Button>
                     </div>
                 </div>
             </div>

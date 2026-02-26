@@ -29,8 +29,6 @@ const ColdCallerDetailPage = () => {
 
   // Subscription/Trial State
   const [isAuthorized, setIsAuthorized] = useState(true);
-  const [accessType, setAccessType] = useState('trial');
-  const [trialInfo, setTrialInfo] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
   const [lockedFeature, setLockedFeature] = useState('');
@@ -102,8 +100,6 @@ const ColdCallerDetailPage = () => {
       setCheckingAuth(true);
       const status = await checkAccessStatus(user?._id || user?.id, token);
       setIsAuthorized(status.isAuthorized);
-      setAccessType(status.type);
-      setTrialInfo(status.trial);
       setCheckingAuth(false);
 
       fetchCampaignData();
@@ -576,9 +572,7 @@ const ColdCallerDetailPage = () => {
         open={isLockedModalOpen}
         onClose={() => setIsLockedModalOpen(false)}
         featureName={lockedFeature}
-        accessType={accessType}
-        trialInfo={trialInfo}
-        trialDays={1}
+
       />
 
       {/* Auth Checking Overlay */}

@@ -97,9 +97,6 @@ const QualifiedLeadsDetailPage = () => {
 
     // Subscription/Trial State
     const [isAuthorized, setIsAuthorized] = useState(true);
-    const [accessType, setAccessType] = useState('trial');
-    const [trialInfo, setTrialInfo] = useState(null);
-    const [checkingAuth, setCheckingAuth] = useState(true);
     const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
     const [lockedFeature, setLockedFeature] = useState('');
 
@@ -177,12 +174,8 @@ const QualifiedLeadsDetailPage = () => {
         if (!user || !token) return;
 
         const init = async () => {
-            setCheckingAuth(true);
             const status = await checkAccessStatus(user?._id || user?.id, token);
             setIsAuthorized(status.isAuthorized);
-            setAccessType(status.type);
-            setTrialInfo(status.trial);
-            setCheckingAuth(false);
 
             fetchLeadDetails();
             fetchRemainingMessages();
@@ -434,6 +427,11 @@ const QualifiedLeadsDetailPage = () => {
     const notMessagedLeads = leadsWithPhone.filter(d => d.messageStatus === 'not-sent');
 
     const exportToCSV = () => {
+        if (!isAuthorized) {
+            setLockedFeature('CSV Export');
+            setIsLockedModalOpen(true);
+            return;
+        }
         if (!filteredTableData.length) {
             message.warning('No data to export');
             return;
@@ -1018,9 +1016,18 @@ const QualifiedLeadsDetailPage = () => {
                 filteredDataLength={filteredTableData.length}
                 onBack={() => navigate('/dashboard/qualified-leads')}
                 onRefresh={fetchLeadDetails}
-                onExportCSV={exportToCSV}
-                onCreateColdCallCampaign={() => setColdCallModalVisible(true)}
-                onCreateMessageCampaign={() => setMessageModalVisible(true)}
+                onExportCSV={() => {
+                    if (!isAuthorized) { setLockedFeature('CSV Export'); setIsLockedModalOpen(true); return; }
+                    exportToCSV();
+                }}
+                onCreateColdCallCampaign={() => {
+                    if (!isAuthorized) { setLockedFeature('Cold Call Campaign'); setIsLockedModalOpen(true); return; }
+                    setColdCallModalVisible(true);
+                }}
+                onCreateMessageCampaign={() => {
+                    if (!isAuthorized) { setLockedFeature('Message Campaign'); setIsLockedModalOpen(true); return; }
+                    setMessageModalVisible(true);
+                }}
                 onShowDialer={() => {
                     if (!isAuthorized) {
                         setLockedFeature('Dialer');
@@ -1055,36 +1062,52 @@ const QualifiedLeadsDetailPage = () => {
                 totalCount={tableData.length}
             />
 
-            {/* WhatsApp Connection Status Bar */}
-            <div className={`rounded-xl p-4 border ${whatsappInitialized
-                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
-                : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'}`}>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${whatsappInitialized ? 'bg-[#25D366]' : 'bg-gray-300'
-                            }`}>
-                            <MdMessage className="text-white text-lg" />
+            {/* WhatsApp Connection Status */}
+            <div className={`rounded-2xl overflow-hidden border transition-all duration-300 ${
+                whatsappInitialized
+                    ? 'border-green-200 shadow-sm shadow-green-100'
+                    : 'border-gray-200 shadow-sm'
+            }`}>
+                <div className={`px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
+                    whatsappInitialized
+                        ? 'bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50'
+                        : 'bg-gradient-to-r from-gray-50 via-slate-50 to-gray-50'
+                }`}>
+                    <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+                            whatsappInitialized
+                                ? 'bg-[#25D366] shadow-green-200'
+                                : 'bg-gray-300'
+                        }`}>
+                            <MdMessage className="text-white text-xl" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className={`font-semibold ${whatsappInitialized ? 'text-green-700' : 'text-gray-600'}`}>
-                                    WhatsApp {whatsappInitialized ? 'Connected' : 'Not Connected'}
+                                <span className={`font-bold text-base ${
+                                    whatsappInitialized ? 'text-green-800' : 'text-gray-700'
+                                }`}>
+                                    {whatsappInitialized ? 'WhatsApp Connected' : 'WhatsApp Not Connected'}
                                 </span>
                                 {whatsappInitialized && (
-                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
                                 )}
                             </div>
-                            {whatsappInitialized && connectedPhoneNumber ? (
-                                <p className="text-sm text-green-600 font-medium m-0">{connectedPhoneNumber}</p>
-                            ) : !whatsappInitialized && (
-                                <p className="text-xs text-gray-500 m-0">Connect to send messages</p>
-                            )}
+                            <p className={`text-sm m-0 mt-0.5 ${
+                                whatsappInitialized ? 'text-green-600' : 'text-gray-500'
+                            }`}>
+                                {whatsappInitialized && connectedPhoneNumber
+                                    ? connectedPhoneNumber
+                                    : !whatsappInitialized
+                                        ? 'Connect your WhatsApp to send messages and verify numbers'
+                                        : 'Ready to send messages'
+                                }
+                            </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         {whatsappInitialized ? (
                             <>
-                                <Tag color="green" className="m-0">
+                                <Tag color="green" className="m-0 rounded-lg px-3 py-1 font-semibold text-xs">
                                     {remainingMessages} messages left today
                                 </Tag>
                                 <Button
@@ -1093,6 +1116,7 @@ const QualifiedLeadsDetailPage = () => {
                                     onClick={handleDisconnectWhatsApp}
                                     loading={disconnecting}
                                     icon={<MdClose />}
+                                    className="rounded-lg"
                                 >
                                     Disconnect
                                 </Button>
@@ -1100,9 +1124,8 @@ const QualifiedLeadsDetailPage = () => {
                         ) : (
                             <Button
                                 type="primary"
-                                size="small"
                                 onClick={handleConnectWhatsAppClick}
-                                style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
+                                className="bg-[#25D366] hover:bg-[#128C7E] border-none rounded-xl font-bold px-6 h-10 shadow-md shadow-green-200/50"
                                 icon={<MdMessage />}
                             >
                                 Connect WhatsApp
@@ -1180,20 +1203,10 @@ const QualifiedLeadsDetailPage = () => {
                 open={isLockedModalOpen}
                 onClose={() => setIsLockedModalOpen(false)}
                 featureName={lockedFeature}
-                accessType={accessType}
-                trialInfo={trialInfo}
-                trialDays={1}
+
             />
 
-            {/* Auth Checking Overlay */}
-            {checkingAuth && (
-                <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
-                    <div className="text-center">
-                        <Spin size="large" />
-                        <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 };

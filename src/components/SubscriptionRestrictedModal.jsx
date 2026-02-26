@@ -18,9 +18,6 @@ const SubscriptionRestrictedModal = ({
     open,
     onClose,
     featureName,
-    accessType,
-    trialInfo,
-    trialDays = 1
 }) => {
     const navigate = useNavigate();
 
@@ -34,6 +31,9 @@ const SubscriptionRestrictedModal = ({
             }
             open={open}
             onCancel={onClose}
+            styles={{
+                mask: { backgroundColor: 'rgba(0, 0, 0, 0.25)', backdropFilter: 'blur(2px)' },
+            }}
             footer={[
                 <Button key="close" onClick={onClose}>
                     Close
@@ -54,9 +54,7 @@ const SubscriptionRestrictedModal = ({
             <div className="py-4">
                 <p className="text-gray-600 mb-4">
                     The <strong>{featureName}</strong> feature is part of our premium plans.
-                    {accessType === 'trial' && trialInfo?.status === 'Expired'
-                        ? ` Your ${trialDays}-day free trial has expired.`
-                        : " Please subscribe to unlock this feature."}
+                    Please subscribe to unlock this feature.
                 </p>
                 <Alert
                     message="Premium Feature"
