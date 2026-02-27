@@ -229,7 +229,7 @@ const TeamDetailPage = () => {
         try {
             const res = await axios.post(
                 `${BASE_URL}/api/verification/check`,
-                { phoneNumbers, teamId: id },
+                { phoneNumbers, teamId: id, userId: user?._id || user?.id },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -807,7 +807,7 @@ const TeamDetailPage = () => {
                                 className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-white border-2 border-green-500 text-green-600 px-6 py-3.5 rounded-2xl hover:bg-green-500 hover:text-white transition-all duration-300 font-bold shadow-sm"
                             >
                                 <MdCheckCircle size={20} />
-                                Smart Verify
+                                Whatsapp Verify
                             </button>
                             <button
                                 onClick={() => { if (!requireSubscription('Dialer')) return; handleOpenDialer(); }}
