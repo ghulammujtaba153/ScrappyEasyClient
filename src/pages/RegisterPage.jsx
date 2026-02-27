@@ -23,14 +23,11 @@ const RegisterPage = () => {
     }, []);
     const [form, setForm] = useState({
         name: "",
-        phone: "",
-        phoneCountry: "",
         email: "",
+        country: "",
+        aboutUser: "",
         password: "",
         confirmPassword: "",
-        address: "",
-        city: "",
-        country: "",
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
@@ -45,12 +42,7 @@ const RegisterPage = () => {
         }
     };
 
-    const handlePhoneChange = (value, country) => {
-        setForm({ ...form, phone: value, phoneCountry: country.name });
-        if (errors.phone) {
-            setErrors({ ...errors, phone: "" });
-        }
-    };
+    // Phone removed
 
     const handleCountryChange = (selectedOption) => {
         setForm({ ...form, country: selectedOption ? selectedOption.value : "" });
@@ -72,20 +64,12 @@ const RegisterPage = () => {
             newErrors.email = "Email is invalid";
         }
 
-        if (!form.phone) {
-            newErrors.phone = "Phone number is required";
-        }
-
-        if (!form.address.trim()) {
-            newErrors.address = "Address is required";
-        }
-
-        if (!form.city.trim()) {
-            newErrors.city = "City is required";
-        }
-
         if (!form.country.trim()) {
             newErrors.country = "Country is required";
+        }
+
+        if (!form.aboutUser.trim()) {
+            newErrors.aboutUser = "About User is required";
         }
 
         if (!form.password) {
@@ -163,11 +147,8 @@ const RegisterPage = () => {
                 body: JSON.stringify({
                     name: form.name,
                     email: form.email,
-                    phone: form.phone,
-                    phoneCountry: form.phoneCountry,
-                    address: form.address,
-                    city: form.city,
                     country: form.country,
+                    aboutUser: form.aboutUser,
                     password: form.password,
                 }),
             });
@@ -252,8 +233,7 @@ const RegisterPage = () => {
                                         value={form.name}
                                         onChange={handleChange}
                                         placeholder="Enter your full name"
-                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.name ? "border-red-500" : "border-gray-300"
-                                            }`}
+                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.name ? "border-red-500" : "border-gray-300"}`}
                                     />
                                     {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                                 </div>
@@ -270,90 +250,9 @@ const RegisterPage = () => {
                                         value={form.email}
                                         onChange={handleChange}
                                         placeholder="Enter your email"
-                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.email ? "border-red-500" : "border-gray-300"
-                                            }`}
+                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.email ? "border-red-500" : "border-gray-300"}`}
                                     />
                                     {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-                                </div>
-
-                                {/* Phone */}
-                                <div>
-                                    <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Phone Number
-                                    </label>
-                                    <PhoneInput
-                                        country={"us"}
-                                        value={form.phone}
-                                        onChange={handlePhoneChange}
-                                        inputClass={errors.phone ? "!border-red-500" : ""}
-                                        containerClass="w-full"
-                                        inputStyle={{
-                                            width: "100%",
-                                            height: "48px",
-                                            fontSize: "14px",
-                                            borderRadius: "8px",
-                                            border: errors.phone ? "2px solid #ef4444" : "2px solid #d1d5db",
-                                        }}
-                                        buttonStyle={{
-                                            borderRadius: "8px 0 0 8px",
-                                            border: errors.phone ? "2px solid #ef4444" : "2px solid #d1d5db",
-                                            borderRight: "none",
-                                        }}
-                                    />
-                                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-                                </div>
-
-                                {/* City */}
-                                <div>
-                                    <label htmlFor="city" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        City
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="city"
-                                        name="city"
-                                        value={form.city}
-                                        onChange={handleChange}
-                                        placeholder="Enter your city"
-                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.city ? "border-red-500" : "border-gray-300"
-                                            }`}
-                                    />
-                                    {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
-                                </div>
-
-                                {/* Country */}
-                                <div>
-                                    <label htmlFor="country" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Country
-                                    </label>
-                                    <Select
-                                        id="country"
-                                        options={countryOptions}
-                                        value={countryOptions.find(option => option.value === form.country)}
-                                        onChange={handleCountryChange}
-                                        placeholder="Select your country"
-                                        isClearable
-                                        isSearchable
-                                        className={errors.country ? "react-select-error" : ""}
-                                        styles={{
-                                            control: (base) => ({
-                                                ...base,
-                                                minHeight: '48px',
-                                                borderWidth: '2px',
-                                                borderColor: errors.country ? '#ef4444' : '#d1d5db',
-                                                borderRadius: '8px',
-                                                '&:hover': {
-                                                    borderColor: errors.country ? '#ef4444' : '#d1d5db'
-                                                },
-                                                boxShadow: 'none',
-                                            }),
-                                            valueContainer: (base) => ({
-                                                ...base,
-                                                padding: '8px 16px'
-                                            })
-                                        }}
-                                    />
-                                    {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
                                 </div>
 
                                 {/* Password */}
@@ -369,8 +268,7 @@ const RegisterPage = () => {
                                             value={form.password}
                                             onChange={handleChange}
                                             placeholder="Enter your password"
-                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.password ? "border-red-500" : "border-gray-300"
-                                                }`}
+                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.password ? "border-red-500" : "border-gray-300"}`}
                                         />
                                         <button
                                             type="button"
@@ -396,8 +294,7 @@ const RegisterPage = () => {
                                             value={form.confirmPassword}
                                             onChange={handleChange}
                                             placeholder="Confirm your password"
-                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.confirmPassword ? "border-red-500" : "border-gray-300"
-                                                }`}
+                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.confirmPassword ? "border-red-500" : "border-gray-300"}`}
                                         />
                                         <button
                                             type="button"
@@ -411,25 +308,61 @@ const RegisterPage = () => {
                                         <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
                                     )}
                                 </div>
+
+                                {/* Country */}
+                                <div>
+                                    <label htmlFor="country" className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Country
+                                    </label>
+                                    <Select
+                                        id="country"
+                                        options={countryOptions}
+                                        value={countryOptions.find(option => option.value === form.country)}
+                                        onChange={handleCountryChange}
+                                        placeholder="Select your country"
+                                        isClearable
+                                        isSearchable
+                                        className={errors.country ? "react-select-error" : ""}
+                                        styles={{
+                                            control: (base, state) => ({
+                                                ...base,
+                                                minHeight: '48px',
+                                                borderWidth: '2px',
+                                                borderColor: errors.country ? '#ef4444' : state.isFocused ? '#6366f1' : '#d1d5db',
+                                                boxShadow: state.isFocused ? '0 0 0 2px #6366f1' : 'none',
+                                                borderRadius: '8px',
+                                                '&:hover': {
+                                                    borderColor: errors.country ? '#ef4444' : '#6366f1'
+                                                },
+                                            }),
+                                            valueContainer: (base) => ({
+                                                ...base,
+                                                padding: '8px 16px'
+                                            })
+                                        }}
+                                    />
+                                    {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
+                                </div>
                             </div>
 
-                            {/* Address - Full Width */}
+                            {/* About User - separate row at end */}
                             <div>
-                                <label htmlFor="address" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Address
+                                <label htmlFor="aboutUser" className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Tell us about your industry and how data helps you in your goals (eg: "I run an e-commerce store and use data to optimize my marketing campaigns and inventory management.")
                                 </label>
                                 <textarea
-                                    id="address"
-                                    name="address"
-                                    value={form.address}
+                                    id="aboutUser"
+                                    name="aboutUser"
+                                    value={form.aboutUser}
                                     onChange={handleChange}
-                                    placeholder="Enter your full address"
-                                    rows="2"
-                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${errors.address ? "border-red-500" : "border-gray-300"
-                                        }`}
+                                    placeholder="Tell us about yourself"
+                                    rows="4"
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none ${errors.aboutUser ? "border-red-500" : "border-gray-300"}`}
                                 />
-                                {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                                {errors.aboutUser && <p className="text-red-500 text-xs mt-1">{errors.aboutUser}</p>}
                             </div>
+
+                            {/* Address removed */}
 
                             <button
                                 type="submit"
