@@ -502,6 +502,7 @@ const OperationDetailPage = () => {
 
     try {
       const res = await axios.post(`${BASE_URL}/api/verification/check`, {
+        userId: user?._id || user?.id,
         phoneNumbers: [normalized],
         operationId: operationId
       }, {
@@ -580,6 +581,7 @@ const OperationDetailPage = () => {
     try {
       // Send batch request with operationId
       const res = await axios.post(`${BASE_URL}/api/verification/check`, {
+        userId: user?._id || user?.id,
         phoneNumbers: formattedList,
         operationId: operationId
       }, {
