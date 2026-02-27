@@ -1192,22 +1192,22 @@ const OperationDetailPage = () => {
               </div>
 
               {verificationStats.total > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white/50 backdrop-blur-sm p-3 rounded-xl border border-gray-100 shadow-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xlg:grid-cols-4 gap-3">
+                  <div className="bg-white/50 backdrop-blur-sm p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-20">
                     <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Total Leads</p>
-                    <p className="text-xl font-bold text-gray-900">{verificationStats.total}</p>
+                    <p className="text-xl font-bold text-gray-900 mt-auto">{verificationStats.total}</p>
                   </div>
-                  <div className="bg-green-50/50 backdrop-blur-sm p-3 rounded-xl border border-green-100 shadow-sm">
+                  <div className="bg-green-50/50 backdrop-blur-sm p-3 rounded-xl border border-green-100 shadow-sm flex flex-col justify-between h-20">
                     <p className="text-[10px] uppercase tracking-wider text-green-600 font-bold">Verified</p>
-                    <p className="text-xl font-bold text-green-700">{verificationStats.verified}</p>
+                    <p className="text-xl font-bold text-green-700 mt-auto">{verificationStats.verified}</p>
                   </div>
-                  <div className="bg-red-50/50 backdrop-blur-sm p-3 rounded-xl border border-red-100 shadow-sm">
+                  <div className="bg-red-50/50 backdrop-blur-sm p-3 rounded-xl border border-red-100 shadow-sm flex flex-col justify-between h-20">
                     <p className="text-[10px] uppercase tracking-wider text-red-600 font-bold">No WhatsApp</p>
-                    <p className="text-xl font-bold text-red-700">{verificationStats.notVerified}</p>
+                    <p className="text-xl font-bold text-red-700 mt-auto">{verificationStats.notVerified}</p>
                   </div>
-                  <div className="bg-orange-50/50 backdrop-blur-sm p-3 rounded-xl border border-orange-100 shadow-sm">
+                  <div className="bg-orange-50/50 backdrop-blur-sm p-3 rounded-xl border border-orange-100 shadow-sm flex flex-col justify-between h-20">
                     <p className="text-[10px] uppercase tracking-wider text-orange-600 font-bold">Pending</p>
-                    <p className="text-xl font-bold text-orange-700">{verificationStats.notChecked}</p>
+                    <p className="text-xl font-bold text-orange-700 mt-auto">{verificationStats.notChecked}</p>
                   </div>
                 </div>
               )}

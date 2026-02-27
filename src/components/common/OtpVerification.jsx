@@ -117,7 +117,7 @@ const OtpVerification = ({ email, onVerify, onResend, loading = false }) => {
             <button
                 onClick={handleSubmit}
                 disabled={loading || otp.join("").length !== 6}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full bg-primary text-white py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
                 {loading ? (
                     <span className="flex items-center justify-center gap-2">
@@ -139,7 +139,7 @@ const OtpVerification = ({ email, onVerify, onResend, loading = false }) => {
                     {canResend ? (
                         <button
                             onClick={handleResend}
-                            className="text-purple-600 font-semibold hover:text-purple-800 transition-colors"
+                            className="text-primary font-semibold hover:text-primary/80 transition-colors"
                         >
                             Resend OTP
                         </button>

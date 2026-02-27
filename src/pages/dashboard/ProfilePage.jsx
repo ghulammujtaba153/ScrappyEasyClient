@@ -13,12 +13,9 @@ const ProfilePage = () => {
     const [form, setForm] = useState({
         name: "",
         email: "",
-        phone: "",
-        phoneCountry: "",
-        address: "",
-        city: "",
         country: "",
-        currentPassword: "",
+        aboutUser: "",
+        // currentPassword removed
         newPassword: "",
         confirmNewPassword: "",
     });
@@ -26,7 +23,7 @@ const ProfilePage = () => {
     const [loading, setLoading] = useState(false);
     const [fetchLoading, setFetchLoading] = useState(true);
     const [notification, setNotification] = useState(null);
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    // const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const {user} = useAuth()
@@ -69,11 +66,8 @@ const ProfilePage = () => {
                 setForm({
                     name: userData.name || "",
                     email: userData.email || "",
-                    phone: userData.phone || "",
-                    phoneCountry: userData.phoneCountry || "",
-                    address: userData.address || "",
-                    city: userData.city || "",
                     country: userData.country || "",
+                    aboutUser: userData.aboutUser || "",
                     currentPassword: "",
                     newPassword: "",
                     confirmNewPassword: "",
@@ -96,12 +90,7 @@ const ProfilePage = () => {
         }
     };
 
-    const handlePhoneChange = (value, country) => {
-        setForm({ ...form, phone: value, phoneCountry: country.name });
-        if (errors.phone) {
-            setErrors({ ...errors, phone: "" });
-        }
-    };
+    // Phone removed
 
     const handleCountryChange = (selectedOption) => {
         setForm({ ...form, country: selectedOption ? selectedOption.value : "" });
@@ -124,17 +113,12 @@ const ProfilePage = () => {
         }
 
         // Password validation (only if user wants to change password)
-        if (form.currentPassword || form.newPassword || form.confirmNewPassword) {
-            if (!form.currentPassword) {
-                newErrors.currentPassword = "Current password is required to change password";
-            }
-
+        if (form.newPassword || form.confirmNewPassword) {
             if (!form.newPassword) {
                 newErrors.newPassword = "New password is required";
             } else if (form.newPassword.length < 6) {
                 newErrors.newPassword = "Password must be at least 6 characters";
             }
-
             if (form.newPassword !== form.confirmNewPassword) {
                 newErrors.confirmNewPassword = "Passwords do not match";
             }
@@ -158,17 +142,13 @@ const ProfilePage = () => {
             const updateData = {
                 name: form.name,
                 email: form.email,
-                phone: form.phone,
-                phoneCountry: form.phoneCountry,
-                address: form.address,
-                city: form.city,
                 country: form.country,
+                aboutUser: form.aboutUser,
             };
 
             // Include password fields only if user wants to change password
-            if (form.currentPassword && form.newPassword) {
-                updateData.currentPassword = form.currentPassword;
-                updateData.newPassword = form.newPassword;
+            if (form.newPassword) {
+                updateData.password = form.newPassword;
             }
 
             const response = await fetch(`${BASE_URL}/api/auth/update/${user._id}`, {
@@ -190,13 +170,14 @@ const ProfilePage = () => {
                 if (user) {
                     user.name = form.name;
                     user.email = form.email;
+                    user.country = form.country;
+                    user.aboutUser = form.aboutUser;
                     localStorage.setItem('user', JSON.stringify(user));
                 }
 
                 // Clear password fields
                 setForm({
                     ...form,
-                    currentPassword: "",
                     newPassword: "",
                     confirmNewPassword: "",
                 });
@@ -257,7 +238,7 @@ const ProfilePage = () => {
                                         value={form.name}
                                         onChange={handleChange}
                                         placeholder="Enter your full name"
-                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
+                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
                                             errors.name ? "border-red-500" : "border-gray-300"
                                         }`}
                                     />
@@ -276,57 +257,11 @@ const ProfilePage = () => {
                                         value={form.email}
                                         onChange={handleChange}
                                         placeholder="Enter your email"
-                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
+                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
                                             errors.email ? "border-red-500" : "border-gray-300"
                                         }`}
                                     />
                                     {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-                                </div>
-
-                                {/* Phone */}
-                                <div>
-                                    <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Phone Number
-                                    </label>
-                                    <PhoneInput
-                                        country={"us"}
-                                        value={form.phone}
-                                        onChange={handlePhoneChange}
-                                        inputClass={errors.phone ? "!border-red-500" : ""}
-                                        containerClass="w-full"
-                                        inputStyle={{
-                                            width: "100%",
-                                            height: "48px",
-                                            fontSize: "14px",
-                                            borderRadius: "8px",
-                                            border: errors.phone ? "2px solid #ef4444" : "2px solid #d1d5db",
-                                        }}
-                                        buttonStyle={{
-                                            borderRadius: "8px 0 0 8px",
-                                            border: errors.phone ? "2px solid #ef4444" : "2px solid #d1d5db",
-                                            borderRight: "none",
-                                        }}
-                                    />
-                                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-                                </div>
-
-                                {/* City */}
-                                <div>
-                                    <label htmlFor="city" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        City
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="city"
-                                        name="city"
-                                        value={form.city}
-                                        onChange={handleChange}
-                                        placeholder="Enter your city"
-                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-                                            errors.city ? "border-red-500" : "border-gray-300"
-                                        }`}
-                                    />
-                                    {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                                 </div>
 
                                 {/* Country Dropdown */}
@@ -342,15 +277,15 @@ const ProfilePage = () => {
                                         isClearable
                                         className={errors.country ? "border-2 border-red-500 rounded-lg" : ""}
                                         styles={{
-                                            control: (base) => ({
+                                            control: (base, state) => ({
                                                 ...base,
                                                 minHeight: '48px',
                                                 borderRadius: '8px',
-                                                border: errors.country ? '2px solid #ef4444' : '2px solid #d1d5db',
+                                                border: errors.country ? '2px solid #ef4444' : state.isFocused ? '#6366f1' : '2px solid #d1d5db',
+                                                boxShadow: state.isFocused ? '0 0 0 2px #6366f1' : 'none',
                                                 '&:hover': {
-                                                    border: errors.country ? '2px solid #ef4444' : '2px solid #d1d5db',
+                                                    border: errors.country ? '2px solid #ef4444' : '#6366f1',
                                                 },
-                                                boxShadow: 'none',
                                             }),
                                             menu: (base) => ({
                                                 ...base,
@@ -362,23 +297,23 @@ const ProfilePage = () => {
                                 </div>
                             </div>
 
-                            {/* Address - Full Width */}
+                            {/* About User - separate row at end */}
                             <div className="mt-4">
-                                <label htmlFor="address" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Address
+                                <label htmlFor="aboutUser" className="block text-sm font-semibold text-gray-700 mb-2">
+                                    About User
                                 </label>
                                 <textarea
-                                    id="address"
-                                    name="address"
-                                    value={form.address}
+                                    id="aboutUser"
+                                    name="aboutUser"
+                                    value={form.aboutUser}
                                     onChange={handleChange}
-                                    placeholder="Enter your full address"
+                                    placeholder="Tell us about yourself, your industry, and how data helps you in your goals. (e.g., 'I run an e-commerce store and use data to optimize my marketing campaigns and inventory management.')"
                                     rows="3"
-                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${
-                                        errors.address ? "border-red-500" : "border-gray-300"
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none ${
+                                        errors.aboutUser ? "border-red-500" : "border-gray-300"
                                     }`}
                                 />
-                                {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                                {errors.aboutUser && <p className="text-red-500 text-xs mt-1">{errors.aboutUser}</p>}
                             </div>
                         </div>
 
@@ -388,34 +323,6 @@ const ProfilePage = () => {
                             <p className="text-sm text-gray-600 mb-4">Leave blank if you don't want to change your password</p>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Current Password */}
-                                <div className="md:col-span-2">
-                                    <label htmlFor="currentPassword" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Current Password
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showCurrentPassword ? "text" : "password"}
-                                            id="currentPassword"
-                                            name="currentPassword"
-                                            value={form.currentPassword}
-                                            onChange={handleChange}
-                                            placeholder="Enter current password"
-                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-                                                errors.currentPassword ? "border-red-500" : "border-gray-300"
-                                            }`}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                                        >
-                                            {showCurrentPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-                                        </button>
-                                    </div>
-                                    {errors.currentPassword && <p className="text-red-500 text-xs mt-1">{errors.currentPassword}</p>}
-                                </div>
-
                                 {/* New Password */}
                                 <div>
                                     <label htmlFor="newPassword" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -429,7 +336,7 @@ const ProfilePage = () => {
                                             value={form.newPassword}
                                             onChange={handleChange}
                                             placeholder="Enter new password"
-                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
+                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
                                                 errors.newPassword ? "border-red-500" : "border-gray-300"
                                             }`}
                                         />
@@ -457,7 +364,7 @@ const ProfilePage = () => {
                                             value={form.confirmNewPassword}
                                             onChange={handleChange}
                                             placeholder="Confirm new password"
-                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
+                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
                                                 errors.confirmNewPassword ? "border-red-500" : "border-gray-300"
                                             }`}
                                         />
