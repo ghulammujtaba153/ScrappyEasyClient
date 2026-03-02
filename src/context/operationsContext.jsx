@@ -20,6 +20,7 @@ export const OperationsProvider = ({ children }) => {
         pageSize: 10,
         total: 0
     });
+    const [isBlocking, setIsBlocking] = useState(false);
 
     // Track if data has been fetched at least once to avoid re-fetching on nav
     const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -87,11 +88,11 @@ export const OperationsProvider = ({ children }) => {
     }, [user, pagination.current, pagination.pageSize, keyword, uniqueCities.length]);
 
     // Fetch operation details with caching
-    const fetchOperationDetails = useCallback(async (operationId) => {
+    const fetchOperationDetails = useCallback(async (operationId, forceRefresh = false) => {
         if (!operationId || (!user?._id && !user?.id)) return null;
 
-        // Return cached data if exists
-        if (operationCache[operationId]) {
+        // Return cached data if exists and we're not forcing a refresh
+        if (!forceRefresh && operationCache[operationId]) {
             return operationCache[operationId];
         }
 
@@ -267,7 +268,9 @@ export const OperationsProvider = ({ children }) => {
         isDataLoaded,
         operationCache,
         fetchOperationDetails,
-        updateOperationCache
+        updateOperationCache,
+        isBlocking,
+        setIsBlocking
     };
 
     return <OperationsContext.Provider value={value}>{children}</OperationsContext.Provider>;
