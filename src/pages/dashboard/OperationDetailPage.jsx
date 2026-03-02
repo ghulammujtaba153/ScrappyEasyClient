@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 import SaveNumbersModal from '../../components/dashboard/SaveNumbersModal';
 import SaveQualifiedLeadsModal from '../../components/dashboard/SaveQualifiedLeadsModal';
+import OperationCSVImport from '../../components/dashboard/OperationCSVImport';
+import EditLeadModal from '../../components/dashboard/EditLeadModal';
 import {
   Alert,
   Button,
@@ -34,7 +36,10 @@ import {
   MdFavorite,
   MdFavoriteBorder,
   MdStar,
-  MdLock
+  MdLock,
+  MdCloudUpload,
+  MdEdit,
+  MdDelete
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
@@ -89,7 +94,7 @@ const OperationDetailPage = () => {
   const { token, user } = useAuth();
 
   // Use context for data persistence
-  const { fetchOperationDetails, updateOperationCache, operationCache } = useOperations();
+  const { fetchOperationDetails, updateOperationCache, operationCache, setIsBlocking } = useOperations();
 
   const cachedData = operationCache[operationId] || {};
   const record = cachedData.record || null;
@@ -109,6 +114,9 @@ const OperationDetailPage = () => {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isColdCallModalOpen, setIsColdCallModalOpen] = useState(false);
   const [isQualifiedLeadsModalOpen, setIsQualifiedLeadsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState(null);
   // Carousel State
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
 
@@ -374,13 +382,13 @@ const OperationDetailPage = () => {
     }
   };
 
-  const fetchRecord = async () => {
+  const fetchRecord = async (force = false) => {
     if (!operationId) {
       return;
     }
 
     setLoading(true);
-    await fetchOperationDetails(operationId);
+    await fetchOperationDetails(operationId, force);
     setLoading(false);
   };
 
@@ -459,8 +467,59 @@ const OperationDetailPage = () => {
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [operationId, user, token]);
+  
+  // Navigation blocking logic
+  useEffect(() => {
+    const isBusy = verifyingAll || extractingCities;
+    setIsBlocking(isBusy);
+
+    const handleBeforeUnload = (e) => {
+      if (isBusy) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Clean up global state on unmount just in case
+      setIsBlocking(false);
+    };
+  }, [verifyingAll, extractingCities, setIsBlocking]);
 
 
+
+  const handleEditClick = (lead) => {
+    setEditingLead(lead);
+    setIsEditModalOpen(true);
+  };
+
+
+  const handleDeleteClick = (lead) => {
+    Modal.confirm({
+      title: 'Are you sure you want to delete this lead?',
+      content: 'This action cannot be undone.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'No',
+      centered: true,
+      onOk: async () => {
+        try {
+          const res = await axios.delete(`${BASE_URL}/api/data/lead/${lead.leadId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.data.success) {
+            message.success('Lead deleted successfully');
+            fetchRecord(true);
+          }
+        } catch (error) {
+          console.error('Delete error:', error);
+          message.error(error.response?.data?.message || 'Failed to delete lead');
+        }
+      }
+    });
+  };
 
   const formatPhoneNumber = (phone) => {
     if (!phone) return null;
@@ -1136,6 +1195,28 @@ const OperationDetailPage = () => {
       render: (date) => new Date(date).toLocaleDateString(),
       sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
     },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 120,
+      fixed: 'right',
+      render: (_, lead) => (
+        <Space>
+          <Button
+            type="text"
+            icon={<MdEdit className="text-blue-500 text-lg" />}
+            onClick={() => handleEditClick(lead)}
+            className="hover:bg-blue-50"
+          />
+          <Button
+            type="text"
+            icon={<MdDelete className="text-red-500 text-lg" />}
+            onClick={() => handleDeleteClick(lead)}
+            className="hover:bg-red-50"
+          />
+        </Space>
+      ),
+    },
   ];
 
   if (loading) {
@@ -1316,6 +1397,13 @@ const OperationDetailPage = () => {
                 >
                   Sync
                 </Button>
+                <Button
+                  icon={<MdCloudUpload />}
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="rounded-lg h-10 px-4 bg-primary text-white border-none font-bold shadow-md shadow-primary/20 hover:scale-105 transition-all"
+                >
+                  Import CSV
+                </Button>
               </div>
             </div>
           </div>
@@ -1396,6 +1484,29 @@ const OperationDetailPage = () => {
         userId={user?._id || user?.id}
         operationId={operationId}
         searchString={record?.searchString}
+      />
+
+      <OperationCSVImport
+        visible={isImportModalOpen}
+        onCancel={() => setIsImportModalOpen(false)}
+        userId={user?._id || user?.id}
+        operationId={operationId}
+        defaultSearchString={record?.searchString ? `${record.searchString} (Import)` : ''}
+        onSuccess={() => {
+           // Success! Force fetch to update context
+           fetchRecord(true);
+        }}
+      />
+
+      <EditLeadModal
+        visible={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        lead={editingLead}
+        token={token}
+        onSuccess={() => {
+          setIsEditModalOpen(false);
+          fetchRecord(true);
+        }}
       />
 
       <SaveQualifiedLeadsModal

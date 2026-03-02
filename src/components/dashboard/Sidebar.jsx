@@ -18,11 +18,14 @@ import {
     MdVerified
 } from "react-icons/md";
 import { useAuth } from "../../context/authContext";
+import { useOperations } from "../../context/operationsContext";
+import { Modal } from "antd";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen = false, onCloseMobile }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout } = useAuth();
+    const { isBlocking } = useOperations();
 
 
 
@@ -100,8 +103,41 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
     ];
 
     const handleLogout = () => {
+        if (isBlocking) {
+            Modal.confirm({
+                title: 'Operation in Progress',
+                content: 'A process is currently running. Leaving this page might interrupt it. Are you sure you want to logout?',
+                okText: 'Yes, Logout',
+                cancelText: 'Cancel',
+                onOk: () => {
+                    logout();
+                    navigate('/login');
+                }
+            });
+            return;
+        }
         logout();
         navigate('/login');
+    };
+
+    const handleNavigation = (path, e) => {
+        if (e) e.preventDefault();
+        
+        if (isBlocking) {
+            Modal.confirm({
+                title: 'Operation in Progress',
+                content: 'A process is currently running (like WhatsApp verification or city extraction). Leaving now might interrupt the progress. Do you still want to leave?',
+                okText: 'Leave Page',
+                cancelText: 'Stay',
+                onOk: () => {
+                    navigate(path);
+                    if (isMobile && onCloseMobile) onCloseMobile();
+                }
+            });
+        } else {
+            navigate(path);
+            if (isMobile && onCloseMobile) onCloseMobile();
+        }
     };
 
 
@@ -159,10 +195,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
                         ? location.pathname === '/dashboard'
                         : location.pathname.startsWith(item.path);
                     return (
-                        <Link
+                        <div
                             key={item.path}
-                            to={item.path}
-                            className={`flex items-center gap-4 px-6 py-3 transition-all mx-3 ${isActive
+                            onClick={(e) => handleNavigation(item.path, e)}
+                            className={`flex items-center gap-4 px-6 py-3 transition-all mx-3 cursor-pointer ${isActive
                                 ? "bg-[#0F792C] text-white rounded-[30px]"
                                 : "hover:bg-white hover:text-[#0F792C] text-gray-700 rounded-[30px]"
                                 }`}
@@ -171,7 +207,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
                             {!isCollapsed && (
                                 <span className="font-medium">{item.name}</span>
                             )}
-                        </Link>
+                        </div>
                     );
                 })}
 
