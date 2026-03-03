@@ -8,10 +8,12 @@ import OtpVerification from "../components/common/OtpVerification";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Select from "react-select";
 import countryList from "country-list";
+import PlanSelection from "../components/auth/PlanSelection";
 
 const RegisterPage = () => {
     const navigate = useNavigate();
-    const [step, setStep] = useState(1); // 1: Form, 2: OTP Verification
+    const [step, setStep] = useState(1); // 1: Form, 2: Plan Selection, 3: OTP Verification
+    const [selectedPlan, setSelectedPlan] = useState(null);
     
     // Get country options
     const countryOptions = useMemo(() => {
@@ -86,16 +88,17 @@ const RegisterPage = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Step 1: Request OTP
-    const handleSubmit = async (e) => {
+    // Step 1: Submit Details -> Move to Plan Selection
+    const handleSubmit = (e) => {
         e.preventDefault();
-
-        if (!validateForm()) {
-            return;
+        if (validateForm()) {
+            setStep(2);
         }
+    };
 
+    // Step 2: Request OTP and Move to Verification
+    const handlePlanSubmit = async () => {
         setLoading(true);
-
         try {
             // Request OTP
             const response = await fetch(`${BASE_URL}/api/otp/generate`, {
@@ -108,7 +111,7 @@ const RegisterPage = () => {
 
             if (response.ok) {
                 setNotification({ message: "OTP sent to your email!", type: "success" });
-                setStep(2); // Move to OTP verification step
+                setStep(3); // Move to OTP verification step
             } else {
                 setNotification({ message: data.message || "Failed to send OTP", type: "error" });
             }
@@ -157,6 +160,33 @@ const RegisterPage = () => {
 
             if (registerResponse.ok) {
                 setNotification({ message: "Registration successful!", type: "success" });
+                
+                // If a paid plan was selected, redirect to payment
+                if (selectedPlan) {
+                    try {
+                        setNotification({ message: "Redirecting to secure payment...", type: "success" });
+                        const checkoutResponse = await fetch(`${BASE_URL}/api/stripe/create-checkout-session`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                planName: selectedPlan.name,
+                                price: selectedPlan.price,
+                                interval: selectedPlan.interval,
+                                packageId: selectedPlan._id,
+                                userId: registerData.user?._id || registerData.user?.id,
+                            }),
+                        });
+                        const checkoutData = await checkoutResponse.json();
+                        if (checkoutData.url) {
+                            window.location.href = checkoutData.url;
+                            return; // Don't navigate to login if redirecting
+                        }
+                    } catch (err) {
+                        console.error("Error creating checkout session:", err);
+                        setNotification({ message: "Registration successful, but redirection failed. Please subscribe from dashboard.", type: "warning" });
+                    }
+                }
+                
                 setTimeout(() => navigate("/login"), 2000);
             } else {
                 setNotification({ message: registerData.message || "Registration failed", type: "error" });
@@ -215,7 +245,7 @@ const RegisterPage = () => {
                     <>
                         <div className="text-center mb-8">
                             <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
-                            <p className="text-gray-600 text-sm">Sign up to get started</p>
+                            <p className="text-gray-600 text-sm">Fill in your details to get started</p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-5">
@@ -348,7 +378,7 @@ const RegisterPage = () => {
                             {/* About User - separate row at end */}
                             <div>
                                 <label htmlFor="aboutUser" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Tell us about your industry and how data helps you in your goals (eg: "I run an e-commerce store and use data to optimize my marketing campaigns and inventory management.")
+                                    Tell us about your industry and how data helps you in your goals
                                 </label>
                                 <textarea
                                     id="aboutUser"
@@ -362,14 +392,11 @@ const RegisterPage = () => {
                                 {errors.aboutUser && <p className="text-red-500 text-xs mt-1">{errors.aboutUser}</p>}
                             </div>
 
-                            {/* Address removed */}
-
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-6"
+                                className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 mt-6"
                             >
-                                {loading ? "Sending OTP..." : "Continue"}
+                                Continue to Plan Selection
                             </button>
                         </form>
 
@@ -384,8 +411,39 @@ const RegisterPage = () => {
                     </>
                 )}
 
-                {/* Step 2: OTP Verification */}
+                {/* Step 2: Plan Selection */}
                 {step === 2 && (
+                    <>
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-bold text-gray-800 mb-2">Choose Your Plan</h1>
+                            <p className="text-gray-600 text-sm">Select the best option for your needs</p>
+                        </div>
+
+                        <PlanSelection 
+                            selectedPlan={selectedPlan} 
+                            onPlanSelect={setSelectedPlan} 
+                        />
+
+                        <div className="flex flex-col gap-4 mt-8">
+                            <button
+                                onClick={handlePlanSubmit}
+                                disabled={loading}
+                                className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+                            >
+                                {loading ? "Processing..." : "Continue to Verify Email"}
+                            </button>
+                            <button
+                                onClick={() => setStep(1)}
+                                className="text-sm text-gray-500 hover:text-gray-700 font-semibold transition-colors"
+                            >
+                                ← Back to Details
+                            </button>
+                        </div>
+                    </>
+                )}
+
+                {/* Step 3: OTP Verification */}
+                {step === 3 && (
                     <>
                         <OtpVerification
                             email={form.email}
@@ -396,10 +454,10 @@ const RegisterPage = () => {
 
                         <div className="text-center mt-6 pt-6 border-t border-gray-200">
                             <button
-                                onClick={() => setStep(1)}
+                                onClick={() => setStep(2)}
                                 className="text-sm text-primary font-semibold hover:text-primary/80 transition-colors"
                             >
-                                ← Change Email
+                                ← Change Plan
                             </button>
                         </div>
                     </>
