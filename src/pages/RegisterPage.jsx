@@ -160,35 +160,38 @@ const RegisterPage = () => {
 
             const registerData = await registerResponse.json();
 
-            if (registerResponse.ok) {
-                setNotification({ message: "Registration successful!", type: "success" });
-                
-                // Automatically login the user
-                if (registerData.token && registerData.user) {
-                    login(registerData.user, registerData.token);
-                }
+                if (registerData.ok || registerResponse.ok) {
+                    setNotification({ message: "Registration successful!", type: "success" });
+                    
+                    // Automatically login the user
+                    if (registerData.token && registerData.user) {
+                        await login(registerData.user, registerData.token);
+                    }
 
-                // If a paid plan was selected, redirect to payment
-                if (selectedPlan) {
-                    try {
-                        setNotification({ message: "Redirecting to secure payment...", type: "success" });
-                        const checkoutResponse = await fetch(`${BASE_URL}/api/stripe/create-checkout-session`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                planName: selectedPlan.name,
-                                price: selectedPlan.price,
-                                interval: selectedPlan.interval,
-                                packageId: selectedPlan._id,
-                                userId: registerData.user?._id || registerData.user?.id,
-                            }),
-                        });
-                        const checkoutData = await checkoutResponse.json();
-                        if (checkoutData.url) {
-                            window.location.href = checkoutData.url;
-                            return; // Don't navigate to login if redirecting
-                        }
-                    } catch (err) {
+                    // If a paid plan was selected, redirect to payment
+                    if (selectedPlan) {
+                        try {
+                            setNotification({ message: "Redirecting to secure payment...", type: "success" });
+                            const checkoutResponse = await fetch(`${BASE_URL}/api/stripe/create-checkout-session`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    planName: selectedPlan.name,
+                                    price: selectedPlan.price,
+                                    interval: selectedPlan.interval,
+                                    packageId: selectedPlan._id,
+                                    userId: registerData.user?._id || registerData.user?.id,
+                                }),
+                            });
+                            const checkoutData = await checkoutResponse.json();
+                            if (checkoutData.url) {
+                                // Small delay to ensure state/localStorage is committed
+                                setTimeout(() => {
+                                    window.location.href = checkoutData.url;
+                                }, 800);
+                                return; // Don't navigate if redirecting
+                            }
+                        } catch (err) {
                         console.error("Error creating checkout session:", err);
                         setNotification({ message: "Registration successful, but redirection failed. Please subscribe from dashboard.", type: "warning" });
                     }
