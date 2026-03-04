@@ -7,8 +7,16 @@ import axios from "axios";
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);
+    const [user, setUser] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem("user");
+            return storedUser ? JSON.parse(storedUser) : null;
+        } catch (e) {
+            console.error("Error parsing user from localStorage:", e);
+            return null;
+        }
+    });
+    const [token, setToken] = useState(() => localStorage.getItem("token"));
     const [accessStatus, setAccessStatus] = useState({ isAuthorized: false, type: 'subscription' });
     const [loading, setLoading] = useState(true);
     const [activeTeam, setActiveTeam] = useState(null);
