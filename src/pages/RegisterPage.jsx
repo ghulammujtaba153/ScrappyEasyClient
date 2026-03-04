@@ -9,9 +9,11 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Select from "react-select";
 import countryList from "country-list";
 import PlanSelection from "../components/auth/PlanSelection";
+import { useAuth } from "../context/authContext";
 
 const RegisterPage = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [step, setStep] = useState(1); // 1: Form, 2: Plan Selection, 3: OTP Verification
     const [selectedPlan, setSelectedPlan] = useState(null);
     
@@ -161,6 +163,11 @@ const RegisterPage = () => {
             if (registerResponse.ok) {
                 setNotification({ message: "Registration successful!", type: "success" });
                 
+                // Automatically login the user
+                if (registerData.token && registerData.user) {
+                    login(registerData.user, registerData.token);
+                }
+
                 // If a paid plan was selected, redirect to payment
                 if (selectedPlan) {
                     try {
@@ -185,9 +192,10 @@ const RegisterPage = () => {
                         console.error("Error creating checkout session:", err);
                         setNotification({ message: "Registration successful, but redirection failed. Please subscribe from dashboard.", type: "warning" });
                     }
+                } else {
+                    // Only navigate to dashboard if not redirecting to payment
+                    setTimeout(() => navigate("/dashboard"), 2000);
                 }
-                
-                setTimeout(() => navigate("/login"), 2000);
             } else {
                 setNotification({ message: registerData.message || "Registration failed", type: "error" });
             }
