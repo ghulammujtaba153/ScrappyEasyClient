@@ -35,6 +35,7 @@ import QualifiedLeadsPage from "./pages/dashboard/QualifiedLeadsPage";
 import QualifiedLeadsDetailPage from "./pages/dashboard/QualifiedLeadsDetailPage";
 import TeamPage from "./pages/dashboard/TeamPage";
 import TeamDetailPage from "./pages/dashboard/TeamDetailPage";
+import InviteConfirmPage from "./pages/InviteConfirmPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import LemonSqueezy from "./pages/LemonSqueezy";
 
@@ -58,6 +59,7 @@ function App() {
                                     <Route path="/login" element={<LoginPage />} />
                                     <Route path="/forgot-password" element={<ForgetPassword />} />
                                     <Route path="/reset-password" element={<InviteUserResetPage />} />
+                                    <Route path="/invite/confirm" element={<InviteConfirmPage />} />
                                     <Route path="/lead-buddy-privacy" element={<PrivacyPage />} />
                                     <Route path="/lead-buddy-support" element={<SupportPage />} />
                                     <Route path="/lemon-squeezy" element={<LemonSqueezy />} />

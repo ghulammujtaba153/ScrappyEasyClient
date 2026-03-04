@@ -112,21 +112,47 @@ const TeamDetailPage = () => {
         }
     };
 
-    // Fetch team details
-    const fetchTeam = async () => {
+    // Combined fetch for initial load to avoid "Access Denied" flash
+    const initPage = async () => {
         try {
-            const res = await axios.get(`${BASE_URL}/api/team/get/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setTeam(res.data);
-            setActiveTeam(res.data);
+            setLoading(true);
+            // Fetch team details and data in parallel
+            const [teamRes, dataRes] = await Promise.all([
+                axios.get(`${BASE_URL}/api/team/get/${id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }),
+                axios.get(`${BASE_URL}/api/team-data/get/${id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            ]);
+
+            setTeam(teamRes.data);
+            setActiveTeam(teamRes.data);
+            setTeamData(dataRes.data);
+
+            // Check WhatsApp status
+            checkWhatsAppStatus();
+            
+            // Check subscription status
+            const status = await checkAccessStatus(user?._id || user?.id, token);
+            setIsAuthorized(status.isAuthorized);
+
         } catch (error) {
-            console.error('Error fetching team:', error);
-            message.error('Failed to fetch team details');
+            console.error('Initialization error:', error);
+            // If it's a 403/404 we might want to handle it specifically, 
+            // but team fetch already has a catch inside if kept separate.
+            // For now, coordinated error handling:
+            if (error.response?.status === 403 || error.response?.status === 404) {
+                // Keep team null, hasAccess will return false
+            } else {
+                message.error('Failed to load team environment');
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Fetch team data
+    // Keep individual refresh functions but without individual setLoading(false) for secondary updates
     const fetchTeamData = async () => {
         try {
             const res = await axios.get(`${BASE_URL}/api/team-data/get/${id}`, {
@@ -135,11 +161,10 @@ const TeamDetailPage = () => {
             setTeamData(res.data);
         } catch (error) {
             console.error('Error fetching team data:', error);
-            message.error('Failed to fetch team data');
-        } finally {
-            setLoading(false);
+            message.error('Failed to refresh data');
         }
     };
+
 
     // Handle verify WhatsApp for a specific data entry
     const handleVerifyWhatsApp = async (dataId, phoneNumber) => {
@@ -207,7 +232,6 @@ const TeamDetailPage = () => {
             return;
         }
 
-        // Create a map of phone numbers to their data IDs and full data
         const phoneToDataMap = {};
         const phoneNumbers = [];
         
@@ -237,7 +261,6 @@ const TeamDetailPage = () => {
                 const results = res.data.data.results;
                 const updates = [];
 
-                // Prepare bulk update data
                 for (const result of results) {
                     const phoneNumber = result.phoneNumber;
                     const dataEntry = phoneToDataMap[phoneNumber];
@@ -252,29 +275,20 @@ const TeamDetailPage = () => {
                     }
                 }
 
-                if (updates.length === 0) {
+                if (updates.length > 0) {
+                    const updateRes = await axios.post(
+                        `${BASE_URL}/api/team-data/bulk-update`,
+                        { updates },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
                     message.destroy();
-                    message.warning('No valid results to update');
-                    return;
-                }
-
-                // Single API call to update all records at once
-                const updateRes = await axios.post(
-                    `${BASE_URL}/api/team-data/bulk-update`,
-                    { updates },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                message.destroy();
-
-                if (updateRes.data.success) {
-                    message.success(`Verified and saved ${updateRes.data.data.successful} numbers successfully!`);
-                    if (updateRes.data.data.failed > 0) {
-                        message.warning(`Failed to save ${updateRes.data.data.failed} entries`);
+                    if (updateRes.data.success) {
+                        message.success(`Verified and saved results!`);
+                        fetchTeamData();
                     }
-                    fetchTeamData();
                 } else {
-                    message.error(updateRes.data.error || 'Failed to save verification results');
+                    message.destroy();
+                    message.warning('No valid results found');
                 }
             } else {
                 message.destroy();
@@ -283,22 +297,13 @@ const TeamDetailPage = () => {
         } catch (error) {
             message.destroy();
             console.error('Batch verification error:', error);
-            message.error('Failed to verify numbers: ' + (error.response?.data?.error || error.message));
+            message.error('Failed to verify numbers');
         }
     };
 
     useEffect(() => {
-        if (id && token) {
-            fetchTeam();
-            fetchTeamData();
-            checkWhatsAppStatus();
-
-            // Check subscription status
-            const checkAuth = async () => {
-                const status = await checkAccessStatus(user?._id || user?.id, token);
-                setIsAuthorized(status.isAuthorized);
-            };
-            checkAuth();
+        if (id && token && user) {
+            initPage();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, token]);
@@ -540,6 +545,7 @@ const TeamDetailPage = () => {
             title: 'Description',
             dataIndex: 'description',
             key: 'description',
+            width: 200,
             ellipsis: true,
             render: (text) => text || '-'
         },
@@ -547,6 +553,7 @@ const TeamDetailPage = () => {
             title: 'Link',
             dataIndex: 'link',
             key: 'link',
+            width: 80,
             render: (link) => link ? (
                 <a
                     href={link}
@@ -608,6 +615,7 @@ const TeamDetailPage = () => {
             title: 'Added By',
             dataIndex: 'user',
             key: 'user',
+            width: 120,
             render: (userData) => (
                 <span className="text-gray-600">
                     {userData?.name || userData?.email || 'Unknown'}
@@ -637,48 +645,75 @@ const TeamDetailPage = () => {
             title: 'Created',
             dataIndex: 'createdAt',
             key: 'createdAt',
+            width: 80,
             render: (date) => new Date(date).toLocaleDateString()
         },
         {
             title: 'Actions',
             key: 'actions',
             fixed: 'right',
-            width: 150,
-            render: (_, record) => (
-                <div className="flex gap-2">
-                    <Tooltip title="Quick View">
-                        <button
-                            onClick={() => handleOpenModal(record, true)}
-                            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+            width: 120,
+            render: (_, record) => {
+                const hasPhone = Array.isArray(record.phone) && record.phone.length > 0;
+                const firstPhone = hasPhone ? record.phone[0]?.number : '';
+                const isVerified = record.whatsappStatus === 'verified';
+
+                return (
+                    <div className="flex gap-2">
+                        {hasPhone && !isVerified && (
+                             <Tooltip title="Verify WhatsApp">
+                                <button
+                                    onClick={() => handleVerifyWhatsApp(record._id, firstPhone)}
+                                    className="w-9 h-9 flex items-center justify-center text-green-500 hover:bg-green-50 rounded-xl transition-all"
+                                >
+                                    <BsWhatsapp size={16} />
+                                </button>
+                            </Tooltip>
+                        )}
+                        {hasPhone && !isVerified && record.whatsappStatus !== 'not-verified' && (
+                             <Tooltip title="Mark No WhatsApp">
+                                <button
+                                    onClick={() => handleMarkNotWhatsApp(record._id)}
+                                    className="w-9 h-9 flex items-center justify-center text-orange-400 hover:bg-orange-50 rounded-xl transition-all"
+                                >
+                                    <MdClose size={18} />
+                                </button>
+                            </Tooltip>
+                        )}
+                        <Tooltip title="Quick View">
+                            <button
+                                onClick={() => handleOpenModal(record, true)}
+                                className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                            >
+                                <FaEye size={16} />
+                            </button>
+                        </Tooltip>
+                        <Tooltip title="Edit Record">
+                            <button
+                                onClick={() => handleOpenModal(record, false)}
+                                className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                            >
+                                <FaEdit size={16} />
+                            </button>
+                        </Tooltip>
+                        <Popconfirm
+                            title="Delete Lead?"
+                            description="Are you sure you want to remove this lead?"
+                            onConfirm={() => handleDelete(record._id)}
+                            okText="Yes, Delete"
+                            cancelText="No"
+                            okButtonProps={{ danger: true, className: '!rounded-lg !font-bold' }}
+                            cancelButtonProps={{ className: '!rounded-lg' }}
                         >
-                            <FaEye size={16} />
-                        </button>
-                    </Tooltip>
-                    <Tooltip title="Edit Record">
-                        <button
-                            onClick={() => handleOpenModal(record, false)}
-                            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                        >
-                            <FaEdit size={16} />
-                        </button>
-                    </Tooltip>
-                    <Popconfirm
-                        title="Delete Lead?"
-                        description="Are you sure you want to remove this lead?"
-                        onConfirm={() => handleDelete(record._id)}
-                        okText="Yes, Delete"
-                        cancelText="No"
-                        okButtonProps={{ danger: true, className: '!rounded-lg !font-bold' }}
-                        cancelButtonProps={{ className: '!rounded-lg' }}
-                    >
-                        <button
-                            className="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                        >
-                            <FaTrash size={14} />
-                        </button>
-                    </Popconfirm>
-                </div>
-            )
+                            <button
+                                className="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                            >
+                                <FaTrash size={14} />
+                            </button>
+                        </Popconfirm>
+                    </div>
+                );
+            }
         }
     ];
 

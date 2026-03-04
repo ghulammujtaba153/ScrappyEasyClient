@@ -30,11 +30,8 @@ const defaultFilters = {
     whatsappStatus: '',
     ratingMin: null,
     ratingMax: null,
-    reviewsMin: null,
-    reviewsMax: null,
     hasWebsite: '',
     hasPhone: '',
-    hasVerifiedWhatsApp: '',
     favorite: '',
     callStatus: '',
     messageStatus: '',
@@ -263,20 +260,6 @@ const QualifiedLeadsDetailPage = () => {
             });
         }
 
-        // Reviews filters
-        if (filters.reviewsMin !== null) {
-            data = data.filter(item => {
-                const reviews = parseInt(item.reviews, 10);
-                return !Number.isNaN(reviews) && reviews >= filters.reviewsMin;
-            });
-        }
-        if (filters.reviewsMax !== null) {
-            data = data.filter(item => {
-                const reviews = parseInt(item.reviews, 10);
-                return !Number.isNaN(reviews) && reviews <= filters.reviewsMax;
-            });
-        }
-
         // Has website filter
         if (filters.hasWebsite) {
             data = data.filter(item => {
@@ -290,14 +273,6 @@ const QualifiedLeadsDetailPage = () => {
             data = data.filter(item => {
                 const hasPhone = item.phone && item.phone.trim() !== '';
                 return filters.hasPhone === 'yes' ? hasPhone : !hasPhone;
-            });
-        }
-
-        // Has verified WhatsApp filter
-        if (filters.hasVerifiedWhatsApp) {
-            data = data.filter(item => {
-                const hasVerified = item.phone && item.whatsappStatus === 'verified';
-                return filters.hasVerifiedWhatsApp === 'yes' ? hasVerified : !hasVerified;
             });
         }
 
@@ -333,11 +308,8 @@ const QualifiedLeadsDetailPage = () => {
             filters.whatsappStatus ||
             filters.ratingMin !== null ||
             filters.ratingMax !== null ||
-            filters.reviewsMin !== null ||
-            filters.reviewsMax !== null ||
             filters.hasWebsite ||
             filters.hasPhone ||
-            filters.hasVerifiedWhatsApp ||
             filters.favorite ||
             filters.callStatus ||
             filters.messageStatus ||

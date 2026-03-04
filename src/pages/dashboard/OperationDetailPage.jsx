@@ -66,11 +66,8 @@ const defaultFilters = {
   whatsappStatus: '',
   ratingMin: null,
   ratingMax: null,
-  reviewsMin: null,
-  reviewsMax: null,
   hasWebsite: '',
   hasPhone: '',
-  hasVerifiedWhatsApp: '',
   favorite: ''
 };
 
@@ -105,7 +102,7 @@ const OperationDetailPage = () => {
 
   const { addToQueue, queue, progress } = useScreenshot();
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!record);
   const [filters, setFilters] = useState({ ...defaultFilters });
 
   // WhatsApp Connection State
@@ -230,7 +227,7 @@ const OperationDetailPage = () => {
       return;
     }
 
-    if (!record || !record.leads) {
+    if (!filteredData.length) {
       message.warning('No data available to analyze');
       return;
     }
@@ -240,7 +237,7 @@ const OperationDetailPage = () => {
     try {
       // Collect all coordinates from Google Maps links
       const allCoords = [];
-      record.leads.forEach((item) => {
+      filteredData.forEach((item) => {
         if (item.googleMapsLink) {
           const coords = extractCoordinates(item.googleMapsLink);
           if (coords) {
@@ -293,13 +290,16 @@ const OperationDetailPage = () => {
       return;
     }
 
-    if (!record || !record.leads) return;
+    if (!filteredData.length) {
+      message.warning('No data to process');
+      return;
+    }
 
     setExtractingCities(true);
     const newCityData = { ...cityData };
     const cityDataToSave = {}; // Store leadId -> city for backend
     let updated = false;
-    const totalItems = record.leads.length;
+    const totalItems = filteredData.length;
     let processedCount = 0;
     let skippedCount = 0;
     let successCount = 0;
@@ -308,9 +308,9 @@ const OperationDetailPage = () => {
     console.log(`🏙️ Starting city extraction for ${totalItems} items...`);
 
     try {
-      for (let i = 0; i < record.leads.length; i++) {
-        const item = record.leads[i];
-        const leadId = item._id;
+      for (let i = 0; i < filteredData.length; i++) {
+        const item = filteredData[i];
+        const leadId = item.leadId || item._id;
 
         // Skip if city already stored in lead or cached
         if (item.city || newCityData[leadId]) {
@@ -384,10 +384,14 @@ const OperationDetailPage = () => {
 
   const fetchRecord = async (force = false) => {
     if (!operationId) {
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (!record || force) {
+       setLoading(true);
+    }
+
     await fetchOperationDetails(operationId, force);
     setLoading(false);
   };
@@ -795,20 +799,6 @@ const OperationDetailPage = () => {
       });
     }
 
-    if (filters.reviewsMin !== null) {
-      filtered = filtered.filter(item => {
-        const reviews = parseInt(item.reviews, 10);
-        return !Number.isNaN(reviews) && reviews >= filters.reviewsMin;
-      });
-    }
-
-    if (filters.reviewsMax !== null) {
-      filtered = filtered.filter(item => {
-        const reviews = parseInt(item.reviews, 10);
-        return !Number.isNaN(reviews) && reviews <= filters.reviewsMax;
-      });
-    }
-
     if (filters.hasWebsite) {
       filtered = filtered.filter(item => {
         const hasWebsite = item.website && item.website.trim() !== '';
@@ -821,14 +811,6 @@ const OperationDetailPage = () => {
         // Check if phone field has a non-empty value
         const hasPhone = item.phone && item.phone.trim() !== '';
         return filters.hasPhone === 'yes' ? hasPhone : !hasPhone;
-      });
-    }
-
-    // Filter by verified WhatsApp (has phone AND whatsappStatus is 'verified')
-    if (filters.hasVerifiedWhatsApp) {
-      filtered = filtered.filter(item => {
-        const hasVerified = item.phone && item.whatsappStatus === 'verified';
-        return filters.hasVerifiedWhatsApp === 'yes' ? hasVerified : !hasVerified;
       });
     }
 
@@ -1267,7 +1249,7 @@ const OperationDetailPage = () => {
                 <div className="flex items-center gap-2 mt-2 text-gray-500">
                   <MdRefresh className="animate-spin-slow" />
                   <span>
-                    {record?.leads?.length || 0} leads discovered • {record?.updatedAt ? `Synced ${new Date(record.updatedAt).toLocaleDateString()}` : 'Not synced'}
+                    {record?.leads?.length || 0} leads discovered • {record?.updatedAt ? `Last Updated ${new Date(record.updatedAt).toLocaleDateString()}` : 'Not synced'}
                   </span>
                 </div>
               </div>
@@ -1395,7 +1377,7 @@ const OperationDetailPage = () => {
                   loading={loading}
                   className="rounded-lg h-10 px-4"
                 >
-                  Sync
+                  Refresh
                 </Button>
                 <Button
                   icon={<MdCloudUpload />}
@@ -1583,10 +1565,10 @@ const OperationDetailPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-3">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Unified Location Search
+                Search Location
               </label>
               <Input
-                placeholder="Region, Province, Municipality or Country..."
+                placeholder="Search City, State or Country..."
                 value={filters.locationSearch}
                 onChange={(e) => setFilters({ ...filters, locationSearch: e.target.value })}
                 prefix={<MdSearch className="text-gray-400" />}
@@ -1616,7 +1598,7 @@ const OperationDetailPage = () => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Digital Presence
+                Website
               </label>
               <Select
                 placeholder="Website status"
@@ -1626,14 +1608,14 @@ const OperationDetailPage = () => {
                 allowClear
                 className="custom-select-premium h-12"
               >
-                <Option value="yes">Domain Active</Option>
+                <Option value="yes">Has Website</Option>
                 <Option value="no">No Website</Option>
               </Select>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Lead Interest
+                Favorites
               </label>
               <Select
                 placeholder="Collection status"
@@ -1645,10 +1627,10 @@ const OperationDetailPage = () => {
               >
                 <Option value="yes">
                   <span className="flex items-center gap-2">
-                    <MdFavorite className="text-red-500" /> Curated List
+                    <MdFavorite className="text-red-500" /> Favorites Only
                   </span>
                 </Option>
-                <Option value="no">General Leads</Option>
+                <Option value="no">All Leads</Option>
               </Select>
             </div>
 
@@ -1656,60 +1638,36 @@ const OperationDetailPage = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Minimum Rating
               </label>
-              <InputNumber
-                min={0}
-                max={5}
-                step={0.1}
+              <Select
+                placeholder="Choose rating"
                 style={{ width: '100%' }}
-                value={filters.ratingMin}
-                placeholder="0.0"
+                value={filters.ratingMin !== null ? filters.ratingMin : undefined}
                 onChange={(value) => setFilters({ ...filters, ratingMin: value ?? null })}
-                className="h-12 border-gray-200 rounded-xl flex items-center"
-              />
+                allowClear
+                className="custom-select-premium h-12"
+              >
+                {[0, 1, 2, 3, 4, 5].map(val => (
+                  <Option key={val} value={val}>{val}.0+</Option>
+                ))}
+              </Select>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Maximum Rating
               </label>
-              <InputNumber
-                min={0}
-                max={5}
-                step={0.1}
+              <Select
+                placeholder="Choose rating"
                 style={{ width: '100%' }}
-                value={filters.ratingMax}
-                placeholder="5.0"
+                value={filters.ratingMax !== null ? filters.ratingMax : undefined}
                 onChange={(value) => setFilters({ ...filters, ratingMax: value ?? null })}
-                className="h-12 border-gray-200 rounded-xl flex items-center"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Minimum Engagement (Reviews)
-              </label>
-              <InputNumber
-                min={0}
-                style={{ width: '100%' }}
-                value={filters.reviewsMin}
-                placeholder="Min total"
-                onChange={(value) => setFilters({ ...filters, reviewsMin: value ?? null })}
-                className="h-12 border-gray-200 rounded-xl flex items-center"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Maximum Engagement (Reviews)
-              </label>
-              <InputNumber
-                min={0}
-                style={{ width: '100%' }}
-                value={filters.reviewsMax}
-                placeholder="Max total"
-                onChange={(value) => setFilters({ ...filters, reviewsMax: value ?? null })}
-                className="h-12 border-gray-200 rounded-xl flex items-center"
-              />
+                allowClear
+                className="custom-select-premium h-12"
+              >
+                {[0, 1, 2, 3, 4, 5].map(val => (
+                  <Option key={val} value={val}>{val}.0</Option>
+                ))}
+              </Select>
             </div>
 
             <div>
@@ -1728,27 +1686,6 @@ const OperationDetailPage = () => {
                 <Option value="no">Missing Phone</Option>
               </Select>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Verified Outreach
-              </label>
-              <Select
-                placeholder="Identity match"
-                style={{ width: '100%' }}
-                value={filters.hasVerifiedWhatsApp || undefined}
-                onChange={(value) => setFilters({ ...filters, hasVerifiedWhatsApp: value || '' })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                <Option value="yes">
-                  <span className="flex items-center gap-2 text-green-600 font-semibold">
-                    <BsWhatsapp /> Verified Identity
-                  </span>
-                </Option>
-                <Option value="no">Unverified Identity</Option>
-              </Select>
-            </div>
           </div>
         </div>
 
@@ -1756,11 +1693,8 @@ const OperationDetailPage = () => {
           filters.whatsappStatus ||
           filters.ratingMin !== null ||
           filters.ratingMax !== null ||
-          filters.reviewsMin !== null ||
-          filters.reviewsMax !== null ||
           filters.hasWebsite ||
           filters.hasPhone ||
-          filters.hasVerifiedWhatsApp ||
           filters.favorite) && (
             <div className="mt-4">
               <Button

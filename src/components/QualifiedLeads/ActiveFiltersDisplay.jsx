@@ -11,8 +11,6 @@ const ActiveFiltersDisplay = ({ filters, searchString }) => {
         if (filters.whatsappStatus) active.push(`WhatsApp: ${filters.whatsappStatus}`);
         if (filters.ratingMin !== null && filters.ratingMin !== undefined) active.push(`Rating ≥ ${filters.ratingMin}`);
         if (filters.ratingMax !== null && filters.ratingMax !== undefined) active.push(`Rating ≤ ${filters.ratingMax}`);
-        if (filters.reviewsMin !== null && filters.reviewsMin !== undefined) active.push(`Reviews ≥ ${filters.reviewsMin}`);
-        if (filters.reviewsMax !== null && filters.reviewsMax !== undefined) active.push(`Reviews ≤ ${filters.reviewsMax}`);
         if (filters.hasWebsite) active.push(`Website: ${filters.hasWebsite}`);
         if (filters.hasPhone) active.push(`Phone: ${filters.hasPhone}`);
         if (filters.favorite) active.push(`Favorites: ${filters.favorite}`);
