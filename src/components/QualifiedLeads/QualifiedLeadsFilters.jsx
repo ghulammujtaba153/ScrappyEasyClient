@@ -88,82 +88,39 @@ const QualifiedLeadsFilters = ({
                     </div>
                 </div>
 
-                {/* Row 2: Rating Min, Rating Max, Has Verified WhatsApp */}
+                {/* Row 2: Rating Min, Rating Max, Favorites */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
-                            Rating (min)
+                             Rating (min)
                         </label>
-                        <InputNumber
-                            min={0}
-                            max={5}
-                            step={0.1}
+                        <Select
+                            placeholder="Choose rating"
                             style={{ width: '100%' }}
-                            value={filters.ratingMin}
-                            placeholder="e.g. 3.5"
+                            value={filters.ratingMin !== null ? filters.ratingMin : undefined}
                             onChange={(value) => updateFilter('ratingMin', value ?? null)}
-                        />
+                            allowClear
+                        >
+                            {[0, 1, 2, 3, 4, 5].map(val => (
+                                <Option key={val} value={val}>{val}.0+</Option>
+                            ))}
+                        </Select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             Rating (max)
                         </label>
-                        <InputNumber
-                            min={0}
-                            max={5}
-                            step={0.1}
-                            style={{ width: '100%' }}
-                            value={filters.ratingMax}
-                            placeholder="e.g. 4.8"
-                            onChange={(value) => updateFilter('ratingMax', value ?? null)}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">
-                            Has Verified WhatsApp
-                        </label>
                         <Select
-                            placeholder="Filter by verified WhatsApp"
+                            placeholder="Choose rating"
                             style={{ width: '100%' }}
-                            value={filters.hasVerifiedWhatsApp || undefined}
-                            onChange={(value) => updateFilter('hasVerifiedWhatsApp', value || '')}
+                            value={filters.ratingMax !== null ? filters.ratingMax : undefined}
+                            onChange={(value) => updateFilter('ratingMax', value ?? null)}
                             allowClear
                         >
-                            <Option value="yes">
-                                <span className="flex items-center gap-2">
-                                    <BsWhatsapp className="text-green-500" /> Has Verified WhatsApp
-                                </span>
-                            </Option>
-                            <Option value="no">No Verified WhatsApp</Option>
+                            {[0, 1, 2, 3, 4, 5].map(val => (
+                                <Option key={val} value={val}>{val}.0</Option>
+                            ))}
                         </Select>
-                    </div>
-                </div>
-
-                {/* Row 3: Reviews Min, Reviews Max, Favorites */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">
-                            Reviews (min)
-                        </label>
-                        <InputNumber
-                            min={0}
-                            style={{ width: '100%' }}
-                            value={filters.reviewsMin}
-                            placeholder="e.g. 50"
-                            onChange={(value) => updateFilter('reviewsMin', value ?? null)}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">
-                            Reviews (max)
-                        </label>
-                        <InputNumber
-                            min={0}
-                            style={{ width: '100%' }}
-                            value={filters.reviewsMax}
-                            placeholder="e.g. 500"
-                            onChange={(value) => updateFilter('reviewsMax', value ?? null)}
-                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
@@ -181,12 +138,12 @@ const QualifiedLeadsFilters = ({
                                     <MdFavorite className="text-red-500" /> Favorites Only
                                 </span>
                             </Option>
-                            <Option value="no">Not Favorites</Option>
+                            <Option value="no">All Leads</Option>
                         </Select>
                     </div>
                 </div>
 
-                {/* Row 4: Call Status, Message Status, Lead Status */}
+                {/* Row 3: Call Status, Message Status, Lead Status */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">

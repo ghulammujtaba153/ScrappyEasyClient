@@ -203,15 +203,23 @@ const MessageAutomationPage = () => {
 
         setSending(true);
         try {
+            const userId = user._id || user.id;
             const res = await axios.post(`${BASE_URL}/api/automate/send-batch`, {
                 listId: currentList._id,
-                batchSize: 10
+                batchSize: 10,
+                userId
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             if (res.data.success) {
-                message.success(`Batch processed: ${res.data.processed} messages`);
+                message.success(`Batch processed: ${res.data.successCount} successful, ${res.data.failedCount} failed`);
+                if (res.data.skipped > 0) {
+                    message.warning(`${res.data.skipped} messages skipped due to daily limit`);
+                }
+                if (res.data.remainingMessages !== undefined) {
+                    setRemainingMessages(res.data.remainingMessages);
+                }
                 fetchData(); // Refresh UI
             } else {
                 message.warning(res.data.message || 'No messages processed');
