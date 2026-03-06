@@ -43,9 +43,9 @@ const RatingPieChart = ({ data = [], loading = false }) => {
     }
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex flex-col h-full">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Rating Distribution</h3>
-            <div className="h-72 w-full relative">
+            <div className="flex-1 w-full relative min-h-[288px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
