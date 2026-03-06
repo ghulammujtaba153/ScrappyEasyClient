@@ -11,6 +11,7 @@ import {
     WhatsAppDonutChart,
     CommunicationMethodsChart
 } from "../../components/charts";
+import NotificationSection from "../../components/dashboard/NotificationSection";
 
 const HomePage = () => {
     const { user } = useAuth();
@@ -191,8 +192,9 @@ const HomePage = () => {
             </div>
 
             {/* Charts Row 3 - Communication Methods */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 h-full gap-6">
                 <RatingPieChart data={chartData.ratingDistribution} loading={chartLoading} />
+                <NotificationSection />
             </div>
         </div>
     );

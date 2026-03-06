@@ -39,7 +39,8 @@ import {
   MdLock,
   MdCloudUpload,
   MdEdit,
-  MdDelete
+  MdDelete,
+  MdEmail
 } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import axios from 'axios';
@@ -82,7 +83,8 @@ const EXPORT_FIELDS = [
   { key: 'website', label: 'Website' },
   { key: 'googleMapsLink', label: 'Google Maps' },
   { key: 'createdAt', label: 'Scraped Date' },
-  { key: 'whatsappStatus', label: 'WhatsApp Status' }
+  { key: 'whatsappStatus', label: 'WhatsApp Status' },
+  { key: 'emails', label: 'Emails' }
 ];
 
 const OperationDetailPage = () => {
@@ -99,6 +101,7 @@ const OperationDetailPage = () => {
   const cityData = useMemo(() => cachedData.cityData || {}, [cachedData.cityData]);
   const screenshotData = useMemo(() => cachedData.screenshotData || {}, [cachedData.screenshotData]);
   const whatsappStatus = useMemo(() => cachedData.whatsappStatus || {}, [cachedData.whatsappStatus]);
+  const emailData = useMemo(() => cachedData.emailData || {}, [cachedData.emailData]);
 
   const { addToQueue, queue, progress } = useScreenshot();
 
@@ -120,6 +123,9 @@ const OperationDetailPage = () => {
   const [verifyingAll, setVerifyingAll] = useState(false);
 
   const [extractingCities, setExtractingCities] = useState(false);
+  
+  const [extractingMail, setExtractingMail] = useState({});
+  const [extractingAllMail, setExtractingAllMail] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -144,6 +150,11 @@ const OperationDetailPage = () => {
   const setWhatsappStatus = (newData) => {
     const data = typeof newData === 'function' ? newData(whatsappStatus) : newData;
     updateOperationCache(operationId, { whatsappStatus: data });
+  };
+
+  const setEmailData = (newData) => {
+    const data = typeof newData === 'function' ? newData(emailData) : newData;
+    updateOperationCache(operationId, { emailData: data });
   };
 
   // Extract coordinates from Google Maps URL
@@ -382,6 +393,86 @@ const OperationDetailPage = () => {
     }
   };
 
+  const extractMailForLead = async (leadId, url) => {
+    if (!url) return;
+    
+    setExtractingMail(prev => ({ ...prev, [leadId]: true }));
+    try {
+      const res = await axios.post(`${BASE_URL}/api/mailautomation/extract`, { url }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success && res.data.data) {
+        setEmailData(prev => ({ ...prev, [leadId]: res.data.data.emails }));
+        if (res.data.data.emails.length > 0) {
+          message.success(`Found ${res.data.data.emails.length} emails`);
+        } else {
+          message.info('No emails found');
+        }
+      }
+    } catch (error) {
+      console.error('Mail extraction error:', error);
+      message.error('Failed to extract emails');
+    } finally {
+      setExtractingMail(prev => ({ ...prev, [leadId]: false }));
+    }
+  };
+
+  const extractAllMails = async () => {
+    if (!isAuthorized) {
+      setLockedFeature('Bulk Mail Extraction');
+      setIsLockedModalOpen(true);
+      return;
+    }
+
+    const leadsWithWebsite = filteredData.filter(item => 
+      item.website && !emailData[item.leadId] && (!item.emails || item.emails.length === 0)
+    );
+
+    if (leadsWithWebsite.length === 0) {
+      message.warning('No new websites to extract mail from');
+      return;
+    }
+
+    setExtractingAllMail(true);
+    let successCount = 0;
+    let newEmailData = { ...emailData };
+
+    try {
+      for (const item of leadsWithWebsite) {
+        setExtractingMail(prev => ({ ...prev, [item.leadId]: true }));
+        try {
+          const res = await axios.post(`${BASE_URL}/api/mailautomation/extract`, { url: item.website }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (res.data.success && res.data.data) {
+            newEmailData[item.leadId] = res.data.data.emails;
+            if (res.data.data.emails.length > 0) {
+              successCount++;
+            }
+          }
+        } catch (error) {
+          console.error(`Mail extraction failed for ${item.website}:`, error);
+        } finally {
+          setExtractingMail(prev => ({ ...prev, [item.leadId]: false }));
+        }
+        
+        // Small delay to prevent rate limit
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Update incrementally
+        setEmailData({ ...newEmailData });
+      }
+      
+      message.success(`Extracted emails for ${successCount} websites`);
+    } catch (error) {
+      console.error('Bulk mail extraction error:', error);
+      message.error('Bulk mail extraction failed');
+    } finally {
+      setExtractingAllMail(false);
+    }
+  };
+
   const fetchRecord = async (force = false) => {
     if (!operationId) {
       setLoading(false);
@@ -474,7 +565,7 @@ const OperationDetailPage = () => {
   
   // Navigation blocking logic
   useEffect(() => {
-    const isBusy = verifyingAll || extractingCities;
+    const isBusy = verifyingAll || extractingCities || extractingAllMail;
     setIsBlocking(isBusy);
 
     const handleBeforeUnload = (e) => {
@@ -490,7 +581,7 @@ const OperationDetailPage = () => {
       // Clean up global state on unmount just in case
       setIsBlocking(false);
     };
-  }, [verifyingAll, extractingCities, setIsBlocking]);
+  }, [verifyingAll, extractingCities, extractingAllMail, setIsBlocking]);
 
 
 
@@ -702,9 +793,10 @@ const OperationDetailPage = () => {
       googleMapsLink: item.googleMapsLink || '',
       whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone)] || 'not-checked',
       favorite: item.favorite || false,
-      screenshotUrl: item.screenshotUrl || screenshotData[item._id] || ''
+      screenshotUrl: item.screenshotUrl || screenshotData[item._id] || '',
+      emails: item.emails || emailData[item._id] || undefined
     }));
-  }, [record, cityData, whatsappStatus, screenshotData]);
+  }, [record, cityData, whatsappStatus, screenshotData, emailData]);
 
   // Calculate verification statistics - use item.whatsappStatus from new schema
   const verificationStats = useMemo(() => {
@@ -851,6 +943,11 @@ const OperationDetailPage = () => {
 
     if (field.key === 'city') {
       return cityData[item.key] || '';
+    }
+
+    if (field.key === 'emails') {
+      const emails = item.emails || emailData[item.key] || [];
+      return Array.isArray(emails) ? emails.join(', ') : emails;
     }
 
     const value = item[field.key];
@@ -1125,6 +1222,48 @@ const OperationDetailPage = () => {
       ) : '-',
     },
     {
+      title: 'Email',
+      dataIndex: 'emails',
+      key: 'emails',
+      width: 180,
+      render: (emails, record) => {
+        if (!record.website) return <Tag color="default">N/A</Tag>;
+        
+        const isExtracting = extractingMail[record.leadId];
+        
+        if (isExtracting) {
+          return <Spin size="small" />;
+        }
+        
+        if (emails && emails.length > 0) {
+          return (
+            <div className="flex flex-col gap-1">
+              {emails.map((e, idx) => (
+                <a key={idx} href={`mailto:${e}`} className="text-blue-500 hover:underline text-xs truncate max-w-[150px]" title={e}>
+                  {e}
+                </a>
+              ))}
+            </div>
+          );
+        }
+        
+        // If empty array, it means we checked but found none
+        if (emails && Array.isArray(emails) && emails.length === 0) {
+             return <Tag color="error">Not Found</Tag>;
+        }
+
+        return (
+          <Button
+            size="small"
+            icon={<MdEmail />}
+            onClick={() => extractMailForLead(record.leadId, record.website)}
+          >
+            Extract
+          </Button>
+        );
+      }
+    },
+    {
       title: 'WhatsApp',
       key: 'whatsapp',
       width: 140,
@@ -1280,6 +1419,16 @@ const OperationDetailPage = () => {
               <div className="flex flex-wrap gap-2 justify-end">
                 <Button
                   type="default"
+                  icon={<MdEmail />}
+                  onClick={extractAllMails}
+                  loading={extractingAllMail}
+                  disabled={extractingAllMail || !record || filteredData.filter(item => item.website).length === 0}
+                  className="rounded-lg h-10 px-4 font-medium"
+                >
+                  {extractingAllMail ? 'Extracting Mails...' : 'Extract Mails'}
+                </Button>
+                <Button
+                  type="default"
                   icon={<MdLocationOn />}
                   onClick={extractCitiesForRecord}
                   loading={extractingCities}
@@ -1294,7 +1443,7 @@ const OperationDetailPage = () => {
                   onClick={getRecommendedCities}
                   loading={loadingRecommendations}
                   disabled={loadingRecommendations || !record}
-                  className="bg-blue-600 hover:bg-blue-700 border-none rounded-lg h-10 px-4 font-medium"
+                  className="bg-primary hover:bg-primary/80 border-none rounded-lg h-10 px-4 font-medium"
                 >
                   Recommend Nearby Location
                 </Button>
