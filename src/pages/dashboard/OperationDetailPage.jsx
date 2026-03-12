@@ -1351,8 +1351,8 @@ const OperationDetailPage = () => {
           <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <MdClose size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Operation Not Found</h2>
-          <p className="text-gray-500 mb-6">The operation data you're looking for could not be found or has been removed.</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Operation Not Found</h2>
+          <p className="text-sm text-gray-500 mb-6">The operation data you're looking for could not be found or has been removed.</p>
           <Button 
             type="primary" 
             onClick={() => navigate('/dashboard/operations')}
@@ -1382,7 +1382,7 @@ const OperationDetailPage = () => {
               </Button>
               
               <div>
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
                   {record?.searchString || 'Operation Detail'}
                 </h1>
                 <div className="flex items-center gap-2 mt-2 text-gray-500">
@@ -1397,19 +1397,19 @@ const OperationDetailPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xlg:grid-cols-4 gap-3">
                   <div className="bg-white/50 backdrop-blur-sm p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-20">
                     <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Total Leads</p>
-                    <p className="text-xl font-bold text-gray-900 mt-auto">{verificationStats.total}</p>
+                    <p className="text-lg font-bold text-gray-900 mt-auto">{verificationStats.total}</p>
                   </div>
                   <div className="bg-green-50/50 backdrop-blur-sm p-3 rounded-xl border border-green-100 shadow-sm flex flex-col justify-between h-20">
                     <p className="text-[10px] uppercase tracking-wider text-green-600 font-bold">Verified</p>
-                    <p className="text-xl font-bold text-green-700 mt-auto">{verificationStats.verified}</p>
+                    <p className="text-lg font-bold text-green-700 mt-auto">{verificationStats.verified}</p>
                   </div>
                   <div className="bg-red-50/50 backdrop-blur-sm p-3 rounded-xl border border-red-100 shadow-sm flex flex-col justify-between h-20">
                     <p className="text-[10px] uppercase tracking-wider text-red-600 font-bold">No WhatsApp</p>
-                    <p className="text-xl font-bold text-red-700 mt-auto">{verificationStats.notVerified}</p>
+                    <p className="text-lg font-bold text-red-700 mt-auto">{verificationStats.notVerified}</p>
                   </div>
                   <div className="bg-orange-50/50 backdrop-blur-sm p-3 rounded-xl border border-orange-100 shadow-sm flex flex-col justify-between h-20">
                     <p className="text-[10px] uppercase tracking-wider text-orange-600 font-bold">Pending</p>
-                    <p className="text-xl font-bold text-orange-700 mt-auto">{verificationStats.notChecked}</p>
+                    <p className="text-lg font-bold text-orange-700 mt-auto">{verificationStats.notChecked}</p>
                   </div>
                 </div>
               )}
@@ -1706,7 +1706,7 @@ const OperationDetailPage = () => {
       </Modal>
 
       <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-gray-100 table-container">
-        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-3">
           <div className="bg-primary/10 p-2 rounded-lg"><MdSearch className="text-primary text-xl" /></div>
           Smart Filters
         </h3>

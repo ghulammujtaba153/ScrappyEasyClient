@@ -160,66 +160,59 @@ const TeamPage = () => {
     if (loading) return <Loader />;
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto space-y-12 animate-fadeIn">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-                    <div>
-                        <div className="flex items-center gap-4 mb-2">
-                             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                                <FaUsers size={24} />
-                             </div>
-                             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Team Workspace</h1>
-                        </div>
-                        <p className="text-slate-500 font-medium ml-1">Collaborate with your professionals in real-time</p>
-                    </div>
-                    <button
-                        onClick={() => handleOpenModal()}
-                        className="group flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-2xl hover:bg-primary/90 transition-all duration-300 font-black shadow-xl shadow-primary/30 active:scale-95"
-                    >
-                        <FaPlus /> Create New Team
-                    </button>
+        <div className="space-y-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-900">Team Workspace</h1>
+                    <p className="text-sm text-gray-600">Collaborate with your professionals in real-time</p>
                 </div>
+                <button
+                    onClick={() => handleOpenModal()}
+                    className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                >
+                    <FaPlus /> Create New Team
+                </button>
+            </div>
 
                 {/* My Teams */}
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                        <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-3">
-                            <span className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary text-xs">01</span>
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                        <h2 className="text-lg font-bold text-gray-800">
                             My Owned Teams
                         </h2>
                     </div>
 
                     {teams.length === 0 ? (
-                        <div className="bg-white rounded-3xl shadow-xl p-20 text-center border border-slate-100">
-                             <div className="w-24 h-24 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 mx-auto mb-6">
-                                <FaUsers size={48} />
+                        <div className="text-center py-12">
+                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mx-auto mb-4">
+                                <FaUsers size={32} />
                             </div>
-                            <h3 className="text-2xl font-black text-slate-800 mb-3">No active teams</h3>
-                            <button onClick={() => handleOpenModal()} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold mt-4 shadow-xl">Launch First Team</button>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">No active teams</h3>
+                            <button onClick={() => handleOpenModal()} className="text-primary hover:text-primary/80 font-medium mt-2">Create your first team</button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {teams.map((team) => (
-                                <div key={team._id} className="group bg-white rounded-[2rem] shadow-xl hover:shadow-2xl transition-all border border-slate-100 flex flex-col h-full overflow-hidden">
-                                    <div className="p-8 flex-grow">
-                                        <div className="flex justify-between items-start mb-6">
-                                            <h3 className="text-2xl font-black text-slate-900 group-hover:text-primary transition-colors">{team.name}</h3>
-                                            <div className="flex gap-1">
-                                                <button onClick={() => handleOpenModal(team)} className="p-2 text-slate-400 hover:text-blue-600"><FaEdit /></button>
-                                                <button onClick={() => handleDelete(team._id)} className="p-2 text-slate-400 hover:text-red-500"><FaTrash /></button>
+                                <div key={team._id} className="bg-white rounded-lg border border-gray-200 hover:border-primary/50 transition-colors flex flex-col h-full overflow-hidden shadow-sm hover:shadow-md">
+                                    <div className="p-6 flex-grow">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <h3 className="text-lg font-bold text-gray-900">{team.name}</h3>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleOpenModal(team)} className="text-gray-400 hover:text-blue-600 transition-colors"><FaEdit /></button>
+                                                <button onClick={() => handleDelete(team._id)} className="text-gray-400 hover:text-red-500 transition-colors"><FaTrash /></button>
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
                                             {team.members?.map(m => (
-                                                <div key={m._id} className={`px-3 py-1 rounded-lg text-xs font-bold ${m.status === 'invited' ? 'bg-orange-50 text-orange-600' : 'bg-primary/10 text-primary'}`}>
+                                                <div key={m._id} className={`px-2 py-1 rounded bg-gray-50 border border-gray-100 text-xs font-medium ${m.status === 'invited' ? 'text-orange-600' : 'text-gray-600'}`}>
                                                     {m.name || m.email?.split('@')[0]} {m.status === 'invited' && '(Invited)'}
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="bg-slate-50 p-6 flex justify-between items-center border-t">
-                                        <span className="text-xs font-bold text-slate-500">{team.members?.length || 0}/2 Members</span>
-                                        <button onClick={() => handleViewTeam(team._id)} className="bg-white text-slate-700 px-5 py-3 rounded-2xl border font-semibold text-sm hover:border-primary">Open Workspace</button>
+                                    <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-100">
+                                        <span className="text-xs font-medium text-gray-500">{team.members?.length || 0}/2 Members</span>
+                                        <button onClick={() => handleViewTeam(team._id)} className="text-primary hover:text-primary/80 font-medium text-sm transition-colors">Open Workspace</button>
                                     </div>
                                 </div>
                             ))}
@@ -229,33 +222,31 @@ const TeamPage = () => {
 
                 {/* Member Teams */}
                 {memberTeams.length > 0 && (
-                    <div className="space-y-6 pt-6">
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                            <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-3">
-                                <span className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-600 text-xs">02</span>
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                            <h2 className="text-lg font-bold text-gray-800">
                                 Shared Workspaces
                             </h2>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {memberTeams.map((team) => (
-                                <div key={team._id} className="bg-white rounded-[2rem] shadow-xl border border-blue-50 flex flex-col h-full overflow-hidden">
-                                    <div className="p-8 flex-grow">
+                                <div key={team._id} className="bg-white rounded-lg border border-gray-200 hover:border-blue-500/50 transition-colors flex flex-col h-full overflow-hidden shadow-sm hover:shadow-md">
+                                    <div className="p-6 flex-grow">
                                         <div className="flex justify-between items-start mb-4">
-                                            <h3 className="text-2xl font-black text-slate-900">{team.name}</h3>
-                                            <button onClick={() => handleLeaveTeam(team)} className="text-slate-300 hover:text-orange-500"><FaSignOutAlt /></button>
+                                            <h3 className="text-lg font-bold text-gray-900">{team.name}</h3>
+                                            <button onClick={() => handleLeaveTeam(team)} className="text-gray-400 hover:text-orange-500 transition-colors" title="Leave Team"><FaSignOutAlt /></button>
                                         </div>
-                                        <p className="text-sm font-bold text-slate-500 mb-4">Owner: {team.owner?.name || team.owner?.email}</p>
+                                        <p className="text-xs font-medium text-gray-500">Owner: {team.owner?.name || team.owner?.email}</p>
                                     </div>
-                                    <div className="bg-blue-50/30 p-6 flex justify-end">
-                                        <button onClick={() => handleViewTeam(team._id)} className="bg-white text-blue-600 px-5 py-3 rounded-2xl border border-blue-100 font-semibold text-sm hover:bg-blue-600 hover:text-white transition-all">Enter Dashboard</button>
+                                    <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-100">
+                                        <button onClick={() => handleViewTeam(team._id)} className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors">Enter Dashboard</button>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
-            </div>
-
+            
             <TeamModal
                 open={isModalOpen}
                 onCancel={handleCloseModal}

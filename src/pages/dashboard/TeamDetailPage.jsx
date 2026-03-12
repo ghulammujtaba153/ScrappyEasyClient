@@ -739,139 +739,109 @@ const TeamDetailPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] py-8 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
+        <div className="space-y-6">
+            <div className="max-w-7xl mx-auto space-y-6">
                 {/* WhatsApp Connection Status */}
-                <div className="relative group">
+                <div className="relative">
                     {whatsappInitialized ? (
-                        <div className="bg-white rounded-2xl shadow-sm border border-green-100 overflow-hidden transition-all duration-300 hover:shadow-md">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-                            <div className="p-6 flex flex-col md:flex-row gap-6 items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
-                                        <BsWhatsapp size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900">WhatsApp Connected</h3>
-                                        <p className="text-gray-500 text-sm">Bulk verification and automated messaging enabled.</p>
-                                    </div>
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-green-50 rounded-lg text-green-600">
+                                    <BsWhatsapp size={20} />
                                 </div>
-                                <Button
-                                    danger
-                                    type="text"
-                                    icon={<MdClose />}
-                                    onClick={disconnectWhatsApp}
-                                    className="hover:bg-red-50 font-medium px-6 py-2 rounded-xl transition-all"
-                                >
-                                    Disconnect
-                                </Button>
+                                <div>
+                                    <h3 className="text-md font-bold text-gray-800">WhatsApp Connected</h3>
+                                    <p className="text-gray-500 text-xs">Bulk verification and automated messaging enabled.</p>
+                                </div>
                             </div>
+                            <button
+                                onClick={disconnectWhatsApp}
+                                className="px-4 py-2 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+                            >
+                                <MdClose /> Disconnect
+                            </button>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden transition-all duration-300 hover:shadow-md">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-orange-400"></div>
-                            <div className="p-6 flex flex-col md:flex-row gap-6 items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500">
-                                        <BsWhatsapp size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900">Link WhatsApp</h3>
-                                        <p className="text-gray-500 text-sm">Connect your account to unlock bulk verification tools.</p>
-                                    </div>
+                        <div className="bg-white rounded-lg shadow-sm border border-orange-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-orange-50 rounded-lg text-orange-500">
+                                    <BsWhatsapp size={20} />
                                 </div>
-                                <Button
-                                    type="primary"
-                                    icon={<BsWhatsapp />}
-                                    onClick={() => { if (!requireSubscription('WhatsApp Connect')) return; setIsConnectModalOpen(true); }}
-                                    className="bg-[#25D366] hover:bg-[#128C7E] border-none font-bold px-8 h-12 rounded-xl shadow-lg shadow-green-200 transition-all hover:scale-[1.02]"
-                                >
-                                    Connect Now
-                                </Button>
+                                <div>
+                                    <h3 className="text-md font-bold text-gray-800">Link WhatsApp</h3>
+                                    <p className="text-gray-500 text-xs">Connect your account to unlock bulk verification tools.</p>
+                                </div>
                             </div>
+                            <button
+                                onClick={() => { if (!requireSubscription('WhatsApp Connect')) return; setIsConnectModalOpen(true); }}
+                                className="bg-[#25D366] hover:bg-[#128C7E] text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm"
+                            >
+                                <BsWhatsapp /> Connect Now
+                            </button>
                         </div>
                     )}
                 </div>
 
                 {/* Header Section */}
-                <div className="relative">
-                    <button
-                        onClick={() => navigate('/dashboard/team')}
-                        className="group flex items-center gap-2 text-slate-500 hover:text-primary mb-6 transition-all font-medium text-sm"
-                    >
-                        <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                            <FaArrowLeft size={12} />
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/dashboard/team')}
+                            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                        >
+                            <FaArrowLeft size={14} />
+                        </button>
+                        <div>
+                            <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                {team?.name}
+                                <Tag color="blue" className="rounded-full px-2 py-0 border-none font-medium text-xs m-0 relative -top-0.5">
+                                    {team?.members?.length || 0} MEMBERS
+                                </Tag>
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-0.5">
+                                Managed by {team?.owner?.name || team?.owner?.email}
+                            </p>
                         </div>
-                        Back to Workspace
-                    </button>
+                    </div>
 
-                    <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 opacity-50"></div>
-                        
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-5 mb-3">
-                                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                                    <FaUsers size={32} />
-                                </div>
-                                <div>
-                                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-                                        {team?.name}
-                                    </h1>
-                                    <div className="flex items-center gap-3 mt-1">
-                                        <Tag color="blue" className="rounded-full px-3 py-0.5 border-none font-bold text-[10px] uppercase tracking-wider">
-                                            {team?.members?.length || 0} ACTIVE MEMBERS
-                                        </Tag>
-                                        <span className="text-slate-400 text-sm font-medium">
-                                            Managed by <span className="text-slate-700 font-bold">{team?.owner?.name || team?.owner?.email}</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 flex-wrap relative z-10 w-full lg:w-auto">
-                            <button
-                                onClick={handleExportCSV}
-                                className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-white border-2 border-slate-200 text-slate-600 px-6 py-3.5 rounded-2xl hover:border-slate-300 hover:bg-slate-50 transition-all duration-300 font-bold shadow-sm"
-                            >
-                                <FaFileDownload size={18} />
-                                Export
-                            </button>
-                            <button
-                                onClick={() => { if (!requireSubscription('WhatsApp Verification')) return; handleVerifyAllWhatsApp(); }}
-                                className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-white border-2 border-green-500 text-green-600 px-6 py-3.5 rounded-2xl hover:bg-green-500 hover:text-white transition-all duration-300 font-bold shadow-sm"
-                            >
-                                <MdCheckCircle size={20} />
-                                Whatsapp Verify
-                            </button>
-                            <button
-                                onClick={() => { if (!requireSubscription('Dialer')) return; handleOpenDialer(); }}
-                                className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-slate-900 text-white px-6 py-3.5 rounded-2xl hover:bg-slate-800 transition-all duration-300 font-bold shadow-xl shadow-slate-200"
-                            >
-                                <FaPhone size={14} />
-                                Dialer
-                            </button>
-                            <button
-                                onClick={() => handleOpenModal()}
-                                className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-primary text-white px-8 py-3.5 rounded-2xl hover:bg-primary/90 transition-all duration-300 font-black shadow-xl shadow-primary/30"
-                            >
-                                <FaPlus size={16} />
-                                New Record
-                            </button>
-                        </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                            onClick={handleExportCSV}
+                            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                        >
+                            <FaFileDownload size={14} />
+                            Export
+                        </button>
+                        <button
+                            onClick={() => { if (!requireSubscription('WhatsApp Verification')) return; handleVerifyAllWhatsApp(); }}
+                            className="flex items-center gap-2 bg-white border border-green-500 text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm"
+                        >
+                            <MdCheckCircle size={16} />
+                            Verify
+                        </button>
+                        <button
+                            onClick={() => { if (!requireSubscription('Dialer')) return; handleOpenDialer(); }}
+                            className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm"
+                        >
+                            <FaPhone size={12} />
+                            Dialer
+                        </button>
+                        <button
+                            onClick={() => handleOpenModal()}
+                            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+                        >
+                            <FaPlus size={14} />
+                            New Record
+                        </button>
                     </div>
                 </div>
 
                 {/* Team Collaboration Card */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                             Team Collaboration
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                         </h3>
-                        <span className="text-slate-400 text-xs font-medium uppercase tracking-widest">
-                            Live Activity
-                        </span>
                     </div>
                     
                     <div className="flex flex-wrap gap-4">
@@ -928,15 +898,12 @@ const TeamDetailPage = () => {
                 </div>
 
                 {/* Main Content Area */}
-                <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
-                    <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-                        <h2 className="text-xl font-extrabold text-slate-900">Lead Database</h2>
-                        <div className="flex items-center gap-2">
-                             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                {teamData?.length || 0} TOTAL ENTRIES
-                             </span>
-                        </div>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                        <h2 className="text-lg font-bold text-gray-800">Lead Database</h2>
+                        <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-200 shadow-sm">
+                            {teamData?.length || 0} Entries
+                        </span>
                     </div>
                     <Table
                         columns={columns}

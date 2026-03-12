@@ -83,10 +83,10 @@ const HomePage = () => {
         <div className="space-y-6">
             {/* Welcome Section */}
             <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                <h2 className="text-xl font-bold text-gray-800 mb-2">
                     Welcome back, {user?.name}! 👋
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-sm text-gray-600">
                     Here's an overview of your account and recent activity.
                 </p>
             </div>
@@ -100,7 +100,7 @@ const HomePage = () => {
                             {loading ? (
                                 <Spin size="small" className="mt-2" />
                             ) : (
-                                <p className="text-3xl font-bold mt-2">{stats.citiesCovered}</p>
+                                <p className="text-2xl font-bold mt-2">{stats.citiesCovered}</p>
                             )}
                             <p className="text-purple-100 text-sm font-medium">Cities Covered</p>
 
@@ -120,7 +120,7 @@ const HomePage = () => {
                             {loading ? (
                                 <Spin size="small" className="mt-2" />
                             ) : (
-                                <p className="text-3xl font-bold mt-2">{stats.totalLeads}</p>
+                                <p className="text-2xl font-bold mt-2">{stats.totalLeads}</p>
                             )}
                             <p className="text-blue-100 text-sm font-medium">Total Leads</p>
 
@@ -139,7 +139,7 @@ const HomePage = () => {
                             {loading ? (
                                 <Spin size="small" className="mt-2" />
                             ) : (
-                                <p className="text-3xl font-bold mt-2">{stats.whatsappAvailable}</p>
+                                <p className="text-2xl font-bold mt-2">{stats.whatsappAvailable}</p>
                             )}
                             <p className="text-green-100 text-sm font-medium">WhatsApp Available</p>
 
@@ -158,7 +158,7 @@ const HomePage = () => {
                             {loading ? (
                                 <Spin size="small" className="mt-2" />
                             ) : (
-                                <p className="text-3xl font-bold mt-2">{stats.lowRated}</p>
+                                <p className="text-2xl font-bold mt-2">{stats.lowRated}</p>
                             )}
                             <p className="text-orange-100 text-sm font-medium">Low Rated (&lt;4.0)</p>
 
@@ -174,7 +174,7 @@ const HomePage = () => {
 
             {/* Charts Section Header with Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white rounded-lg shadow-md p-4">
-                <h3 className="text-xl font-bold text-gray-800 mb-3 sm:mb-0">Analytics Overview</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-3 sm:mb-0">Analytics Overview</h3>
                 <ChartFilter activeFilter={timeFilter} onFilterChange={setTimeFilter} />
             </div>
 

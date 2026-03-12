@@ -205,7 +205,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
                         >
                             <span className={isActive ? "text-white" : ""}>{item.icon}</span>
                             {!isCollapsed && (
-                                <span className="font-medium">{item.name}</span>
+                                <span className="font-medium text-sm">{item.name}</span>
                             )}
                         </div>
                     );
@@ -218,7 +218,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
                 >
                     <MdLogout className="w-5 h-5" />
                     {!isCollapsed && (
-                        <span className="font-medium">Logout</span>
+                        <span className="font-medium text-sm">Logout</span>
                     )}
                 </button>
 
