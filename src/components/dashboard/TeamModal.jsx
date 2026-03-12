@@ -65,6 +65,7 @@ const TeamModal = ({
 
     return (
         <Modal
+            title={
                 <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
                     <div className={`p-2 rounded-lg flex items-center justify-center ${initialData ? 'bg-blue-50 text-blue-600' : 'bg-primary/10 text-primary'}`}>
                         {initialData ? <FaEdit size={20} /> : <FaPlus size={20} />}
@@ -76,6 +77,7 @@ const TeamModal = ({
                         <p className="text-sm text-gray-500 font-normal mt-0.5">Define your collaboration boundaries</p>
                     </div>
                 </div>
+            }
             open={open}
             onCancel={onCancel}
             footer={null}
