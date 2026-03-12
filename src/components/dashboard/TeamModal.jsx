@@ -65,19 +65,17 @@ const TeamModal = ({
 
     return (
         <Modal
-            title={
-                <div className="flex items-center gap-4 py-2">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${initialData ? 'bg-blue-50 text-blue-600 shadow-blue-100' : 'bg-green-50 text-green-600 shadow-green-100'}`}>
-                        {initialData ? <FaEdit size={24} /> : <FaPlus size={24} />}
+                <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
+                    <div className={`p-2 rounded-lg flex items-center justify-center ${initialData ? 'bg-blue-50 text-blue-600' : 'bg-primary/10 text-primary'}`}>
+                        {initialData ? <FaEdit size={20} /> : <FaPlus size={20} />}
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                            {initialData ? 'Refine Team' : 'New Workspace'}
+                        <h2 className="text-xl font-bold text-gray-900">
+                            {initialData ? 'Edit Team' : 'Create New Team'}
                         </h2>
-                        <p className="text-slate-400 text-xs font-medium italic mt-0.5">Define your collaboration boundaries</p>
+                        <p className="text-sm text-gray-500 font-normal mt-0.5">Define your collaboration boundaries</p>
                     </div>
                 </div>
-            }
             open={open}
             onCancel={onCancel}
             footer={null}
@@ -86,36 +84,36 @@ const TeamModal = ({
             className="premium-modal"
             maskClosable={false}
         >
-            <div className="py-6 space-y-8">
+            <div className="py-4 space-y-6">
                 {/* Team Name */}
                 <div>
-                    <div className="flex items-center justify-between mb-2 px-1">
-                        <label className="text-sm font-semibold text-slate-600">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-semibold text-gray-700">
                             Team Name
                         </label>
-                        <span className="text-xs font-medium text-red-400">Required</span>
+                        <span className="text-xs text-red-500">* Required</span>
                     </div>
-                    <div className="relative group">
+                    <div className="relative">
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Apollo Strategy Team"
-                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-primary/50 outline-none transition-all font-bold text-slate-800 placeholder:text-slate-300 shadow-inner group-hover:bg-slate-100/50"
+                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:border-primary outline-none transition-colors text-gray-800 text-sm"
                         />
                     </div>
                 </div>
 
                 {/* Emails Input */}
                 <div>
-                    <div className="flex items-center justify-between mb-2 px-1">
-                        <label className="text-sm font-semibold text-slate-600">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-semibold text-gray-700">
                             Invite Members by Email
                         </label>
-                        <span className="text-xs font-medium text-slate-400">Max {MAX_MEMBERS}</span>
+                        <span className="text-xs text-gray-500">Max {MAX_MEMBERS}</span>
                     </div>
-                    <div className="relative group mb-4">
-                        <FaEnvelope className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <div className="relative mb-3">
+                        <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
                             type="email"
                             value={currentEmail}
@@ -124,16 +122,16 @@ const TeamModal = ({
                             onBlur={handleAddEmail}
                             placeholder="Press Enter to add email..."
                             disabled={emails.length >= MAX_MEMBERS}
-                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-primary/50 outline-none transition-all font-bold text-slate-800 placeholder:text-slate-300 shadow-inner group-hover:bg-slate-100/50 disabled:opacity-50"
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:border-primary outline-none transition-colors text-gray-800 text-sm disabled:opacity-50 disabled:bg-gray-50"
                         />
                     </div>
 
                     {/* Email Tags */}
-                    <div className="flex flex-wrap gap-2 min-h-[40px]">
+                    <div className="flex flex-wrap gap-2 min-h-[32px]">
                         {emails.map((email) => (
                             <div 
                                 key={email}
-                                className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl font-bold text-sm border border-primary/20 animate-fadeIn"
+                                className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-sm border border-gray-200"
                             >
                                 <span>{email}</span>
                                 <button 
@@ -145,16 +143,16 @@ const TeamModal = ({
                             </div>
                         ))}
                         {emails.length === 0 && (
-                            <p className="text-slate-400 text-xs italic py-2">No members added yet. Type an email and press Enter.</p>
+                            <p className="text-gray-400 text-xs py-1">No members added yet. Type an email and press Enter.</p>
                         )}
                     </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-4 pt-6 border-t border-slate-50">
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button
                         onClick={onCancel}
-                        className="flex-1 px-6 py-4 text-slate-500 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all font-semibold text-sm active:scale-95"
+                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
                         disabled={loading}
                     >
                         Cancel
@@ -162,7 +160,7 @@ const TeamModal = ({
                     <button
                         onClick={handleFormSubmit}
                         disabled={loading}
-                        className="flex-[1.5] px-6 py-4 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-all font-semibold text-sm flex items-center justify-center gap-3 shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50"
+                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         {loading ? (
                             <>
@@ -171,7 +169,7 @@ const TeamModal = ({
                             </>
                         ) : (
                             <>
-                                {initialData ? <><FaEdit size={16} /> Update Team</> : <><FaPlus size={16} /> Create Team</>}
+                                {initialData ? 'Save Changes' : 'Create Team'}
                             </>
                         )}
                     </button>

@@ -174,8 +174,8 @@ const OperationsPage = () => {
         <div className="space-y-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Operations Overview</h1>
-                    <p className="text-gray-600">Review each unique search and drill into the full dataset.</p>
+                    <h1 className="text-xl font-bold text-gray-900">Operations Overview</h1>
+                    <p className="text-sm text-gray-600">Review each unique search and drill into the full dataset.</p>
                 </div>
                 <Space>
                     <Button
@@ -192,11 +192,11 @@ const OperationsPage = () => {
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
                     <div>
                         <p className="text-sm text-gray-500">Total Searches</p>
-                        <p className="text-3xl font-semibold text-[#0F792C]">{uniqueSearches.length}</p>
+                        <p className="text-2xl font-semibold text-[#0F792C]">{uniqueSearches.length}</p>
                     </div>
                     <div>
                         <p className="text-sm text-gray-500">Unique Cities</p>
-                        <p className="text-3xl font-semibold text-[#0F792C]">{uniqueCities.length}</p>
+                        <p className="text-2xl font-semibold text-[#0F792C]">{uniqueCities.length}</p>
                     </div>
                 </div>
                 <Search
@@ -216,7 +216,7 @@ const OperationsPage = () => {
 
             {uniqueCities.length > 0 && (
                 <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Cities & Locations</h3>
+                    <h3 className="text-base font-semibold text-gray-700 mb-4">Cities & Locations</h3>
                     <div className="flex flex-wrap gap-2">
                         {uniqueCities.map((city, index) => (
                             <Tag key={index} color="green" className="text-sm py-1 px-3">
