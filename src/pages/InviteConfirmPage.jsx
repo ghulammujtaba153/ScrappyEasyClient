@@ -120,7 +120,7 @@ const InviteConfirmPage = () => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-[#F8FAFC]">
+        <div className="min-h-screen flex items-center justify-center p-5">
             {notification && (
                 <Notification
                     message={notification.message}
@@ -129,20 +129,18 @@ const InviteConfirmPage = () => {
                 />
             )}
             
-            <div className="max-w-xl w-full bg-white p-10 md:p-14 rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 animate-slideUp">
-                <div className="text-center mb-10">
-                    <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary mx-auto mb-6 shadow-inner">
-                        <FaLock size={32} />
-                    </div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-3">Finalize Your Profile</h1>
-                    <p className="text-slate-400 font-medium italic">Setting up account for: <span className="text-primary font-bold not-italic">{email}</span></p>
+            <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md animate-slideUp">
+                <div className="text-center mb-8">
+                    <img src="/map.png" alt="" className="mb-7 mx-auto w-[50px] object-contain" />
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Activate Account</h1>
+                    <p className="text-gray-600 text-sm">Setting up account for: <span className="text-primary font-semibold">{email}</span></p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Name */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                            <FaUser size={12} className="text-slate-400" /> Full Name
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Full Name
                         </label>
                         <input
                             type="text"
@@ -151,58 +149,64 @@ const InviteConfirmPage = () => {
                             onChange={handleChange}
                             required
                             placeholder="e.g. John Doe"
-                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-primary/40 outline-none transition-all font-bold text-slate-800"
+                            className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border-gray-300"
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Password */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                                <FaLock size={12} className="text-slate-400" /> Password
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    name="password"
-                                    value={form.password}
-                                    onChange={handleChange}
-                                    required
-                                    placeholder="••••••••"
-                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-primary/40 outline-none transition-all font-bold text-slate-800"
-                                />
-                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
-                                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                                </button>
-                            </div>
+                    {/* Password */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Password
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                name="password"
+                                value={form.password}
+                                onChange={handleChange}
+                                required
+                                placeholder="Enter your password"
+                                className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border-gray-300"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                                {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                            </button>
                         </div>
+                    </div>
 
-                        {/* Confirm Password */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                                <FaLock size={12} className="text-slate-400" /> Confirm
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type={showConfirmPassword ? 'text' : 'password'}
-                                    name="confirmPassword"
-                                    value={form.confirmPassword}
-                                    onChange={handleChange}
-                                    required
-                                    placeholder="••••••••"
-                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-primary/40 outline-none transition-all font-bold text-slate-800"
-                                />
-                                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
-                                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                                </button>
-                            </div>
+                    {/* Confirm Password */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Confirm Password
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                name="confirmPassword"
+                                value={form.confirmPassword}
+                                onChange={handleChange}
+                                required
+                                placeholder="Confirm your password"
+                                className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border-gray-300"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                                {showConfirmPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                            </button>
                         </div>
                     </div>
 
                     {/* Country */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                            <FaGlobe size={12} className="text-slate-400" /> Your Country
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Your Country
                         </label>
                         <input
                             type="text"
@@ -211,16 +215,16 @@ const InviteConfirmPage = () => {
                             onChange={handleChange}
                             required
                             placeholder="e.g. United Kingdom"
-                            className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:bg-white focus:border-primary/40 outline-none transition-all font-bold text-slate-800"
+                            className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border-gray-300"
                         />
                     </div>
 
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full py-5 bg-primary text-white rounded-[1.5rem] font-black text-lg shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+                        className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-6"
                     >
-                        {submitting ? <><Spin size="small" className="text-white" /> Saving Profile...</> : "Activate Account"}
+                        {submitting ? "Activating..." : "Activate Account"}
                     </button>
                 </form>
             </div>
