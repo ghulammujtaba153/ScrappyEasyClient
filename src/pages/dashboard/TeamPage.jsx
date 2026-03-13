@@ -202,12 +202,24 @@ const TeamPage = () => {
                                                 <button onClick={() => handleDelete(team._id)} className="text-gray-400 hover:text-red-500 transition-colors"><FaTrash /></button>
                                             </div>
                                         </div>
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            <div className="px-2 py-1 rounded bg-emerald-50 border border-emerald-100 text-xs font-medium text-emerald-600">
+                                                Owner: {user.name || user.email?.split('@')[0]} (You)
+                                            </div>
+                                        </div>
                                         <div className="flex flex-wrap gap-2">
                                             {team.members?.map(m => (
                                                 <div key={m._id} className={`px-2 py-1 rounded bg-gray-50 border border-gray-100 text-xs font-medium ${m.status === 'invited' ? 'text-orange-600' : 'text-gray-600'}`}>
                                                     {m.name || m.email?.split('@')[0]} {m.status === 'invited' && '(Invited)'}
                                                 </div>
                                             ))}
+                                            <button 
+                                                onClick={() => handleOpenModal(team)} 
+                                                className="px-2 py-1 flex items-center justify-center rounded bg-gray-50 hover:bg-blue-50 border border-dashed border-gray-300 hover:border-blue-300 text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors cursor-pointer"
+                                                title="Invite member"
+                                            >
+                                                <FaPlus size={10} className="mr-1" /> Add
+                                            </button>
                                         </div>
                                     </div>
                                     <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-100">
@@ -236,7 +248,21 @@ const TeamPage = () => {
                                             <h3 className="text-lg font-bold text-gray-900">{team.name}</h3>
                                             <button onClick={() => handleLeaveTeam(team)} className="text-gray-400 hover:text-orange-500 transition-colors" title="Leave Team"><FaSignOutAlt /></button>
                                         </div>
-                                        <p className="text-xs font-medium text-gray-500">Owner: {team.owner?.name || team.owner?.email}</p>
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            <div className="px-2 py-1 rounded bg-blue-50 border border-blue-100 text-xs font-medium text-blue-600">
+                                                Owner: {team.owner?.name || team.owner?.email?.split('@')[0]}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <div className="px-2 py-1 rounded bg-emerald-50 border border-emerald-100 text-xs font-medium text-emerald-600">
+                                                {user.name || user.email?.split('@')[0]} (You)
+                                            </div>
+                                            {team.members?.filter(m => m._id !== user._id).map(m => (
+                                                <div key={m._id} className={`px-2 py-1 rounded bg-gray-50 border border-gray-100 text-xs font-medium ${m.status === 'invited' ? 'text-orange-600' : 'text-gray-600'}`}>
+                                                    {m.name || m.email?.split('@')[0]} {m.status === 'invited' && '(Invited)'}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                     <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-100">
                                         <button onClick={() => handleViewTeam(team._id)} className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors">Enter Dashboard</button>
