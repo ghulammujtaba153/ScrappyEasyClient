@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaTrash, FaUsers, FaUserPlus, FaArrowRight, FaSignOutAlt } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaUsers, FaUserPlus, FaArrowRight, FaSignOutAlt, FaTimes } from 'react-icons/fa';
 import { message, Modal } from 'antd';
 import Loader from '../../components/common/Loader';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
@@ -157,6 +157,33 @@ const TeamPage = () => {
         });
     };
 
+    const handleRemoveMember = async (team, memberToRemove) => {
+        Modal.confirm({
+            title: 'Remove Member',
+            content: `Are you sure you want to remove ${memberToRemove.name || memberToRemove.email} from "${team.name}"?`,
+            okText: 'Remove',
+            okType: 'danger',
+            cancelText: 'Cancel',
+            onOk: async () => {
+                try {
+                    const memberEmails = team.members
+                        .filter(m => m._id !== memberToRemove._id)
+                        .map(m => m.email);
+
+                    await axios.put(
+                        `${BASE_URL}/api/team/update/${team._id}`,
+                        { memberEmails },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    message.success('Member removed successfully');
+                    fetchTeams();
+                } catch {
+                    message.error('Failed to remove member');
+                }
+            }
+        });
+    };
+
     if (loading) return <Loader />;
 
     return (
@@ -207,10 +234,18 @@ const TeamPage = () => {
                                                 Owner: {user.name || user.email?.split('@')[0]} (You)
                                             </div>
                                         </div>
+                                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Members</h4>
                                         <div className="flex flex-wrap gap-2">
                                             {team.members?.map(m => (
-                                                <div key={m._id} className={`px-2 py-1 rounded bg-gray-50 border border-gray-100 text-xs font-medium ${m.status === 'invited' ? 'text-orange-600' : 'text-gray-600'}`}>
-                                                    {m.name || m.email?.split('@')[0]} {m.status === 'invited' && '(Invited)'}
+                                                <div key={m._id} className={`px-2 py-1 flex items-center gap-1 rounded bg-gray-50 border border-gray-100 text-xs font-medium ${m.status === 'invited' ? 'text-orange-600' : 'text-gray-600'}`}>
+                                                    <span>{m.name || m.email?.split('@')[0]} {m.status === 'invited' && '(Invited)'}</span>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleRemoveMember(team, m); }}
+                                                        className="ml-1 text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
+                                                        title="Remove user"
+                                                    >
+                                                        <FaTimes size={10} />
+                                                    </button>
                                                 </div>
                                             ))}
                                             <button 
@@ -253,9 +288,17 @@ const TeamPage = () => {
                                                 Owner: {team.owner?.name || team.owner?.email?.split('@')[0]}
                                             </div>
                                         </div>
+                                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Members</h4>
                                         <div className="flex flex-wrap gap-2">
-                                            <div className="px-2 py-1 rounded bg-emerald-50 border border-emerald-100 text-xs font-medium text-emerald-600">
-                                                {user.name || user.email?.split('@')[0]} (You)
+                                            <div className="px-2 py-1 flex items-center gap-1 rounded bg-emerald-50 border border-emerald-100 text-xs font-medium text-emerald-600">
+                                                <span>{user.name || user.email?.split('@')[0]} (You)</span>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); handleLeaveTeam(team); }}
+                                                    className="ml-1 text-emerald-400 hover:text-red-500 transition-colors focus:outline-none"
+                                                    title="Leave team"
+                                                >
+                                                    <FaTimes size={10} />
+                                                </button>
                                             </div>
                                             {team.members?.filter(m => m._id !== user._id).map(m => (
                                                 <div key={m._id} className={`px-2 py-1 rounded bg-gray-50 border border-gray-100 text-xs font-medium ${m.status === 'invited' ? 'text-orange-600' : 'text-gray-600'}`}>
