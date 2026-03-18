@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
 import { useOperations } from '../../context/operationsContext';
 import EditOperationModal from '../../components/dashboard/EditOperationModal';
+import AddOperationModal from '../../components/dashboard/AddOperationModal';
+import { FiPlus } from 'react-icons/fi';
 
 const { Search } = Input;
 
@@ -28,6 +30,7 @@ const OperationsPage = () => {
 
     // Modal state
     const [editModalVisible, setEditModalVisible] = useState(false);
+    const [addModalVisible, setAddModalVisible] = useState(false);
     const [selectedOperation, setSelectedOperation] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
 
@@ -57,8 +60,9 @@ const OperationsPage = () => {
     // Handle Modal Success
     const handleModalSuccess = (action) => {
         setEditModalVisible(false);
+        setAddModalVisible(false);
         setSelectedOperation(null);
-        // Refresh the list after update or delete
+        // Refresh the list after update, create, or delete
         fetchUniqueSearches(pagination.current, pagination.pageSize);
     };
 
@@ -178,6 +182,14 @@ const OperationsPage = () => {
                     <p className="text-sm text-gray-600">Review each unique search and drill into the full dataset.</p>
                 </div>
                 <Space>
+                    <Button
+                        type="primary"
+                        icon={<FiPlus />}
+                        className="bg-[#0f792c] hover:bg-[#0a5a20] rounded-full"
+                        onClick={() => setAddModalVisible(true)}
+                    >
+                        Add Operation
+                    </Button>
                     <Button
                         icon={<FiRefreshCw />}
                         onClick={() => fetchUniqueSearches(pagination.current, pagination.pageSize)}
@@ -310,6 +322,13 @@ const OperationsPage = () => {
                     setSelectedOperation(null);
                 }}
                 operation={selectedOperation}
+                onSuccess={handleModalSuccess}
+            />
+
+            {/* Add Operation Modal */}
+            <AddOperationModal
+                visible={addModalVisible}
+                onCancel={() => setAddModalVisible(false)}
                 onSuccess={handleModalSuccess}
             />
         </div>
