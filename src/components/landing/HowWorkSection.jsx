@@ -165,7 +165,7 @@ const HowWorkSection = () => {
                 
                 {/* Header Section */}
                 <div className="text-center space-y-4 mb-32">
-                    <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">
+                    <h2 className="text-3xl md:text-6xl font-black font-semibold text-gray-900 tracking-tight">
                         How It Works
                     </h2>
                     <p className="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
@@ -201,7 +201,7 @@ const HowWorkSection = () => {
                                     </div>
 
                                     <div className="space-y-3 md:space-y-4">
-                                        <h3 className="text-3xl md:text-5xl font-black font-bold text-gray-900 leading-[1.1]">
+                                        <h3 className="text-xl md:text-3xl font-black font-semibold text-gray-900 leading-[1.1]">
                                             {card.title}
                                         </h3>
                                         <p className="text-gray-600 text-base md:text-lg font-normal leading-relaxed max-w-xl mx-auto lg:mx-0">

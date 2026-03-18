@@ -42,7 +42,7 @@ const KeyBenefitsSection = () => {
                 {/* Left Side: Sticky Header */}
                 <div className="lg:w-1/3">
                     <div className="lg:sticky lg:top-24 mb-12 lg:mb-0">
-                        <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 leading-tight">
+                        <h2 className="text-3xl md:text-6xl font-black font-semibold text-gray-900 leading-tight">
                             Key Benefits
                         </h2>
                     </div>
@@ -62,7 +62,7 @@ const KeyBenefitsSection = () => {
 
                             {/* Text Content */}
                             <div className="space-y-4">
-                                <h3 className="text-2xl md:text-4xl font-black font-bold text-gray-900 leading-tight">
+                                <h3 className="text-xl md:text-3xl font-black font-semibold text-gray-900 leading-tight">
                                     {benefit.title}
                                 </h3>
                                 <p className="text-gray-600 text-lg font-normal leading-relaxed opacity-80">
