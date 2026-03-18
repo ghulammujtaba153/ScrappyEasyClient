@@ -8,9 +8,9 @@ const FAQItem = ({ question, answer }) => {
         <div className={`border border-gray-100 rounded-2xl mb-4 bg-white shadow-sm overflow-hidden transition-all duration-500 ${isOpen ? 'ring-2 ring-primary/10 scale-[1.01] shadow-xl' : 'hover:border-primary/20'}`}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full p-6 md:p-8 flex items-center justify-between text-left group"
+                className="w-full p-2 md:p-4 flex items-center justify-between text-left group"
             >
-                <span className={`text-xl md:text-2xl font-black font-bold text-gray-900 group-hover:text-primary transition-colors pr-8 ${isOpen ? 'text-primary' : ''}`}>
+                <span className={`text-lg font-black font-semibold text-gray-900 group-hover:text-primary transition-colors pr-8 ${isOpen ? 'text-primary' : ''}`}>
                     {question}
                 </span>
                 <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-primary text-white rotate-180' : 'bg-gray-50 text-primary'}`}>
@@ -21,7 +21,7 @@ const FAQItem = ({ question, answer }) => {
                 className={`grid transition-all duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
             >
                 <div className="overflow-hidden">
-                    <div className="p-6 md:p-8 pt-0 text-gray-600 text-lg font-normal leading-relaxed border-t border-gray-50 animate-slideUpSmall">
+                    <div className="p-2 md:p-4 pt-0 text-gray-600 text-base font-normal leading-relaxed border-t border-gray-50 animate-slideUpSmall">
                         {answer}
                     </div>
                 </div>

@@ -287,7 +287,7 @@ const FeatureSection = () => {
                                 <ul className="space-y-4">
                                     {feature.points.map((point, i) => (
                                         <li key={i} className="flex items-center gap-3 group">
-                                            <FaCheckCircle className="text-green-500 text-2xl flex-shrink-0 transition-transform group-hover:scale-110" />
+                                            <FaCheckCircle className="text-primary text-2xl flex-shrink-0 transition-transform group-hover:scale-110" />
                                             <span className="text-gray-700 font-bold font-semibold text-lg">{point}</span>
                                         </li>
                                     ))}
