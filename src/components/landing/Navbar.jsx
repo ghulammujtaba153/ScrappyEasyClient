@@ -32,14 +32,14 @@ const Navbar = () => {
                             {link.href.startsWith("#") ? (
                                 <a 
                                     href={link.href}
-                                    className="text-gray-900 hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
+                                    className="text-gray-900 hover:text-[#0F792C] font-black font-semibold text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
                                 >
                                     {link.label}
                                 </a>
                             ) : (
                                 <Link 
                                     to={link.href}
-                                    className="text-gray-900 hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
+                                    className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
                                 >
                                     {link.label}
                                 </Link>
@@ -52,13 +52,13 @@ const Navbar = () => {
                 <div className="flex items-center gap-4 sm:gap-6 shrink-0">
                     <Link 
                         to="/register" 
-                        className="bg-black hover:bg-gray-800 text-white px-6 sm:px-8 py-2.5 rounded-full font-black text-sm transition-all shadow-lg hover:shadow-black/20 hover:scale-105"
+                        className="bg-black font-semibold hover:bg-gray-800 text-white px-6 sm:px-8 py-2.5 rounded-full font-black text-sm transition-all shadow-lg hover:shadow-black/20 hover:scale-105"
                     >
                         Sign Up
                     </Link>
                     <Link 
                         to="/login" 
-                        className="text-gray-900 hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors"
+                        className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors"
                     >
                         Sign In
                     </Link>

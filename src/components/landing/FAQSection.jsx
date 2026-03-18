@@ -5,23 +5,23 @@ const FAQItem = ({ question, answer }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className={`border rounded-2xl mb-4 bg-white transition-all duration-500 ${isOpen ? 'border-[#0F792C]/30 shadow-lg scale-[1.01]' : 'border-gray-100 shadow-sm'}`}>
+        <div className={`border border-gray-100 rounded-2xl mb-4 bg-white shadow-sm overflow-hidden transition-all duration-500 ${isOpen ? 'ring-2 ring-primary/10 scale-[1.01] shadow-xl' : 'hover:border-primary/20'}`}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full p-6 md:p-8 flex items-center justify-between text-left group gap-4"
+                className="w-full p-6 md:p-8 flex items-center justify-between text-left group"
             >
-                <span className={`text-xl md:text-2xl font-black transition-colors duration-300 ${isOpen ? 'text-[#0F792C]' : 'text-gray-900 group-hover:text-[#0F792C]'}`}>
+                <span className={`text-xl md:text-2xl font-black font-bold text-gray-900 group-hover:text-primary transition-colors pr-8 ${isOpen ? 'text-primary' : ''}`}>
                     {question}
                 </span>
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${isOpen ? 'bg-[#0F792C] text-white rotate-180' : 'bg-gray-50 text-[#0F792C]'}`}>
-                    <FaChevronDown size={18} />
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-primary text-white rotate-180' : 'bg-gray-50 text-primary'}`}>
+                    <FaChevronDown size={14} />
                 </div>
             </button>
             <div 
                 className={`grid transition-all duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
             >
                 <div className="overflow-hidden">
-                    <div className="p-6 md:p-8 pt-0 text-gray-600 text-lg font-medium leading-relaxed border-t border-gray-50/50">
+                    <div className="p-6 md:p-8 pt-0 text-gray-600 text-lg font-normal leading-relaxed border-t border-gray-50 animate-slideUpSmall">
                         {answer}
                     </div>
                 </div>
@@ -59,20 +59,22 @@ const FAQSection = () => {
     ];
 
     return (
-        <section className="py-32 px-4 bg-white relative">
-            <div className="max-w-6xl mx-auto">
+        <section className="py-32 px-4 bg-gray-50/30" id="faq">
+            <div className="max-w-4xl mx-auto">
                 <div className="text-center space-y-4 mb-20 animate-slideUp">
-                    <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-tight">
+                    <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">
                         Frequently Asked Questions
                     </h2>
-                    <p className="text-xl text-gray-500 max-w-2xl mx-auto font-medium">
+                    <p className="text-xl text-gray-500 max-w-2xl mx-auto font-normal">
                         Everything you need to know about Map Harvest and how it can help your business grow.
                     </p>
                 </div>
 
-                <div className="max-w-4xl mx-auto">
+                <div className="space-y-4">
                     {faqs.map((faq, index) => (
-                        <FAQItem key={index} question={faq.question} answer={faq.answer} />
+                        <div key={index} className="animate-slideUp" style={{ animationDelay: `${index * 100}ms` }}>
+                            <FAQItem {...faq} />
+                        </div>
                     ))}
                 </div>
             </div>

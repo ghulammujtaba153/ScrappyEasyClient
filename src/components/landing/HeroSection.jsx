@@ -1,5 +1,5 @@
 import React from "react";
-import { FaLock, FaCheckCircle, FaUsers, FaBuilding, FaWhatsapp } from "react-icons/fa";
+import { FaLock, FaCheckCircle, FaUsers, FaBuilding, FaWhatsapp, FaArrowRight } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 
 const HeroSection = () => {
@@ -32,20 +32,20 @@ const HeroSection = () => {
                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-[#0F792C]">Secure Data Extraction</span> */}
                 </div>
 
-                <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tight">
+                <h1 className="text-3xl md:text-6xl font-black font-bold leading-[1.1] tracking-tight">
                     Trusted by agencies, sales teams, and local lead gen operators. 
                     
                 </h1>
                 
-                <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed font-semibold opacity-90">
+                <p className="text-lg px-8 text-gray-600 max-w-3xl mx-auto leading-relaxed font-normal opacity-90">
                     Extract business data, verify WhatsApp numbers, qualify leads, send bulk messages, and cold call — all from one unified platform.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
-                    <button className="w-full sm:w-auto bg-primary hover:bg-[#0d6625] text-white px-10 py-5 rounded-2xl font-black text-xl shadow-[0_20px_40px_-15px_rgba(15,121,44,0.4)] hover:shadow-[0_25px_50px_-12px_rgba(15,121,44,0.5)] transition-all hover:-translate-y-1 active:translate-y-0">
-                        Start Free
+                    <button className="w-full flex items-center justify-center sm:w-auto bg-primary hover:bg-[#0d6625] text-white px-10 py-3 font-semibold rounded-full font-black text-xl shadow-[0_20px_40px_-15px_rgba(15,121,44,0.4)] hover:shadow-[0_25px_50px_-12px_rgba(15,121,44,0.5)] transition-all hover:-translate-y-1 active:translate-y-0">
+                        Start Free <FaArrowRight className="ml-2" />
                     </button>
-                    <button className="w-full sm:w-auto bg-white hover:bg-gray-50 text-[#0F792C] border-2 border-[#0F792C]/20 px-10 py-5 rounded-2xl font-black text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 active:translate-y-0">
+                    <button className="w-full sm:w-auto bg-white hover:bg-gray-50 text-[#0F792C] border-2 font-semibold border-[#0F792C]/20 px-10 py-3 rounded-full font-black text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 active:translate-y-0">
                         Book a Demo
                     </button>
                 </div>
@@ -57,10 +57,10 @@ const HeroSection = () => {
                         { icon: FaCheckCircle, label: "Unlimited Leads" }
                     ].map((item, i) => (
                         <div key={i} className="flex items-center gap-3 text-gray-600 transition-all hover:scale-110">
-                            <div className="bg-white/40 p-2 rounded-lg text-primary">
-                                <item.icon size={22} />
+                            <div className="p-2  rounded-lg text-base">
+                                <item.icon size={15} />
                             </div>
-                            <span className="font-bold text-base md:text-lg tracking-tight">{item.label}</span>
+                            <span className="font-bold font-semibold text-sm tracking-tight">{item.label}</span>
                         </div>
                     ))}
                 </div>
@@ -89,12 +89,12 @@ const HeroSection = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-[#f0fdf4]/80 border-b border-green-50">
-                                        <th className="px-8 py-4 font-black text-[#0F792C] uppercase text-xs tracking-widest text-nowrap">Name</th>
-                                        <th className="px-8 py-4 font-black text-[#0F792C] uppercase text-xs tracking-widest text-center text-nowrap">Rating</th>
-                                        <th className="px-8 py-4 font-black text-[#0F792C] uppercase text-xs tracking-widest text-center text-nowrap">Reviews</th>
-                                        <th className="px-8 py-4 font-black text-[#0F792C] uppercase text-xs tracking-widest text-center text-nowrap">Number</th>
-                                        <th className="px-8 py-4 font-black text-[#0F792C] uppercase text-xs tracking-widest text-right text-nowrap">Address</th>
+                                    <tr className="bg-[#f0fdf4]/80 font-semibold border-b border-green-50">
+                                        <th className="px-8 py-4 font-black uppercase text-xs tracking-widest text-nowrap">Name</th>
+                                        <th className="px-8 py-4 font-black uppercase text-xs tracking-widest text-center text-nowrap">Rating</th>
+                                        <th className="px-8 py-4 font-black uppercase text-xs tracking-widest text-center text-nowrap">Reviews</th>
+                                        <th className="px-8 py-4 font-black uppercase text-xs tracking-widest text-center text-nowrap">Number</th>
+                                        <th className="px-8 py-4 font-black uppercase text-xs tracking-widest text-right text-nowrap">Address</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
@@ -104,7 +104,7 @@ const HeroSection = () => {
                                             className="hover:bg-green-50/40 transition-all group cursor-default animate-row-slide opacity-0 fill-mode-forwards"
                                             style={{ animationDelay: `${index * 150}ms` }}
                                         >
-                                            <td className="px-8 py-4 font-bold text-gray-900 text-lg text-nowrap">{row.name}</td>
+                                            <td className="px-8 py-4 text-gray-900 text-lg text-nowrap">{row.name}</td>
                                             <td className="px-8 py-4">
                                                 <div className="flex items-center justify-center gap-1.5 bg-yellow-50 text-yellow-700 py-1.5 px-3 rounded-full w-20 mx-auto border border-yellow-100 shadow-sm">
                                                     <span className="text-sm font-black">★</span>

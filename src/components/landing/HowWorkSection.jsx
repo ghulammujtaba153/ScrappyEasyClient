@@ -18,20 +18,20 @@ const HowWorkSection = () => {
                         <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 mb-4">
                             <div className="bg-primary/10 p-2.5 rounded-xl text-primary"><FaChrome size={18} /></div>
                             <div className="flex-1">
-                                <h4 className="font-black text-gray-900 text-sm">Lead Buddy Extension</h4>
-                                <p className="text-[10px] font-bold text-gray-400">Ready to harvest leads</p>
+                                <h4 className="font-black font-bold text-gray-900 text-sm">Lead Buddy Extension</h4>
+                                <p className="text-[10px] font-normal text-gray-400">Ready to harvest leads</p>
                             </div>
                         </div>
                         <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 opacity-90 scale-[0.98]">
                             <div className="bg-blue-50 p-2.5 rounded-xl text-blue-500"><FaBuilding size={18} /></div>
                             <div className="flex-1">
-                                <h4 className="font-black text-gray-900 text-sm">Targeted Search</h4>
+                                <h4 className="font-black font-bold text-gray-900 text-sm">Targeted Search</h4>
                                 <p className="text-[10px] text-gray-400 mt-1">Extracting data...</p>
                             </div>
                         </div>
                         <div className="absolute -bottom-6 -left-6 bg-white rounded-full py-2.5 px-5 shadow-2xl border border-gray-50 flex items-center gap-2 animate-bounce-subtle whitespace-nowrap z-10">
                             <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
-                            <span className="font-black text-gray-800 text-xs tracking-tight">Lead Buddy Active</span>
+                            <span className="font-bold font-semibold text-gray-800 text-xs tracking-tight">Lead Buddy Active</span>
                         </div>
                     </div>
                 </div>
@@ -52,12 +52,12 @@ const HowWorkSection = () => {
                         <div className="w-full bg-gray-50/80 border border-gray-100 rounded-2xl p-5 flex items-center gap-3 shadow-inner">
                             <FaSearch className="text-orange-400" size={18} />
                             <div className="flex-1">
-                                <p className="text-gray-700 font-bold text-lg">"Plumbers in New York"</p>
+                                <p className="text-gray-700 font-bold font-semibold text-lg">"Plumbers in New York"</p>
                             </div>
                         </div>
                         <div className="absolute -bottom-6 -right-6 bg-white rounded-full py-2.5 px-5 shadow-2xl border border-gray-50 flex items-center gap-2 animate-bounce-subtle whitespace-nowrap z-10">
                             <span className="flex h-2 w-2 rounded-full bg-orange-500"></span>
-                            <span className="font-black text-gray-800 text-xs tracking-tight">842 leads harvested</span>
+                            <span className="font-bold font-semibold text-gray-800 text-xs tracking-tight">842 leads harvested</span>
                         </div>
                     </div>
                 </div>
@@ -77,8 +77,8 @@ const HowWorkSection = () => {
                     <div className="bg-white rounded-[2.5rem] shadow-2xl p-6 transform -rotate-2 group-hover:rotate-0 transition-transform duration-500 border border-white/50 relative">
                         <div className="bg-gray-50/50 rounded-2xl overflow-hidden border border-gray-100">
                             <div className="p-4 bg-white border-b border-gray-100 flex items-center gap-2">
-                                <div className="bg-yellow-400 px-2 py-0.5 rounded text-[10px] font-black text-white">CRM</div>
-                                <span className="text-xs font-bold text-gray-500 italic">Centralized Leads</span>
+                                <div className="bg-yellow-400 px-2 py-0.5 rounded text-[10px] font-black font-bold text-white">CRM</div>
+                                <span className="text-xs font-bold font-semibold text-gray-500 italic">Centralized Leads</span>
                             </div>
                             <div className="p-4 space-y-3">
                                 {[
@@ -89,10 +89,10 @@ const HowWorkSection = () => {
                                     <div key={i} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-50 shadow-sm">
                                         <div className="flex items-center gap-2">
                                             <div className="bg-gray-50 p-2 rounded-lg text-gray-400"><FaBuilding size={12} /></div>
-                                            <h5 className="text-sm font-black text-gray-900 leading-none">{item.name}</h5>
+                                            <h5 className="text-sm font-black font-bold text-gray-900 leading-none">{item.name}</h5>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <span className="text-[10px] font-black px-2 py-0.5 bg-green-50 text-green-600 rounded-full">{item.status}</span>
+                                            <span className="text-[10px] font-black font-bold px-2 py-0.5 bg-green-50 text-green-600 rounded-full">{item.status}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -119,8 +119,8 @@ const HowWorkSection = () => {
                                 <FaWhatsapp size={32} />
                             </div>
                             <div className="space-y-2">
-                                <h4 className="font-black text-gray-800 text-sm">WhatsApp Verification</h4>
-                                <p className="text-[10px] text-green-500 font-black uppercase tracking-[0.2em] animate-pulse">Running Checks...</p>
+                                <h4 className="font-black font-bold text-gray-800 text-sm">WhatsApp Verification</h4>
+                                <p className="text-[10px] text-green-500 font-black font-bold uppercase tracking-[0.2em] animate-pulse">Running Checks...</p>
                             </div>
                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-green-500 w-[85%] animate-pulse"></div>
@@ -145,13 +145,13 @@ const HowWorkSection = () => {
                         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-start gap-5 mb-5">
                             <div className="bg-red-50 p-3 rounded-2xl text-red-500 shadow-sm animate-pulse"><FaPhoneAlt size={24} /></div>
                             <div className="flex-1">
-                                <h4 className="font-black text-gray-900 text-base">Calling Lead...</h4>
-                                <p className="text-xs text-gray-400 mt-1 font-bold">Connecting via Map Harvest</p>
+                                <h4 className="font-black font-bold text-gray-900 text-base">Calling Lead...</h4>
+                                <p className="text-xs text-gray-400 mt-1 font-bold font-semibold">Connecting via Map Harvest</p>
                             </div>
                         </div>
                         <div className="absolute -bottom-6 -left-6 bg-white rounded-full py-2.5 px-5 shadow-2xl border border-gray-50 flex items-center gap-2 animate-bounce-subtle whitespace-nowrap z-10">
                             <span className="flex h-2 w-2 rounded-full bg-purple-500"></span>
-                            <span className="font-black text-gray-800 text-xs tracking-tight">Direct Dialer Active</span>
+                            <span className="font-bold font-semibold text-gray-800 text-xs tracking-tight">Direct Dialer Active</span>
                         </div>
                     </div>
                 </div>
@@ -160,15 +160,15 @@ const HowWorkSection = () => {
     ];
 
     return (
-        <section className="bg-white py-32 px-4">
+        <section className="bg-white py-32 px-4 shadow-sm">
             <div className="max-w-6xl mx-auto">
                 
                 {/* Header Section */}
                 <div className="text-center space-y-4 mb-32">
-                    <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tight">
+                    <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">
                         How It Works
                     </h2>
-                    <p className="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto font-medium leading-relaxed">
+                    <p className="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
                         Map Harvest streamlines your entire lead generation pipeline. From harvesting 
                         data with Lead Buddy to closing deals via our integrated outreach tools.
                     </p>
@@ -194,27 +194,27 @@ const HowWorkSection = () => {
                                 <div className="w-full lg:w-1/2 space-y-6 md:space-y-8 text-center lg:text-left">
                                     <div className="inline-flex items-center justify-center p-4 bg-white rounded-full shadow-lg transition-transform group-hover:scale-110">
                                         {typeof card.icon === 'string' ? (
-                                            <span className={`${card.iconColor} font-black text-lg`}>{card.icon}</span>
+                                            <span className={`${card.iconColor} font-black font-bold text-lg`}>{card.icon}</span>
                                         ) : (
                                             <card.icon className={card.iconColor} size={28} />
                                         )}
                                     </div>
 
                                     <div className="space-y-3 md:space-y-4">
-                                        <h3 className="text-3xl md:text-5xl font-black text-gray-900 leading-[1.1]">
+                                        <h3 className="text-3xl md:text-5xl font-black font-bold text-gray-900 leading-[1.1]">
                                             {card.title}
                                         </h3>
-                                        <p className="text-gray-600 text-base md:text-lg font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
+                                        <p className="text-gray-600 text-base md:text-lg font-normal leading-relaxed max-w-xl mx-auto lg:mx-0">
                                             {card.description}
                                         </p>
                                     </div>
 
                                     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
-                                        <button className="bg-black hover:bg-gray-800 text-white px-7 py-3.5 rounded-full font-black flex items-center gap-3 shadow-lg transition-all hover:scale-105 group/btn">
+                                        <button className="bg-black hover:bg-gray-800 text-white px-7 py-3 rounded-full font-semibold flex items-center gap-3 shadow-lg transition-all hover:scale-105 group/btn">
                                             Explore Features 
                                             <FaArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
                                         </button>
-                                        <button className={`${card.btnColor} border-2 px-7 py-3.5 rounded-full font-black text-sm shadow-sm transition-all hover:scale-105 text-nowrap`}>
+                                        <button className={`${card.btnColor} border-2 px-7 py-3 rounded-full font-semibold text-sm shadow-sm transition-all hover:scale-105 text-nowrap`}>
                                             Get Lead Buddy Free
                                         </button>
                                     </div>
