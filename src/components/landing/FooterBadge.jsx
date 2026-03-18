@@ -24,19 +24,19 @@ const FooterBadge = () => {
 
                     {/* Content */}
                     <div className="relative z-10 space-y-8 animate-slideUp">
-                        <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-gray-900 leading-tight">
+                        <h2 className="text-3xl md:text-6xl font-semibold lg:text-7xl font-black text-gray-900 leading-tight">
                             Start building your <br className="hidden md:block" /> lead list today.
                         </h2>
                         
-                        <p className="text-lg md:text-xl text-gray-800 font-medium max-w-2xl mx-auto leading-relaxed opacity-80">
+                        <p className="text-md font-semibold text-black font-medium max-w-2xl mx-auto leading-relaxed opacity-80">
                             Scrape leads, verify numbers, and send messages automatically <br className="hidden md:block" /> all in one smooth workflow.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6">
-                            <button className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-5 rounded-full font-black text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto">
+                            <button className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto">
                                 Install Extension
                             </button>
-                            <button className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-5 rounded-full font-black text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto">
+                            <button className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto">
                                 Get Lifetime Access
                             </button>
                         </div>

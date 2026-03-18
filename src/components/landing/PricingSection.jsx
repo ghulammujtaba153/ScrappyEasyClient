@@ -72,10 +72,10 @@ const PricingSection = () => {
                 
                 {/* Header Section */}
                 <div className="text-center space-y-4 mb-24 animate-slideUp">
-                    <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">
-                        Simple, One-Time Pricing
+                    <h2 className="text-3xl md:text-6xl font-black font-semibold text-gray-900 tracking-tight">
+                        Pricing
                     </h2>
-                    <p className="text-xl text-gray-500 max-w-2xl mx-auto font-normal">
+                    <p className="text-lg text-gray-500 max-w-2xl mx-auto font-normal">
                         No monthly subscriptions. Just one payment for lifetime access to 
                         your favorite lead generation tools.
                     </p>
@@ -99,11 +99,11 @@ const PricingSection = () => {
                                     <plan.icon size={32} />
                                 </div>
                                 <div className="space-y-2">
-                                    <h3 className="text-3xl font-black font-bold text-gray-900">{plan.name}</h3>
+                                    <h3 className="text-3xl font-black font-semibold text-gray-900">{plan.name}</h3>
                                     <p className="text-gray-500 font-normal">{plan.description}</p>
                                 </div>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">{plan.price}</span>
+                                    <span className="text-5xl md:text-6xl font-black font-semibold text-gray-900 tracking-tight">{plan.price}</span>
                                     {plan.period && <span className="text-xl text-gray-400 font-bold font-semibold uppercase tracking-widest">{plan.period}</span>}
                                 </div>
                             </div>

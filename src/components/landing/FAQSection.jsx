@@ -62,11 +62,11 @@ const FAQSection = () => {
         <section className="py-32 px-4 bg-gray-50/30" id="faq">
             <div className="max-w-4xl mx-auto">
                 <div className="text-center space-y-4 mb-20 animate-slideUp">
-                    <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">
+                    <h2 className="text-3xl md:text-6xl font-black font-semibold text-gray-900 tracking-tight">
                         Frequently Asked Questions
                     </h2>
-                    <p className="text-xl text-gray-500 max-w-2xl mx-auto font-normal">
-                        Everything you need to know about Map Harvest and how it can help your business grow.
+                    <p className="text-lg text-gray-500 max-w-2xl mx-auto font-normal">
+                        Our lead generation tools are both powerful and user-friendly. They are created to streamline common workflows through automation.
                     </p>
                 </div>
 

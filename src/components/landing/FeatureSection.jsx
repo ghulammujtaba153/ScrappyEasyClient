@@ -257,7 +257,7 @@ const FeatureSection = () => {
                 
                 {/* Header Section */}
                 <div className="text-center space-y-4 mb-32 animate-slideUp">
-                    <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">
+                    <h2 className="text-3xl md:text-6xl font-black font-semibold text-gray-900 tracking-tight">
                         Feature Highlights
                     </h2>
                     <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto font-normal leading-relaxed">
@@ -276,7 +276,7 @@ const FeatureSection = () => {
                             {/* Text Content */}
                             <div className="w-full lg:w-[45%] space-y-8">
                                 <div className="space-y-4">
-                                    <h3 className="text-2xl md:text-5xl font-black font-bold text-gray-900 leading-tight">
+                                    <h3 className="text-xl md:text-3xl font-black font-semibold text-gray-900 leading-tight">
                                         {feature.title}
                                     </h3>
                                     <p className="text-gray-600 text-lg font-normal leading-relaxed">
@@ -288,7 +288,7 @@ const FeatureSection = () => {
                                     {feature.points.map((point, i) => (
                                         <li key={i} className="flex items-center gap-3 group">
                                             <FaCheckCircle className="text-primary text-2xl flex-shrink-0 transition-transform group-hover:scale-110" />
-                                            <span className="text-gray-700 font-bold font-semibold text-lg">{point}</span>
+                                            <span className="text-gray-700 text-lg">{point}</span>
                                         </li>
                                     ))}
                                 </ul>
