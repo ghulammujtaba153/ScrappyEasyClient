@@ -21,23 +21,23 @@ const FeatureSection = () => {
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4">
                                 <div className="bg-red-50 p-2.5 rounded-xl text-red-500"><FaCoffee size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Downtown Coffee</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Downtown Coffee</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">4.8 (120)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">4.8 (120)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">123 Main St, New York</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">123 Main St, New York</p>
                                 </div>
                             </div>
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 opacity-90 scale-[0.98]">
                                 <div className="bg-blue-50 p-2.5 rounded-xl text-blue-500"><FaBuilding size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Tech Solutions Inc</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Tech Solutions Inc</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">5.0 (85)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">5.0 (85)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">45 Tech Park, SF</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">45 Tech Park, SF</p>
                                 </div>
                             </div>
                         </div>
@@ -92,24 +92,24 @@ const FeatureSection = () => {
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4">
                                 <div className="bg-red-50 p-2.5 rounded-xl text-red-500"><FaCoffee size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Downtown Coffee</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Downtown Coffee</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">4.8 (120)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">4.8 (120)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">123 Main St, New York</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">123 Main St, New York</p>
                                 </div>
                             </div>
                             {/* Lead Card 2 */}
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 opacity-90 scale-[0.98]">
                                 <div className="bg-blue-50 p-2.5 rounded-xl text-blue-500"><FaBuilding size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Tech Solutions Inc</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Tech Solutions Inc</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">5.0 (85)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">5.0 (85)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">45 Tech Park, SF</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">45 Tech Park, SF</p>
                                 </div>
                             </div>
                         </div>
@@ -136,24 +136,24 @@ const FeatureSection = () => {
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4">
                                 <div className="bg-red-50 p-2.5 rounded-xl text-red-500"><FaCoffee size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Downtown Coffee</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Downtown Coffee</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">4.8 (120)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">4.8 (120)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">123 Main St, New York</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">123 Main St, New York</p>
                                 </div>
                             </div>
                             {/* Lead Card 2 */}
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 opacity-90 scale-[0.98]">
                                 <div className="bg-blue-50 p-2.5 rounded-xl text-blue-500"><FaBuilding size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Tech Solutions Inc</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Tech Solutions Inc</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">5.0 (85)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">5.0 (85)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">45 Tech Park, SF</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">45 Tech Park, SF</p>
                                 </div>
                             </div>
                         </div>
@@ -180,24 +180,24 @@ const FeatureSection = () => {
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4">
                                 <div className="bg-red-50 p-2.5 rounded-xl text-red-500"><FaCoffee size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Downtown Coffee</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Downtown Coffee</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">4.8 (120)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">4.8 (120)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">123 Main St, New York</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">123 Main St, New York</p>
                                 </div>
                             </div>
                             {/* Lead Card 2 */}
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 opacity-90 scale-[0.98]">
                                 <div className="bg-blue-50 p-2.5 rounded-xl text-blue-500"><FaBuilding size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Tech Solutions Inc</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Tech Solutions Inc</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">5.0 (85)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">5.0 (85)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">45 Tech Park, SF</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">45 Tech Park, SF</p>
                                 </div>
                             </div>
                         </div>
@@ -224,24 +224,24 @@ const FeatureSection = () => {
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4">
                                 <div className="bg-red-50 p-2.5 rounded-xl text-red-500"><FaCoffee size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Downtown Coffee</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Downtown Coffee</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">4.8 (120)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">4.8 (120)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">123 Main St, New York</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">123 Main St, New York</p>
                                 </div>
                             </div>
                             {/* Lead Card 2 */}
                             <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 opacity-90 scale-[0.98]">
                                 <div className="bg-blue-50 p-2.5 rounded-xl text-blue-500"><FaBuilding size={18} /></div>
                                 <div className="flex-1">
-                                    <h4 className="font-black text-gray-900 text-sm">Tech Solutions Inc</h4>
+                                    <h4 className="font-black font-bold text-gray-900 text-sm">Tech Solutions Inc</h4>
                                     <div className="flex items-center gap-1 mt-1">
                                         <span className="text-yellow-400 text-xs">★</span>
-                                        <span className="text-[10px] font-bold text-gray-400">5.0 (85)</span>
+                                        <span className="text-[10px] font-bold font-semibold text-gray-400">5.0 (85)</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">45 Tech Park, SF</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-normal">45 Tech Park, SF</p>
                                 </div>
                             </div>
                         </div>
@@ -252,15 +252,15 @@ const FeatureSection = () => {
     ];
 
     return (
-        <section className="py-32 bg-white overflow-hidden" id="features">
+        <section className="py-32 bg-white overflow-hidden shadow-sm" id="features">
             <div className="max-w-6xl mx-auto px-4">
                 
                 {/* Header Section */}
                 <div className="text-center space-y-4 mb-32 animate-slideUp">
-                    <h2 className="text-5xl md:text-6xl font-black text-gray-900 tracking-tight">
+                    <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">
                         Feature Highlights
                     </h2>
-                    <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto font-medium leading-relaxed">
+                    <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto font-normal leading-relaxed">
                         Map Harvest offers a specialized set of tools to automate each stage 
                         of your lead generation and sales outreach.
                     </p>
@@ -276,10 +276,10 @@ const FeatureSection = () => {
                             {/* Text Content */}
                             <div className="w-full lg:w-[45%] space-y-8">
                                 <div className="space-y-4">
-                                    <h3 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight">
+                                    <h3 className="text-2xl md:text-5xl font-black font-bold text-gray-900 leading-tight">
                                         {feature.title}
                                     </h3>
-                                    <p className="text-gray-600 text-lg font-medium leading-relaxed">
+                                    <p className="text-gray-600 text-lg font-normal leading-relaxed">
                                         {feature.description}
                                     </p>
                                 </div>
@@ -288,7 +288,7 @@ const FeatureSection = () => {
                                     {feature.points.map((point, i) => (
                                         <li key={i} className="flex items-center gap-3 group">
                                             <FaCheckCircle className="text-green-500 text-2xl flex-shrink-0 transition-transform group-hover:scale-110" />
-                                            <span className="text-gray-700 font-bold text-lg">{point}</span>
+                                            <span className="text-gray-700 font-bold font-semibold text-lg">{point}</span>
                                         </li>
                                     ))}
                                 </ul>

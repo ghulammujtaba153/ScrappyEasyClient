@@ -1,126 +1,140 @@
 import React from "react";
-import { FaCheck, FaTimes } from "react-icons/fa";
+import { FaCheckCircle, FaTimesCircle, FaRocket, FaCrown, FaUsers } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 const PricingSection = () => {
     const plans = [
         {
-            name: "Free",
-            subtitle: "For individuals and side projects.",
-            price: "$0",
-            period: "/mo",
-            yearlyInfo: "Billed $108 yearly",
-            buttonText: "Get Started",
-            buttonStyle: "bg-gray-100 text-gray-900 hover:bg-gray-200",
+            name: "Basic",
+            price: "Free",
+            description: "Perfect for testing our capabilities and small scale scraping.",
+            icon: FaRocket,
             features: [
-                { label: "1 Device at a time", included: true },
-                { label: "Google Maps Scraping", included: true },
-                { label: "Email Finder (1000/mo)", included: true },
-                { label: "Social Media Links", included: true },
-                { label: "Basic Support", included: true },
-                { label: "LinkedIn Scraping", included: false },
-                { label: "API Access", included: false },
-                { label: "Priority Support", included: false }
+                "100 Leads per harvest",
+                "Basic CRM access",
+                "WhatsApp verification (demo)",
+                "Email support"
             ],
-            highlight: false
+            notIncluded: [
+                "Unlimited lead storage",
+                "Bulk messaging tools",
+                "Custom outreach sequences",
+                "Team collaboration"
+            ],
+            btnText: "Get Started Free",
+            highlight: false,
+            color: "bg-[#DCFCE7]/60"
         },
         {
             name: "Professional",
-            subtitle: "For growing teams and agencies.",
-            price: "$29",
-            period: "/mo",
-            yearlyInfo: "Billed $348 yearly",
-            buttonText: "Try Professional",
-            buttonStyle: "bg-black text-white hover:bg-gray-800",
+            price: "$99",
+            period: "Lifetime",
+            description: "Best for growing agencies and individual lead gen operators.",
+            icon: FaCrown,
             features: [
-                { label: "3 Devices at a time", included: true },
-                { label: "Google Maps Scraping", included: true },
-                { label: "Email Finder (Unlimited)", included: true },
-                { label: "Social Media Links", included: true },
-                { label: "LinkedIn Scraping", included: true },
-                { label: "Decision Maker Finder", included: true },
-                { label: "Facebook Page Scraper", included: true },
-                { label: "Priority Email Support", included: true },
-                { label: "API Access", included: false },
-                { label: "Dedicated Account Manager", included: false }
+                "Unlimited lead harvesting",
+                "Unlimited CRM storage",
+                "Full WhatsApp verification",
+                "Integrated cold call dialer",
+                "Priority support"
             ],
-            highlight: true
+            notIncluded: [
+                "Multi-user collaboration",
+                "Custom API integrations"
+            ],
+            btnText: "Get Lifetime Access",
+            highlight: true,
+            color: "bg-primary"
+        },
+        {
+            name: "Team",
+            price: "$299",
+            period: "Lifetime",
+            description: "Designed for large sales teams and white-label agencies.",
+            icon: FaUsers,
+            features: [
+                "Everything in Professional",
+                "Up to 10 Team members",
+                "Shared lead databases",
+                "Advanced performance analytics",
+                "Whitelabel export reports"
+            ],
+            notIncluded: [],
+            btnText: "Contact for Demo",
+            highlight: false,
+            color: "bg-[#DBEAFE]/60"
         }
     ];
 
     return (
-        <section className="py-24 px-4 bg-white">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="text-center space-y-4 mb-20 animate-slideUp">
-                    <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tight">
-                        Pricing
+        <section className="py-32 px-4 bg-white" id="pricing">
+            <div className="max-w-7xl mx-auto">
+                
+                {/* Header Section */}
+                <div className="text-center space-y-4 mb-24 animate-slideUp">
+                    <h2 className="text-3xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">
+                        Simple, One-Time Pricing
                     </h2>
-                    <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto font-medium leading-relaxed">
-                        Our lead generation tools are both powerful and user-friendly. They are 
-                        created to streamline common workflows through automation.
+                    <p className="text-xl text-gray-500 max-w-2xl mx-auto font-normal">
+                        No monthly subscriptions. Just one payment for lifetime access to 
+                        your favorite lead generation tools.
                     </p>
                 </div>
 
-                {/* Pricing Grid */}
-                <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 max-w-5xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {plans.map((plan, index) => (
                         <div 
-                            key={index}
-                            className={`flex-1 rounded-[2.5rem] p-8 md:p-12 transition-all duration-500 border-2 ${
-                                plan.highlight 
-                                ? 'border-[#0F792C] shadow-[0_20px_50px_rgba(15,121,44,0.1)]' 
-                                : 'border-gray-100 shadow-sm'
-                            } flex flex-col group hover:scale-[1.02]`}
+                            key={index} 
+                            className={`relative rounded-[2.5rem] p-10 flex flex-col items-stretch space-y-10 transition-all duration-500 hover:scale-[1.02] ${plan.highlight ? 'bg-white shadow-[0_40px_100px_-20px_rgba(15,121,44,0.15)] ring-4 ring-primary/10 -translate-y-4' : 'bg-gray-50/50 border border-gray-100 hover:shadow-xl'}`}
                         >
-                            {/* Card Header */}
-                            <div className="text-center space-y-2 mb-8">
-                                <h3 className="text-3xl font-black text-gray-900">{plan.name}</h3>
-                                <p className="text-gray-400 text-sm font-bold">{plan.subtitle}</p>
-                            </div>
-
-                            {/* Pricing Area */}
-                            <div className="text-center space-y-1 mb-10">
-                                <div className="flex items-baseline justify-center gap-1">
-                                    <span className="text-6xl font-black text-gray-900">{plan.price}</span>
-                                    <span className="text-gray-400 font-bold">{plan.period}</span>
+                            {plan.highlight && (
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white px-6 py-2 rounded-full font-black font-bold text-sm uppercase tracking-widest shadow-xl">
+                                    Most Popular
                                 </div>
-                                <p className="text-green-500 font-black text-xs uppercase tracking-wider">
-                                    {plan.yearlyInfo}
-                                </p>
-                            </div>
+                            )}
 
-                            {/* Action Buttons */}
-                            <div className="space-y-3 mb-12">
-                                <Link 
-                                    to="/register"
-                                    className={`block w-full text-center py-4 rounded-full font-black text-lg transition-all ${plan.buttonStyle}`}
-                                >
-                                    {plan.buttonText}
-                                </Link>
-                                <div className="bg-[#EFFAF2] text-[#0F792C] border border-[#DCFCE7] py-4 rounded-full font-black text-sm text-center">
-                                    Payment by JazzCash / EasyPaisa
+                            {/* Plan Header */}
+                            <div className="space-y-6">
+                                <div className={`inline-flex items-center justify-center p-5 rounded-2xl ${plan.highlight ? 'bg-primary/10 text-primary' : 'bg-white shadow-sm text-gray-900'}`}>
+                                    <plan.icon size={32} />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-3xl font-black font-bold text-gray-900">{plan.name}</h3>
+                                    <p className="text-gray-500 font-normal">{plan.description}</p>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-5xl md:text-6xl font-black font-bold text-gray-900 tracking-tight">{plan.price}</span>
+                                    {plan.period && <span className="text-xl text-gray-400 font-bold font-semibold uppercase tracking-widest">{plan.period}</span>}
                                 </div>
                             </div>
+
+                            <div className="h-px bg-gray-100 w-full"></div>
 
                             {/* Features List */}
-                            <div className="space-y-6">
-                                <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-2">
-                                    Features
-                                </h4>
+                            <div className="flex-1 space-y-6">
                                 <ul className="space-y-4">
                                     {plan.features.map((feature, i) => (
-                                        <li key={i} className={`flex items-center gap-3 ${feature.included ? 'text-gray-700' : 'text-gray-300'}`}>
-                                            {feature.included ? (
-                                                <FaCheck className="text-green-500 text-sm flex-shrink-0" />
-                                            ) : (
-                                                <FaTimes className="text-gray-200 text-sm flex-shrink-0" />
-                                            )}
-                                            <span className="font-bold text-sm tracking-tight">{feature.label}</span>
+                                        <li key={i} className="flex items-center gap-3">
+                                            <FaCheckCircle className="text-green-500 flex-shrink-0" size={18} />
+                                            <span className="text-gray-700 font-bold font-semibold">{feature}</span>
+                                        </li>
+                                    ))}
+                                    {plan.notIncluded.map((feature, i) => (
+                                        <li key={i} className="flex items-center gap-3 opacity-40">
+                                            <FaTimesCircle className="text-gray-400 flex-shrink-0" size={18} />
+                                            <span className="text-gray-500 font-bold font-semibold">{feature}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
+
+                            {/* CTA Button */}
+                            <Link 
+                                to={plan.highlight ? "/pricing" : "/contact"} 
+                                className={`w-full py-5 rounded-full font-black font-bold text-lg text-center transition-all shadow-lg hover:shadow-2xl hover:-translate-y-1 ${plan.highlight ? 'bg-primary text-white hover:bg-primary/90' : 'bg-white border-2 border-primary/20 text-[#0F792C] hover:bg-gray-50'}`}
+                            >
+                                {plan.btnText}
+                            </Link>
                         </div>
                     ))}
                 </div>
