@@ -56,6 +56,7 @@ import ScreenshotViewer from '../../components/dashboard/ScreenshotViewer';
 import WebsiteCarouselViewer from '../../components/dashboard/WebsiteCarouselViewer';
 import { checkAccessStatus } from '../../api/subscriptionApi';
 import Loader from '../../components/common/Loader';
+import ExtractionLoader from '../../components/common/ExtractionLoader';
 
 
 const { Option } = Select;
@@ -140,6 +141,19 @@ const OperationDetailPage = () => {
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
   const [lockedFeature, setLockedFeature] = useState('');
+
+  // Generic Bulk Operation Progress State
+  const [bulkProgress, setBulkProgress] = useState({
+    isOpen: false,
+    type: '', // 'mail', 'city', 'whatsapp'
+    title: 'Operation Progress',
+    total: 0,
+    success: 0,
+    failed: 0,
+    extraLabel: '',
+    extraCount: 0,
+    isProcessing: false
+  });
 
   // Wrapper setters to update cache (mimicking local state setters)
   const setCityData = (newData) => {
@@ -306,11 +320,23 @@ const OperationDetailPage = () => {
       return;
     }
 
+    const totalItems = filteredData.length;
     setExtractingCities(true);
+    setBulkProgress({
+      isOpen: true,
+      type: 'city',
+      title: 'Discovering Cities',
+      total: totalItems,
+      success: 0,
+      failed: 0,
+      extraLabel: 'Cities Found',
+      extraCount: 0,
+      isProcessing: true
+    });
+
     const newCityData = { ...cityData };
     const cityDataToSave = {}; // Store leadId -> city for backend
     let updated = false;
-    const totalItems = filteredData.length;
     let processedCount = 0;
     let skippedCount = 0;
     let successCount = 0;
@@ -350,6 +376,13 @@ const OperationDetailPage = () => {
             console.log(`❌ [${i + 1}/${totalItems}] Failed to extract city`);
           }
 
+          setBulkProgress(prev => ({
+            ...prev,
+            success: successCount,
+            failed: failedCount,
+            extraCount: successCount
+          }));
+
           // Rate limiting: 1.5 second delay between requests
           await new Promise(resolve => setTimeout(resolve, 1500));
         } else {
@@ -370,7 +403,7 @@ const OperationDetailPage = () => {
         await axios.post(`${BASE_URL}/api/data/update-city`, {
           recordId: record._id,
           cityData: cityDataToSave
-        });
+        }, { headers: { Authorization: `Bearer ${token}` } });
 
         // Final update to cache
         setCityData(newCityData);
@@ -389,6 +422,7 @@ const OperationDetailPage = () => {
       message.error('Failed to extract cities: ' + error.message);
     } finally {
       setExtractingCities(false);
+      setBulkProgress(prev => ({ ...prev, isProcessing: false }));
       console.log(`🏁 City extraction process completed\n`);
     }
   };
@@ -434,42 +468,53 @@ const OperationDetailPage = () => {
     }
 
     setExtractingAllMail(true);
-    let successCount = 0;
-    let newEmailData = { ...emailData };
+    setBulkProgress({
+      isOpen: true,
+      type: 'mail',
+      title: 'Email Extraction',
+      total: leadsWithWebsite.length,
+      success: 0,
+      failed: 0,
+      extraLabel: 'Emails Discovered',
+      extraCount: 0,
+      isProcessing: true
+    });
 
     try {
-      for (const item of leadsWithWebsite) {
-        setExtractingMail(prev => ({ ...prev, [item.leadId]: true }));
-        try {
-          const res = await axios.post(`${BASE_URL}/api/mailautomation/extract`, { url: item.website }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (res.data.success && res.data.data) {
-            newEmailData[item.leadId] = res.data.data.emails;
-            if (res.data.data.emails.length > 0) {
-              successCount++;
-            }
-          }
-        } catch (error) {
-          console.error(`Mail extraction failed for ${item.website}:`, error);
-        } finally {
-          setExtractingMail(prev => ({ ...prev, [item.leadId]: false }));
-        }
-        
-        // Small delay to prevent rate limit
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Update incrementally
-        setEmailData({ ...newEmailData });
+      const payload = leadsWithWebsite.map(item => ({
+        leadId: item.leadId,
+        url: item.website
+      }));
+
+      const res = await axios.post(`${BASE_URL}/api/mailautomation/bulk-extract`, {
+        recordId: record._id,
+        leads: payload
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.data.success) {
+        setBulkProgress(prev => ({
+          ...prev,
+          success: res.data.extractedCount,
+          failed: leadsWithWebsite.length - res.data.extractedCount,
+          extraCount: res.data.totalEmails,
+          isProcessing: false
+        }));
+
+        // Update the email data in cache
+        const updatedEmailData = { ...emailData, ...res.data.data };
+        setEmailData(updatedEmailData);
+
+        message.success(`Bulk extraction complete! Discovered ${res.data.totalEmails} emails.`);
+        fetchRecord(true);
       }
-      
-      message.success(`Extracted emails for ${successCount} websites`);
     } catch (error) {
       console.error('Bulk mail extraction error:', error);
-      message.error('Bulk mail extraction failed');
+      message.error('Bulk email extraction failed: ' + (error.response?.data?.error || error.message));
     } finally {
       setExtractingAllMail(false);
+      setBulkProgress(prev => ({ ...prev, isProcessing: false }));
     }
   };
 
@@ -731,6 +776,17 @@ const OperationDetailPage = () => {
 
     message.info(`Verifying ${formattedList.length} phone numbers...`);
     setVerifyingAll(true);
+    setBulkProgress({
+      isOpen: true,
+      type: 'whatsapp',
+      title: 'WhatsApp Verification',
+      total: formattedList.length,
+      success: 0,
+      failed: 0,
+      extraLabel: 'Verified Numbers',
+      extraCount: 0,
+      isProcessing: true
+    });
 
     try {
       // Send batch request with operationId
@@ -757,6 +813,13 @@ const OperationDetailPage = () => {
         });
 
         setWhatsappStatus(prev => ({ ...prev, ...newStatus }));
+        setBulkProgress(prev => ({
+          ...prev,
+          success: successful,
+          failed: failed,
+          extraCount: successful,
+          isProcessing: false
+        }));
         message.success(`Verified ${successful} numbers successfully. ${failed} failed.`);
 
         // Refresh record to get updated whatsappStatus from database
@@ -1188,7 +1251,7 @@ const OperationDetailPage = () => {
       key: 'website',
       width: 200,
       render: (website, record) => website ? (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           <a href={website} target="_blank" rel="noopener noreferrer" className="text-[#0F792C] hover:text-[#0a5a20] whitespace-nowrap">
             <MdOpenInNew className="inline" /> Link
           </a>
@@ -1196,7 +1259,7 @@ const OperationDetailPage = () => {
             {(record.screenshotUrl || screenshotData[record.key]) && (
               <ScreenshotViewer url={record.screenshotUrl || screenshotData[record.key]} title={record.title} />
             )}
-            <Button
+            {/* <Button
               size="small"
               type="text"
               icon={<MdCameraAlt className="text-blue-500" />}
@@ -1205,7 +1268,7 @@ const OperationDetailPage = () => {
               className="flex items-center gap-1 hover:bg-blue-50 transition-colors"
             >
               {(record.screenshotUrl || screenshotData[record.key]) ? 'Recapture' : 'Capture'}
-            </Button>
+            </Button> */}
           </div>
         </Space>
       ) : '-',
@@ -1458,7 +1521,7 @@ const OperationDetailPage = () => {
                 >
                   iFrame View
                 </Button>
-                <Button
+                {/* <Button
                   icon={<MdCameraAlt />}
                   onClick={() => captureAllScreenshots(true)}
                   loading={progress.isProcessing && progress.operationId === record?._id}
@@ -1466,7 +1529,7 @@ const OperationDetailPage = () => {
                   className="rounded-lg h-10 px-4 font-medium"
                 >
                   Capture All
-                </Button>
+                </Button> */}
                 <Button
                   icon={<MdSave />}
                   onClick={() => {
@@ -1492,18 +1555,17 @@ const OperationDetailPage = () => {
               </div>
 
               <div className="flex flex-wrap gap-2 justify-end">
-                {whatsappInitialized && (
-                  <Button
-                    className="bg-[#0F792C] hover:bg-[#0a5a20] text-white border-none rounded-lg h-10 px-6 font-bold"
-                    type="primary"
-                    icon={<BsWhatsapp />}
-                    onClick={handleVerifyAllClick}
-                    loading={verifyingAll}
-                    disabled={verifyingAll || filteredData.length === 0}
-                  >
-                    Verify List ({filteredData.length})
-                  </Button>
-                )}
+                <Button
+                  className="bg-[#0F792C] hover:bg-[#0a5a20] text-white border-none rounded-lg h-10 px-6 font-bold"
+                  type="primary"
+                  icon={<BsWhatsapp />}
+                  onClick={handleVerifyAllClick}
+                  loading={verifyingAll}
+                  disabled={verifyingAll || filteredData.length === 0}
+                >
+                  Verify List ({filteredData.length})
+                </Button>
+
                 <Button
                   icon={<MdDownload />}
                   onClick={exportToCSV}
@@ -1737,7 +1799,7 @@ const OperationDetailPage = () => {
                 onChange={(value) => setFilters({ ...filters, whatsappStatus: value || '' })}
                 allowClear
                 className="custom-select-premium h-12"
-                popupClassName="bg-white rounded-xl shadow-lg border-gray-100"
+                classNames={{ popup: { root: "bg-white rounded-xl shadow-lg border-gray-100" } }}
               >
                 <Option value="verified">Authorized WhatsApp</Option>
                 <Option value="not-verified">Unavailable</Option>
@@ -1908,6 +1970,87 @@ const OperationDetailPage = () => {
         featureName={lockedFeature}
 
       />
+
+      <Modal
+         title={<div className="flex items-center gap-2">
+           {bulkProgress.type === 'mail' && <MdEmail className="text-primary text-xl" />}
+           {bulkProgress.type === 'city' && <MdLocationOn className="text-primary text-xl" />}
+           {bulkProgress.type === 'whatsapp' && <BsWhatsapp className="text-primary text-xl" />}
+           <span>{bulkProgress.title}</span>
+         </div>}
+         open={bulkProgress.isOpen}
+         onCancel={() => !bulkProgress.isProcessing && setBulkProgress(prev => ({ ...prev, isOpen: false }))}
+         footer={[
+           <Button 
+             key="close" 
+             type="primary" 
+             onClick={() => setBulkProgress(prev => ({ ...prev, isOpen: false }))}
+             disabled={bulkProgress.isProcessing}
+           >
+             {bulkProgress.isProcessing ? 'Processing...' : 'Done'}
+           </Button>
+         ]}
+         centered
+         closable={!bulkProgress.isProcessing}
+         maskClosable={!bulkProgress.isProcessing}
+         className="rounded-2xl"
+      >
+        <div className="space-y-6 py-4">
+           {bulkProgress.isProcessing && (
+             <div className="flex flex-col items-center justify-center space-y-4">
+                <ExtractionLoader 
+                  count={bulkProgress.success + bulkProgress.failed} 
+                  label={bulkProgress.type === 'whatsapp' ? 'Verified' : 'Scanned'} 
+                />
+                <p className="text-gray-500 font-medium animate-pulse">
+                  {bulkProgress.type === 'mail' ? 'Analyzing domains...' : 
+                   bulkProgress.type === 'city' ? 'Mapping coordinates...' : 
+                   'Verifying credentials...'}
+                </p>
+             </div>
+           )}
+
+           {!bulkProgress.isProcessing && (
+             <div className="flex items-center justify-center mb-4">
+               <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
+                 <MdCheckCircle size={40} />
+               </div>
+             </div>
+           )}
+
+           <div className="grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 p-5 rounded-2xl text-center border border-blue-100 shadow-sm">
+                 <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-2">Processed</p>
+                 <p className="text-3xl font-black text-blue-900 leading-none">{bulkProgress.total}</p>
+                 <p className="text-[10px] text-blue-400 mt-2 font-bold uppercase tracking-tighter">Total Leads Scanned</p>
+              </div>
+              <div className="bg-green-50 p-5 rounded-2xl text-center border border-green-100 shadow-sm relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <MdCheckCircle size={40} className="text-green-600" />
+                 </div>
+                 <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em] mb-2">{bulkProgress.type === 'whatsapp' ? 'Verified' : 'Extracted'}</p>
+                 <p className="text-3xl font-black text-green-900 leading-none">{bulkProgress.success}</p>
+                 <p className="text-[10px] text-green-400 mt-2 font-bold uppercase tracking-tighter">Successfully Captured</p>
+              </div>
+           </div>
+
+           {bulkProgress.extraLabel && (
+             <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                   <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">{bulkProgress.extraLabel}</p>
+                   <Tag color="purple" className="font-bold border-none bg-purple-100 text-purple-600 rounded-full px-3">+{bulkProgress.extraCount} Found</Tag>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                   <div 
+                     className="bg-primary h-2 rounded-full transition-all duration-1000 ease-out" 
+                     style={{ width: `${(bulkProgress.success / bulkProgress.total) * 100}%` }}
+                   ></div>
+                </div>
+                <p className="text-[9px] text-gray-400 mt-3 text-right font-medium uppercase tracking-widest">Confidence Level: High (Verified)</p>
+             </div>
+           )}
+        </div>
+      </Modal>
 
 
     </div>
