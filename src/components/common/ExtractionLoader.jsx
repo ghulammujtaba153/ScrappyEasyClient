@@ -1,25 +1,63 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
-const ExtractionLoader = ({ count = 0, label = "Items Extracted" }) => {
+const ExtractionLoader = ({ count = 0, total = 0, label = "Items Extracted", isLoading = false }) => {
+  const [displayCount, setDisplayCount] = useState(0);
+
+  // Smooth count-up effect
+  useEffect(() => {
+    let start = displayCount;
+    const end = count;
+    if (start === end) return;
+
+    const duration = 400; // ms
+    const increment = (end - start) / (duration / 16); // 60fps
+
+    const timer = setInterval(() => {
+      start += increment;
+      if ((increment > 0 && start >= end) || (increment < 0 && start <= end)) {
+        setDisplayCount(end);
+        clearInterval(timer);
+      } else {
+        setDisplayCount(Math.floor(start));
+      }
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [count, displayCount]);
+
+  const showProcessing = isLoading && count === 0;
+
   return (
     <div className="flex flex-col items-center justify-center py-4">
-      <div className="relative w-[150px] h-[150px] flex items-center justify-center mx-auto my-[10px]">
-        {/* Dash border loader */}
-        <div className="absolute inset-0 rounded-full border-[6px] border-dashed border-primary opacity-90 animate-[spinDash_8s_linear_infinite]"></div>
+      <div className="relative w-[160px] h-[160px] flex items-center justify-center mx-auto my-[10px]">
+        {/* Single Premium Dashed Border Loader */}
+        <div className="absolute inset-0 rounded-full border-[6px] border-dashed border-primary animate-[spinDash_6s_linear_infinite]"></div>
         
         {/* Inner glassmorphism content */}
-        <div className="flex flex-col items-center justify-center z-[2] bg-white/90 w-[110px] h-[110px] rounded-full shadow-[inset_0_2px_10px_rgba(15,121,44,0.1),0_4px_15px_rgba(0,0,0,0.05)] backdrop-blur-[4px]">
-          <span className="text-primary font-extrabold text-[52px] leading-[1] mb-[2px] drop-shadow-[0_0_10px_rgba(15,121,44,0.3)]">
-            {count}
-          </span>
-          <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider text-center px-2">
-            {label}
-          </span>
+        <div className="flex flex-col items-center justify-center z-[2] relative overflow-hidden">
+          
+          <div className="flex items-center justify-center w-full ">
+            {showProcessing ? (
+              <span className="text-primary font-black text-lg tracking-tight animate-pulse uppercase">
+                Processing
+              </span>
+            ) : (
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-primary font-black text-5xl leading-none drop-shadow-[0_0_15px_rgba(15,121,44,0.2)]">
+                  {displayCount}
+                </span>
+                {total > 0 && (
+                  <span className="text-gray-400 font-bold text-lg">/{total}</span>
+                )}
+              </div>
+            )}
+          </div>
+          
         </div>
       </div>
       
-      <style hsla>{`
+      <style>{`
         @keyframes spinDash {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -30,3 +68,4 @@ const ExtractionLoader = ({ count = 0, label = "Items Extracted" }) => {
 };
 
 export default ExtractionLoader;
+

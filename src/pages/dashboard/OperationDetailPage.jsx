@@ -2000,6 +2000,8 @@ const OperationDetailPage = () => {
              <div className="flex flex-col items-center justify-center space-y-4">
                 <ExtractionLoader 
                   count={bulkProgress.success + bulkProgress.failed} 
+                  total={bulkProgress.total} 
+                  isLoading={bulkProgress.isProcessing}
                   label={bulkProgress.type === 'whatsapp' ? 'Verified' : 'Scanned'} 
                 />
                 <p className="text-gray-500 font-medium animate-pulse">
