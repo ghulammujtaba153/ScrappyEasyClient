@@ -39,6 +39,7 @@ import InviteConfirmPage from "./pages/InviteConfirmPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import LemonSqueezy from "./pages/LemonSqueezy";
 import LandingPage from "./pages/LandingPage";
+import TermsCondition from "./pages/TermsConditionPage";
 
 function App() {
     return (
@@ -67,6 +68,7 @@ function App() {
                                         <Route path="/lead-buddy-support" element={<SupportPage />} />
                                         <Route path="/lemon-squeezy" element={<LemonSqueezy />} />
                                         <Route path="/landing" element={<LandingPage />} />
+                                        <Route path="/term-conditions" element={<TermsCondition/>} />
 
                                         {/* Protected Routes */}
                                         <Route

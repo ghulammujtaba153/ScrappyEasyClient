@@ -9,6 +9,8 @@ const Navbar = () => {
         { label: "Features", href: "#features" },
         { label: "Pricing", href: "#pricing" },
         { label: "FAQ's", href: "#faq" },
+        { label: "privacy", href: "/lead-buddy-privacy"},
+        { label: "Term & conditions", href: "/term-conditions"},
         { label: "Contact", href: "/lead-buddy-support" }
     ];
 
