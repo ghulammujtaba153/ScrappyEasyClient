@@ -239,6 +239,7 @@ const RegisterPage = () => {
             if (selectedPlan) {
                 formData.append("planId", selectedPlan.id);
                 formData.append("planName", selectedPlan.name);
+                formData.append("planAmount", selectedPlan.pkr);
                 formData.append("screenshot", screenshot);
             }
 
