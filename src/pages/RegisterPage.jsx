@@ -13,7 +13,6 @@ const PLANS = [
         id: "2-year",
         name: "2-Year Plan",
         price: "$30",
-        pkr: "PKR 8,400",
         period: "/ 2 years",
         icon: FaRocket,
     },
@@ -21,7 +20,6 @@ const PLANS = [
         id: "lifetime",
         name: "Lifetime Deal",
         price: "$69",
-        pkr: "PKR 19,300",
         period: "one-time",
         icon: FaCrown,
     },
@@ -58,13 +56,11 @@ const RegisterPage = () => {
     }, []);
 
     const planOptions = useMemo(() => {
-        const options = PLANS.map(p => ({
+        return PLANS.map(p => ({
             value: p.id,
             label: `${p.name} - ${p.price}`,
             plan: p
         }));
-        // Add Free option
-        return [{ value: "free", label: "Free Plan", plan: null }, ...options];
     }, []);
     const [form, setForm] = useState({
         name: "",
@@ -239,7 +235,7 @@ const RegisterPage = () => {
             if (selectedPlan) {
                 formData.append("planId", selectedPlan.id);
                 formData.append("planName", selectedPlan.name);
-                formData.append("planAmount", selectedPlan.pkr);
+                formData.append("planAmount", selectedPlan.price);
                 formData.append("screenshot", screenshot);
             }
 
@@ -325,10 +321,6 @@ const RegisterPage = () => {
                             <div className="flex items-baseline gap-2 mb-1">
                                 <h3 className="text-4xl font-black text-white">{selectedPlan.price}</h3>
                                 <span className="text-gray-400 text-sm font-medium">{selectedPlan.period}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-primary font-bold">
-                                <FaCheckCircle size={14} />
-                                <span>{selectedPlan.pkr}</span>
                             </div>
                             <div className="mt-4 pt-4 border-t border-white/5">
                                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Plan: {selectedPlan.name}</p>

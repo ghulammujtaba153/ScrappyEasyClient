@@ -16,7 +16,6 @@ const plans = [
         id: "2-year",
         name: "2-Year Plan",
         price: "$30",
-        pkr: "PKR 8,400",
         period: "/ 2 years",
         description: "Full access to every tool for 2 years. One payment, no surprises.",
         icon: FaRocket,
@@ -37,7 +36,6 @@ const plans = [
         id: "lifetime",
         name: "Lifetime Deal",
         price: "$69",
-        pkr: "PKR 19,300",
         period: "one-time",
         description: "Pay once. Use forever. Every feature, every update — no expiry.",
         icon: FaCrown,
@@ -162,7 +160,6 @@ const PricingPage = () => {
                                             {plan.period}
                                         </span>
                                     </div>
-                                    <p className="text-primary font-bold text-sm">{plan.pkr}</p>
                                 </div>
 
                                 <div className="h-px bg-gray-100 w-full"></div>
