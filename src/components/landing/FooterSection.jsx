@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { FaFacebookF, FaLinkedinIn, FaInstagram, FaTelegramPlane, FaArrowRight } from "react-icons/fa";
+import { FaFacebookF, FaLinkedinIn, FaInstagram, FaTelegramPlane } from "react-icons/fa";
 import { products } from "./Navbar";
 
 const FooterSection = () => {
@@ -93,32 +93,22 @@ const FooterSection = () => {
                         </ul>
                     </div>
 
-                    {/* Newsletter Section */}
-                    <div className="sm:col-span-2 lg:col-span-1 space-y-6">
-                        <h4 className="font-black text-lg font-semibold text-gray-900">Newsletter</h4>
-                        <p className="text-gray-500 font-medium leading-relaxed text-sm">
-                            Get tips, product updates, and insights on working smarter with AI.
-                        </p>
-                        <div className="relative group">
-                            <input 
-                                type="email" 
-                                placeholder="Email address"
-                                className="w-full bg-gray-50 border border-gray-100 rounded-full py-3.5 px-5 outline-none focus:ring-2 focus:ring-[#0F792C]/20 focus:border-[#0F792C] transition-all font-medium text-sm pr-28"
-                            />
-                            <button className="absolute right-1.5 top-1.5 bottom-1.5 bg-[#0F792C] hover:bg-[#0A5D21] text-white px-5 rounded-full font-black font-semibold text-xs flex items-center gap-1.5 transition-all group-hover:shadow-lg">
-                                Subscribe <FaArrowRight size={10} />
-                            </button>
-                        </div>
-                    </div>
+
                 </div>
 
                 {/* Bottom Bar */}
                 <div className="pt-12 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <p className="text-gray-400 font-bold text-sm">
-                        <span className="text-[#0F792C]">© 2025 Map Harvest.</span> All rights reserved.
-                    </p>
+                    <div className="text-center sm:text-left">
+                        <p className="text-gray-400 font-bold text-sm">
+                            <span className="text-[#0F792C]">© 2026 Map Harvest.</span> All rights reserved.
+                        </p>
+                        <p className="text-gray-400 text-xs mt-1">
+                            A product of <span className="font-bold text-gray-500">Sleek AI SMC Pvt Ltd</span> — Registered in Pakistan.
+                        </p>
+                    </div>
                     <div className="flex items-center gap-6">
                         <Link to="/lead-buddy-privacy" className="text-gray-400 hover:text-[#0F792C] text-xs font-bold transition-colors">Privacy</Link>
+                        <Link to="/term-conditions" className="text-gray-400 hover:text-[#0F792C] text-xs font-bold transition-colors">Terms</Link>
                         <Link to="/lead-buddy-support" className="text-gray-400 hover:text-[#0F792C] text-xs font-bold transition-colors">Support</Link>
                     </div>
                 </div>

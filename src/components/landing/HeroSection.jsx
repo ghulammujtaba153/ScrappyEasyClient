@@ -38,9 +38,9 @@ const HeroSection = () => {
                     <button className="w-full flex items-center justify-center sm:w-auto bg-primary hover:bg-[#0d6625] text-white px-10 py-3 font-semibold rounded-full font-black text-xl shadow-[0_20px_40px_-15px_rgba(15,121,44,0.4)] hover:shadow-[0_25px_50px_-12px_rgba(15,121,44,0.5)] transition-all hover:-translate-y-1 active:translate-y-0">
                         Start Free <FaArrowRight className="ml-2" />
                     </button>
-                    <button className="w-full sm:w-auto bg-white hover:bg-gray-50 text-[#0F792C] border-2 font-semibold border-[#0F792C]/20 px-10 py-3 rounded-full font-black text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 active:translate-y-0">
+                    <a href="https://calendly.com/ibraheemsheikh2/project-discussion" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto bg-white hover:bg-gray-50 text-[#0F792C] border-2 font-semibold border-[#0F792C]/20 px-10 py-3 rounded-full font-black text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 active:translate-y-0 text-center">
                         Book a Demo
-                    </button>
+                    </a>
                 </div>
 
                 <div className="pt-6 flex flex-wrap items-center justify-center gap-8 md:gap-16">

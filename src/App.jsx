@@ -44,6 +44,7 @@ import WhoWinsPage from "./pages/WhoWinsPage";
 import AboutPage from "./pages/AboutPage";
 import TermsCondition from "./pages/TermsConditionPage";
 
+
 function App() {
     return (
         <ConfigProvider
@@ -72,6 +73,7 @@ function App() {
                                         <Route path="/lemon-squeezy" element={<LemonSqueezy />} />
                                         <Route path="/landing" element={<LandingPage />} />
                                         <Route path="/pricing" element={<PricingPage />} />
+
                                         <Route path="/who-wins" element={<WhoWinsPage />} />
                                         <Route path="/about" element={<AboutPage />} />
                                         <Route path="/term-conditions" element={<TermsCondition/>} />
