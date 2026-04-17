@@ -13,7 +13,7 @@ import PricingSection from "../components/landing/PricingSection";
 const LandingPage = () => {
     return (
         <div className="bg-white">
-            <Navbar />
+           {/* <Navbar /> */}
             
             <div id="hero">
                 <HeroSection />
