@@ -1,21 +1,52 @@
-import React, { useState, useMemo } from "react";
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { BASE_URL } from "../config/URL";
 import Notification from "../components/common/Notification";
 import OtpVerification from "../components/common/OtpVerification";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaWallet, FaUniversity, FaCamera, FaRocket, FaCrown, FaHourglassHalf, FaCheckCircle } from "react-icons/fa";
 import Select from "react-select";
 import countryList from "country-list";
-import PlanSelection from "../components/auth/PlanSelection";
 import { useAuth } from "../context/authContext";
+
+const PLANS = [
+    {
+        id: "2-year",
+        name: "2-Year Plan",
+        price: "$30",
+        pkr: "PKR 8,400",
+        period: "/ 2 years",
+        icon: FaRocket,
+    },
+    {
+        id: "lifetime",
+        name: "Lifetime Deal",
+        price: "$69",
+        pkr: "PKR 19,300",
+        period: "one-time",
+        icon: FaCrown,
+    },
+];
 
 const RegisterPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
-    const [step, setStep] = useState(1); // 1: Form, 2: Plan Selection, 3: OTP Verification
+    const [step, setStep] = useState(1); // 1: Form/Details, 2: OTP Verification, 3: Success/Under Review
     const [selectedPlan, setSelectedPlan] = useState(null);
+    const [screenshot, setScreenshot] = useState(null);
+    const [screenshotPreview, setScreenshotPreview] = useState(null);
+    
+    // Get query param for plan
+    const queryParams = new URLSearchParams(location.search);
+    const initialPlanId = queryParams.get("plan");
+
+    // Set initial plan from hardcoded PLANS
+    useEffect(() => {
+        if (initialPlanId) {
+            const plan = PLANS.find(p => p.id === initialPlanId);
+            if (plan) setSelectedPlan(plan);
+        }
+    }, [initialPlanId]);
     
     // Get country options
     const countryOptions = useMemo(() => {
@@ -24,6 +55,16 @@ const RegisterPage = () => {
             value: country.name,
             label: country.name
         }));
+    }, []);
+
+    const planOptions = useMemo(() => {
+        const options = PLANS.map(p => ({
+            value: p.id,
+            label: `${p.name} - ${p.price}`,
+            plan: p
+        }));
+        // Add Free option
+        return [{ value: "free", label: "Free Plan", plan: null }, ...options];
     }, []);
     const [form, setForm] = useState({
         name: "",
@@ -55,6 +96,21 @@ const RegisterPage = () => {
         }
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setScreenshot(file);
+            setScreenshotPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handlePlanDropdownChange = (selectedOption) => {
+        setSelectedPlan(selectedOption ? selectedOption.plan : null);
+        if (errors.plan) {
+            setErrors({ ...errors, plan: "" });
+        }
+    };
+
     const validateForm = () => {
         const newErrors = {};
 
@@ -73,7 +129,7 @@ const RegisterPage = () => {
         }
 
         if (!form.aboutUser.trim()) {
-            newErrors.aboutUser = "About User is required";
+            newErrors.aboutUser = "Introduction is required";
         }
 
         if (!form.password) {
@@ -86,15 +142,42 @@ const RegisterPage = () => {
             newErrors.confirmPassword = "Passwords do not match";
         }
 
+        if (selectedPlan && !screenshot) {
+            newErrors.screenshot = "Payment screenshot is required for paid plans";
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    // Step 1: Submit Details -> Move to Plan Selection
-    const handleSubmit = (e) => {
+    // Step 1: Submit Details & Request OTP
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (validateForm()) {
-            setStep(2);
+            setLoading(true);
+            try {
+                // Check if email already exists (optional, but good for UX)
+                // For now, just generate OTP
+                const response = await fetch(`${BASE_URL}/api/otp/generate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: form.email, registration: true }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    setNotification({ message: "OTP sent to your email!", type: "success" });
+                    setStep(2); // Move to OTP verification
+                } else {
+                    setNotification({ message: data.message || "Failed to send OTP", type: "error" });
+                }
+            } catch (error) {
+                console.error("Error requesting OTP:", error);
+                setNotification({ message: "An error occurred. Please try again.", type: "error" });
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -125,7 +208,7 @@ const RegisterPage = () => {
         }
     };
 
-    // Step 2: Verify OTP and Register
+    // Verify OTP and Register with Payment Proof
     const handleVerifyOtp = async (otp) => {
         setLoading(true);
 
@@ -145,60 +228,33 @@ const RegisterPage = () => {
                 return;
             }
 
-            // OTP verified, now register the user
+            // OTP verified, now register with multipart/form-data for the screenshot
+            const formData = new FormData();
+            formData.append("name", form.name);
+            formData.append("email", form.email);
+            formData.append("country", form.country);
+            formData.append("aboutUser", form.aboutUser);
+            formData.append("password", form.password);
+            
+            if (selectedPlan) {
+                formData.append("planId", selectedPlan.id);
+                formData.append("planName", selectedPlan.name);
+                formData.append("screenshot", screenshot);
+            }
+
             const registerResponse = await fetch(`${BASE_URL}/api/auth/register`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: form.name,
-                    email: form.email,
-                    country: form.country,
-                    aboutUser: form.aboutUser,
-                    password: form.password,
-                }),
+                body: formData, // No Content-Type header needed for FormData
             });
 
             const registerData = await registerResponse.json();
 
-                if (registerData.ok || registerResponse.ok) {
-                    setNotification({ message: "Registration successful!", type: "success" });
-                    
-                    // Automatically login the user
-                    if (registerData.token && registerData.user) {
-                        await login(registerData.user, registerData.token);
-                    }
-
-                    // If a paid plan was selected, redirect to payment
-                    if (selectedPlan) {
-                        try {
-                            setNotification({ message: "Redirecting to secure payment...", type: "success" });
-                            const checkoutResponse = await fetch(`${BASE_URL}/api/stripe/create-checkout-session`, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    planName: selectedPlan.name,
-                                    price: selectedPlan.price,
-                                    interval: selectedPlan.interval,
-                                    packageId: selectedPlan._id,
-                                    userId: registerData.user?._id || registerData.user?.id,
-                                }),
-                            });
-                            const checkoutData = await checkoutResponse.json();
-                            if (checkoutData.url) {
-                                // Small delay to ensure state/localStorage is committed
-                                setTimeout(() => {
-                                    window.location.href = checkoutData.url;
-                                }, 800);
-                                return; // Don't navigate if redirecting
-                            }
-                        } catch (err) {
-                        console.error("Error creating checkout session:", err);
-                        setNotification({ message: "Registration successful, but redirection failed. Please subscribe from dashboard.", type: "warning" });
-                    }
-                } else {
-                    // Only navigate to dashboard if not redirecting to payment
-                    setTimeout(() => navigate("/dashboard"), 2000);
-                }
+            if (registerData.ok || registerResponse.ok) {
+                setNotification({ 
+                    message: "Registration successful! Your account has been submitted for review.", 
+                    type: "success" 
+                });
+                setStep(3); // Show under review message
             } else {
                 setNotification({ message: registerData.message || "Registration failed", type: "error" });
             }
@@ -237,7 +293,7 @@ const RegisterPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-5">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-10">
             {notification && (
                 <Notification
                     message={notification.message}
@@ -246,233 +302,319 @@ const RegisterPage = () => {
                 />
             )}
 
+            <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden w-full max-w-6xl flex flex-col md:flex-row animate-slideUp">
+                
+                {/* Left Panel: Payment Instructions */}
+                <div className="w-full md:w-[35%] bg-gray-800 p-8 md:p-12 text-white flex flex-col justify-center relative overflow-hidden">
+                    {/* Decorative Background Element */}
+                    <div className="absolute -top-20 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
+                    
+                    <div className="mb-10 relative z-10">
+                        <img src="/map.png" alt="" className="w-12 h-12 mb-6" />
+                        <h2 className="text-3xl font-black mb-4 tracking-tight">Payment Details</h2>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            Complete your payment using any method below and upload the screenshot for instant activation.
+                        </p>
+                    </div>
 
-            <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-4xl animate-slideUp">
-                {/* <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" /> */}
-                <img src="/map.png" alt="" className="mb-7 mx-auto w-[50px] object-contain" />
-
-                {/* Step 1: Registration Form */}
-                {step === 1 && (
-                    <>
-                        <div className="text-center mb-8">
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
-                            <p className="text-gray-600 text-sm">Fill in your details to get started</p>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                            {/* Two Column Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Full Name */}
-                                <div>
-                                    <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Full Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="name"
-                                        name="name"
-                                        value={form.name}
-                                        onChange={handleChange}
-                                        placeholder="Enter your full name"
-                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.name ? "border-red-500" : "border-gray-300"}`}
-                                    />
-                                    {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-                                </div>
-
-                                {/* Email */}
-                                <div>
-                                    <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Email Address
-                                    </label>
-                                    <input
-                                        type="email"
-                                        id="email"
-                                        name="email"
-                                        value={form.email}
-                                        onChange={handleChange}
-                                        placeholder="Enter your email"
-                                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.email ? "border-red-500" : "border-gray-300"}`}
-                                    />
-                                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-                                </div>
-
-                                {/* Password */}
-                                <div>
-                                    <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Password
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showPassword ? "text" : "password"}
-                                            id="password"
-                                            name="password"
-                                            value={form.password}
-                                            onChange={handleChange}
-                                            placeholder="Enter your password"
-                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.password ? "border-red-500" : "border-gray-300"}`}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                                        >
-                                            {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-                                        </button>
-                                    </div>
-                                    {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
-                                </div>
-
-                                {/* Confirm Password */}
-                                <div>
-                                    <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Confirm Password
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showConfirmPassword ? "text" : "password"}
-                                            id="confirmPassword"
-                                            name="confirmPassword"
-                                            value={form.confirmPassword}
-                                            onChange={handleChange}
-                                            placeholder="Confirm your password"
-                                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.confirmPassword ? "border-red-500" : "border-gray-300"}`}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                                        >
-                                            {showConfirmPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-                                        </button>
-                                    </div>
-                                    {errors.confirmPassword && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
-                                    )}
-                                </div>
-
-                                {/* Country */}
-                                <div>
-                                    <label htmlFor="country" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Country
-                                    </label>
-                                    <Select
-                                        id="country"
-                                        options={countryOptions}
-                                        value={countryOptions.find(option => option.value === form.country)}
-                                        onChange={handleCountryChange}
-                                        placeholder="Select your country"
-                                        isClearable
-                                        isSearchable
-                                        className={errors.country ? "react-select-error" : ""}
-                                        styles={{
-                                            control: (base, state) => ({
-                                                ...base,
-                                                minHeight: '48px',
-                                                borderWidth: '2px',
-                                                borderColor: errors.country ? '#ef4444' : state.isFocused ? '#6366f1' : '#d1d5db',
-                                                boxShadow: state.isFocused ? '0 0 0 2px #6366f1' : 'none',
-                                                borderRadius: '8px',
-                                                '&:hover': {
-                                                    borderColor: errors.country ? '#ef4444' : '#6366f1'
-                                                },
-                                            }),
-                                            valueContainer: (base) => ({
-                                                ...base,
-                                                padding: '8px 16px'
-                                            })
-                                        }}
-                                    />
-                                    {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
-                                </div>
+                    {/* Amount to Pay Card */}
+                    {selectedPlan && (
+                        <div className="mb-12 p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-sm relative z-10 animate-slideIn">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2">Amount to Pay</p>
+                            <div className="flex items-baseline gap-2 mb-1">
+                                <h3 className="text-4xl font-black text-white">{selectedPlan.price}</h3>
+                                <span className="text-gray-400 text-sm font-medium">{selectedPlan.period}</span>
                             </div>
+                            <div className="flex items-center gap-2 text-primary font-bold">
+                                <FaCheckCircle size={14} />
+                                <span>{selectedPlan.pkr}</span>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-white/5">
+                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Plan: {selectedPlan.name}</p>
+                            </div>
+                        </div>
+                    )}
 
-                            {/* About User - separate row at end */}
+                    <div className="space-y-8 relative z-10">
+                        {/* JazzCash */}
+                        <div className="flex items-start gap-4 group">
+                            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                <FaWallet className="text-primary" size={20} />
+                            </div>
                             <div>
-                                <label htmlFor="aboutUser" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Tell us about your industry and how data helps you in your goals
-                                </label>
-                                <textarea
-                                    id="aboutUser"
-                                    name="aboutUser"
-                                    value={form.aboutUser}
-                                    onChange={handleChange}
-                                    placeholder="Tell us about yourself"
-                                    rows="4"
-                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none ${errors.aboutUser ? "border-red-500" : "border-gray-300"}`}
-                                />
-                                {errors.aboutUser && <p className="text-red-500 text-xs mt-1">{errors.aboutUser}</p>}
+                                <h4 className="font-bold text-gray-200">JazzCash</h4>
+                                <p className="text-lg font-mono text-primary">0300-1234567</p>
+                                <p className="text-xs text-gray-500">Ac Title: Map Harvest</p>
+                            </div>
+                        </div>
+
+                        {/* EasyPaisa */}
+                        <div className="flex items-start gap-4 group">
+                            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+                                <FaWallet className="text-green-500" size={20} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-200">EasyPaisa</h4>
+                                <p className="text-lg font-mono text-green-500">0300-1234567</p>
+                                <p className="text-xs text-gray-500">Ac Title: Map Harvest</p>
+                            </div>
+                        </div>
+
+                        {/* Bank Transfer */}
+                        <div className="flex items-start gap-4 group">
+                            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                                <FaUniversity className="text-blue-400" size={20} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-200">Bank Transfer</h4>
+                                <p className="text-sm font-mono text-blue-400">Acc: 1234567890</p>
+                                <p className="text-xs text-gray-500 uppercase tracking-wider">HBL Bank Limited</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-12 pt-8 border-t border-white/10 italic text-gray-500 text-xs">
+                        * Upload your payment screenshot in the form to get your account approved within 2-4 hours.
+                    </div>
+                </div>
+
+                {/* Right Panel: Form */}
+                <div className="w-full md:w-[65%] p-8 md:p-12">
+                    {step === 1 && (
+                        <>
+                            <div className="mb-10">
+                                <h1 className="text-3xl font-black text-gray-900 mb-2">Create Account</h1>
+                                <p className="text-gray-500 font-medium">Join Map Harvest and start growing your pipeline</p>
                             </div>
 
-                            <button
-                                type="submit"
-                                className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 mt-6"
-                            >
-                                Continue to Plan Selection
-                            </button>
-                        </form>
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Name */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold text-gray-700">Full Name</label>
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={form.name}
+                                            onChange={handleChange}
+                                            placeholder="John Doe"
+                                            className={`w-full px-5 py-3.5 bg-gray-50 border-2 rounded-2xl transition-all focus:ring-4 focus:ring-primary/10 ${errors.name ? "border-red-500" : "border-transparent focus:border-primary"}`}
+                                        />
+                                        {errors.name && <p className="text-red-500 text-[10px] font-bold uppercase">{errors.name}</p>}
+                                    </div>
 
-                        <div className="text-center mt-6 pt-6 border-t border-gray-200">
-                            <p className="text-sm text-gray-600">
-                                Already have an account?{" "}
-                                <Link to="/login" className="text-primary font-semibold hover:text-primary/80 transition-colors">
-                                    Sign In
-                                </Link>
+                                    {/* Email */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold text-gray-700">Email Address</label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={form.email}
+                                            onChange={handleChange}
+                                            placeholder="john@example.com"
+                                            className={`w-full px-5 py-3.5 bg-gray-50 border-2 rounded-2xl transition-all focus:ring-4 focus:ring-primary/10 ${errors.email ? "border-red-500" : "border-transparent focus:border-primary"}`}
+                                        />
+                                        {errors.email && <p className="text-red-500 text-[10px] font-bold uppercase">{errors.email}</p>}
+                                    </div>
+
+                                    {/* Country */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold text-gray-700">Country</label>
+                                        <Select
+                                            options={countryOptions}
+                                            value={countryOptions.find(o => o.value === form.country)}
+                                            onChange={handleCountryChange}
+                                            placeholder="Select Country"
+                                            className="react-select-container"
+                                            styles={{
+                                                control: (base, state) => ({
+                                                    ...base,
+                                                    borderRadius: '1rem',
+                                                    padding: '4px 8px',
+                                                    backgroundColor: '#f9fafb',
+                                                    border: state.isFocused ? '2px solid #0F792C' : '2px solid transparent',
+                                                    boxShadow: 'none',
+                                                    '&:hover': { border: '2px solid #0F792C' }
+                                                })
+                                            }}
+                                        />
+                                        {errors.country && <p className="text-red-500 text-[10px] font-bold uppercase">{errors.country}</p>}
+                                    </div>
+
+                                    {/* Package Selection */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold text-gray-700">Select Package</label>
+                                        <Select
+                                            options={planOptions}
+                                            value={planOptions.find(o => o.plan?.id === selectedPlan?.id)}
+                                            onChange={handlePlanDropdownChange}
+                                            placeholder="Choose Plan"
+                                            styles={{
+                                                control: (base, state) => ({
+                                                    ...base,
+                                                    borderRadius: '1rem',
+                                                    padding: '4px 8px',
+                                                    backgroundColor: '#f9fafb',
+                                                    border: state.isFocused ? '2px solid #0F792C' : '2px solid transparent',
+                                                    boxShadow: 'none',
+                                                    '&:hover': { border: '2px solid #0F792C' }
+                                                })
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Password */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold text-gray-700">Password</label>
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                name="password"
+                                                value={form.password}
+                                                onChange={handleChange}
+                                                placeholder="••••••••"
+                                                className={`w-full px-5 py-3.5 bg-gray-50 border-2 rounded-2xl transition-all focus:ring-4 focus:ring-primary/10 ${errors.password ? "border-red-500" : "border-transparent focus:border-primary"}`}
+                                            />
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                                {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Confirm Password */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold text-gray-700">Confirm Password</label>
+                                        <div className="relative">
+                                            <input
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                name="confirmPassword"
+                                                value={form.confirmPassword}
+                                                onChange={handleChange}
+                                                placeholder="••••••••"
+                                                className={`w-full px-5 py-3.5 bg-gray-50 border-2 rounded-2xl transition-all focus:ring-4 focus:ring-primary/10 ${errors.confirmPassword ? "border-red-500" : "border-transparent focus:border-primary"}`}
+                                            />
+                                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                                {showConfirmPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* About User */}
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-gray-700">Tell us about your industry</label>
+                                    <textarea
+                                        name="aboutUser"
+                                        value={form.aboutUser}
+                                        onChange={handleChange}
+                                        rows="3"
+                                        placeholder="How will Map Harvest help your business goals?"
+                                        className={`w-full px-5 py-3.5 bg-gray-50 border-2 rounded-2xl transition-all resize-none focus:ring-4 focus:ring-primary/10 ${errors.aboutUser ? "border-red-500" : "border-transparent focus:border-primary"}`}
+                                    />
+                                    {errors.aboutUser && <p className="text-red-500 text-[10px] font-bold uppercase">{errors.aboutUser}</p>}
+                                </div>
+
+                                {/* Payment Screenshot Upload */}
+                                {selectedPlan && (
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-bold text-gray-700">Upload Payment Screenshot</label>
+                                        <div className="flex items-center gap-6">
+                                            <label className="flex-1 border-2 border-dashed border-gray-200 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-gray-50 transition-all">
+                                                <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                                                <FaCamera className="text-gray-300 mb-2" size={24} />
+                                                <span className="text-xs font-bold text-gray-400">Click to upload screenshot</span>
+                                            </label>
+                                            
+                                            {screenshotPreview && (
+                                                <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-primary shadow-lg flex-shrink-0">
+                                                    <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {errors.screenshot && <p className="text-red-500 text-[10px] font-bold uppercase">{errors.screenshot}</p>}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all disabled:opacity-50"
+                                >
+                                    {loading ? "Sending OTP..." : "Register & Verify Email"}
+                                </button>
+
+                                <div className="text-center pt-4">
+                                    <p className="text-sm text-gray-500 font-medium">
+                                        Already have an account? <Link to="/login" className="text-primary font-bold">Sign In</Link>
+                                    </p>
+                                </div>
+                            </form>
+                        </>
+                    )}
+
+                    {step === 2 && (
+                        <div className="h-full flex flex-col justify-center max-w-md mx-auto">
+                            <OtpVerification
+                                email={form.email}
+                                onVerify={handleVerifyOtp}
+                                onResend={handleResendOtp}
+                                loading={loading}
+                            />
+                            <div className="text-center mt-6">
+                                <button onClick={() => setStep(1)} className="text-sm text-gray-400 font-bold hover:text-gray-600">
+                                    ← Back to Details
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 3 && (
+                        <div className="h-full flex flex-col items-center justify-center text-center animate-fadeIn py-10">
+                            <div className="w-24 h-24 bg-yellow-50 rounded-full flex items-center justify-center mb-8 relative">
+                                <FaHourglassHalf className="text-yellow-600 animate-pulse" size={48} />
+                                <div className="absolute -top-2 -right-2 bg-yellow-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                                    Pending
+                                </div>
+                            </div>
+                            
+                            <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Almost There!</h2>
+                            <p className="text-gray-500 mb-10 max-w-sm text-lg leading-relaxed">
+                                Your registration and payment proof have been received. We are now **manually verifying** your details to activate your pro features.
                             </p>
+                            
+                            <div className="w-full max-w-md space-y-4 mb-10">
+                                <div className="bg-primary/5 p-5 rounded-3xl border-2 border-primary/10 flex items-center gap-4 text-left">
+                                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                        <FaCheckCircle className="text-primary" size={24} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 leading-tight">Verification in Progress</h4>
+                                        <p className="text-xs text-gray-500 mt-1">Our team checks payments 24/7. Average wait: **2-4 hours**.</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-50 p-5 rounded-3xl border-2 border-blue-100 flex items-center gap-4 text-left">
+                                    <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                        <FaUniversity className="text-blue-600" size={24} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 leading-tight">Email Confirmation</h4>
+                                        <p className="text-xs text-gray-500 mt-1">You will receive an email once your subscription is active.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-4 w-full">
+                                <Link to="/login" className="bg-primary text-white w-full py-5 rounded-3xl font-black text-xl shadow-[0_20px_50px_rgba(15,121,44,0.3)] hover:shadow-none hover:translate-y-1 transition-all">
+                                    Back to Login
+                                </Link>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                    You can check your status by signing in later.
+                                </p>
+                            </div>
                         </div>
-                    </>
-                )}
-
-                {/* Step 2: Plan Selection */}
-                {step === 2 && (
-                    <>
-                        <div className="text-center mb-8">
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">Choose Your Plan</h1>
-                            <p className="text-gray-600 text-sm">Select the best option for your needs</p>
-                        </div>
-
-                        <PlanSelection 
-                            selectedPlan={selectedPlan} 
-                            onPlanSelect={setSelectedPlan} 
-                        />
-
-                        <div className="flex flex-col gap-4 mt-8">
-                            <button
-                                onClick={handlePlanSubmit}
-                                disabled={loading}
-                                className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
-                            >
-                                {loading ? "Processing..." : "Continue to Verify Email"}
-                            </button>
-                            <button
-                                onClick={() => setStep(1)}
-                                className="text-sm text-gray-500 hover:text-gray-700 font-semibold transition-colors"
-                            >
-                                ← Back to Details
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {/* Step 3: OTP Verification */}
-                {step === 3 && (
-                    <>
-                        <OtpVerification
-                            email={form.email}
-                            onVerify={handleVerifyOtp}
-                            onResend={handleResendOtp}
-                            loading={loading}
-                        />
-
-                        <div className="text-center mt-6 pt-6 border-t border-gray-200">
-                            <button
-                                onClick={() => setStep(2)}
-                                className="text-sm text-primary font-semibold hover:text-primary/80 transition-colors"
-                            >
-                                ← Change Plan
-                            </button>
-                        </div>
-                    </>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );

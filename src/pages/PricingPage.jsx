@@ -7,6 +7,7 @@ import {
     FaBolt,
     FaShieldAlt,
 } from "react-icons/fa";
+import { Link } from "react-router-dom";
 import Navbar from "../components/landing/Navbar";
 import FooterSection from "../components/landing/FooterSection";
 
@@ -185,7 +186,8 @@ const PricingPage = () => {
                                     </ul>
                                 </div>
 
-                                <div
+                                <Link
+                                    to={`/register?plan=${plan.id}`}
                                     className={`w-full py-4 rounded-full font-bold text-lg text-center transition-all shadow-lg hover:shadow-2xl hover:-translate-y-1 ${
                                         plan.highlight
                                             ? "bg-primary text-white hover:bg-primary/90"
@@ -193,7 +195,7 @@ const PricingPage = () => {
                                     }`}
                                 >
                                     {plan.btnText}
-                                </div>
+                                </Link>
                             </div>
                         ))}
                     </div>
