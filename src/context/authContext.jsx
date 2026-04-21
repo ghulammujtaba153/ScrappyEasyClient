@@ -57,12 +57,17 @@ export const AuthProvider = ({ children }) => {
                     });
 
                     if (response.ok) {
-                        // Token is valid, set user and token
+                        const data = await response.json();
+                        // Use FRESH user data from server (not stale localStorage)
+                        // This ensures status changes (e.g. under_review → active) reflect immediately
+                        const freshUser = data.user || storedUser;
                         setToken(storedToken);
-                        setUser(storedUser);
+                        setUser(freshUser);
+                        // Update localStorage with fresh data
+                        localStorage.setItem("user", JSON.stringify(freshUser));
 
                         // Also fetch access status
-                        const status = await checkAccessStatus(storedUser._id || storedUser.id, storedToken);
+                        const status = await checkAccessStatus(freshUser._id || freshUser.id, storedToken);
                         setAccessStatus(status);
                     } else {
                         // Token is invalid, clear localStorage
@@ -81,6 +86,7 @@ export const AuthProvider = ({ children }) => {
                 }
             }
             setLoading(false);
+
         };
 
         verifyToken();
