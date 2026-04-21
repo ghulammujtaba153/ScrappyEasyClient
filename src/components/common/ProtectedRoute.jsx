@@ -14,6 +14,14 @@ const ProtectedRoute = ({ children }) => {
         return <Navigate to="/login" replace />;
     }
 
+    const { user } = useAuth();
+    const isUnderReview = user?.status === "under_review";
+    const isUnderReviewPage = window.location.pathname === "/dashboard/under-review";
+
+    if (isUnderReview && !isUnderReviewPage) {
+        return <Navigate to="/dashboard/under-review" replace />;
+    }
+
     return children;
 };
 

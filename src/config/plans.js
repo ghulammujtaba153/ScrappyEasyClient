@@ -1,0 +1,45 @@
+import { FaRocket, FaCrown } from "react-icons/fa";
+
+export const PLANS = [
+    {
+        id: "2-year",
+        name: "2-Year Plan",
+        price: "$30",
+        period: "/ 2 years",
+        description: "Full access to every tool for 2 years. One payment, no surprises.",
+        icon: FaRocket,
+        features: [
+            "Unlimited lead harvesting",
+            "Full CRM access",
+            "WhatsApp verification & messaging",
+            "Cold call dialer",
+            "Email extraction",
+            "Lead qualification tools",
+            "Team collaboration",
+            "Email & chat support",
+        ],
+        btnText: "Get 2-Year Access",
+        highlight: false,
+    },
+    {
+        id: "lifetime",
+        name: "Lifetime Deal",
+        price: "$69",
+        period: "one-time",
+        description: "Pay once. Use forever. Every feature, every update — no expiry.",
+        icon: FaCrown,
+        badge: "First 1,000 users only",
+        features: [
+            "Everything in 2-Year Plan",
+            "Lifetime access — no renewals",
+            "All future updates included",
+            "Priority support",
+            "Bulk messaging tools",
+            "Advanced campaign builder",
+            "Custom outreach sequences",
+            "Early access to new features",
+        ],
+        btnText: "Claim Lifetime Access",
+        highlight: true,
+    },
+];

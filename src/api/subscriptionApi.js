@@ -11,15 +11,16 @@ export const checkAccessStatus = async (userId, token) => {
     try {
         if (!userId || !token) return { isAuthorized: false };
 
-        const res = await axios.get(`${BASE_URL}/api/subscriptions/my-subscription/${userId}`, {
+        const res = await axios.get(`${BASE_URL}/api/user/${userId}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (res.data.subscription) {
+        const user = res.data.data;
+        if (user && user.status === 'active' && user.planId) {
             return {
-                isAuthorized: res.data.subscription.status === 'Active',
+                isAuthorized: true,
                 type: 'subscription',
-                subscription: res.data.subscription
+                subscription: user
             };
         }
         return { isAuthorized: false };

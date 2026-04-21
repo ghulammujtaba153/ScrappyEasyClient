@@ -5,6 +5,9 @@ import { useAuth } from "../context/authContext";
 import Notification from "../components/common/Notification";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
+import Navbar from "../components/landing/Navbar";
+import FooterSection from "../components/landing/FooterSection";
+
 const LoginPage = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -91,7 +94,13 @@ const LoginPage = () => {
                         // If window.close() didn't work, we just stay here with the success notification
                     }, 2000);
                 } else {
-                    setTimeout(() => navigate("/dashboard"), 1000);
+                    setTimeout(() => {
+                        if (data.user.status === "under_review") {
+                            navigate("/dashboard/under-review");
+                        } else {
+                            navigate("/dashboard");
+                        }
+                    }, 1000);
                 }
             } else {
                 setNotification({ message: data.message || "Login failed", type: "error" });
@@ -105,105 +114,110 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-5">
-            {notification && (
-                <Notification
-                    message={notification.message}
-                    type={notification.type}
-                    onClose={() => setNotification(null)}
-                />
-            )}
-            <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md animate-slideUp">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            <Navbar />
+            <div className="flex-grow flex items-center justify-center p-5 pt-28 pb-20">
+                {notification && (
+                    <Notification
+                        message={notification.message}
+                        type={notification.type}
+                        onClose={() => setNotification(null)}
+                    />
+                )}
+                <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md animate-slideUp">
 
-                <div className="text-center mb-8">
-                    {/* <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" /> */}
-                    <img src="/map.png" alt="" className="mb-7 mx-auto w-[50px] object-contain" />
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
-                    <p className="text-gray-600 text-sm">Sign in to your account</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                            Email Address
-                        </label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value={form.email}
-                            onChange={handleChange}
-                            placeholder="Enter your email"
-                            className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.email ? "border-red-500" : "border-gray-300"
-                                }`}
-                        />
-                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                    <div className="text-center mb-8">
+                        {/* <img src="/logo.png" alt="" className="mb-7 mx-auto w-[200px] object-contain" /> */}
+                        <img src="/map.png" alt="" className="mb-7 mx-auto w-[50px] object-contain" />
+                        <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
+                        <p className="text-gray-600 text-sm">Sign in to your account</p>
                     </div>
 
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                            Password
-                        </label>
-                        <div className="relative">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                                Email Address
+                            </label>
                             <input
-                                type={showPassword ? "text" : "password"}
-                                id="password"
-                                name="password"
-                                value={form.password}
+                                type="email"
+                                id="email"
+                                name="email"
+                                value={form.email}
                                 onChange={handleChange}
-                                placeholder="Enter your password"
-                                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.password ? "border-red-500" : "border-gray-300"
+                                placeholder="Enter your email"
+                                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.email ? "border-red-500" : "border-gray-300"
                                     }`}
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                            >
-                                {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-                            </button>
+                            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                         </div>
-                        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
-                    </div>
 
-                    <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
-                            />
-                            <span className="text-sm text-gray-700">Remember me</span>
-                        </label>
-                        <Link
-                            to="/forgot-password"
-                            className="text-sm text-primary font-medium hover:text-primary/80 transition-colors"
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                                Password
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    id="password"
+                                    name="password"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    placeholder="Enter your password"
+                                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.password ? "border-red-500" : "border-gray-300"
+                                        }`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                >
+                                    {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                                </button>
+                            </div>
+                            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                />
+                                <span className="text-sm text-gray-700">Remember me</span>
+                            </label>
+                            <Link
+                                to="/forgot-password"
+                                className="text-sm text-primary font-medium hover:text-primary/80 transition-colors"
+                            >
+                                Forgot Password?
+                            </Link>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-6"
                         >
-                            Forgot Password?
-                        </Link>
+                            {loading ? "Signing In..." : "Sign In"}
+                        </button>
+                    </form>
+
+                    <div className="text-center mt-6 pt-6 border-t border-gray-200">
+                        <p className="text-sm text-gray-600">
+                            Don't have an account?{" "}
+                            <Link to="/register" className="text-primary font-semibold hover:text-primary/80 transition-colors">
+                                Sign Up
+                            </Link>
+                        </p>
                     </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-6"
-                    >
-                        {loading ? "Signing In..." : "Sign In"}
-                    </button>
-                </form>
-
-                <div className="text-center mt-6 pt-6 border-t border-gray-200">
-                    <p className="text-sm text-gray-600">
-                        Don't have an account?{" "}
-                        <Link to="/register" className="text-primary font-semibold hover:text-primary/80 transition-colors">
-                            Sign Up
-                        </Link>
-                    </p>
                 </div>
             </div>
+            <FooterSection />
         </div>
     );
 };
+
 
 export default LoginPage;

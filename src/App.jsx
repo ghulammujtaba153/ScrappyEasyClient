@@ -43,6 +43,8 @@ import PricingPage from "./pages/PricingPage";
 import WhoWinsPage from "./pages/WhoWinsPage";
 import AboutPage from "./pages/AboutPage";
 import TermsCondition from "./pages/TermsConditionPage";
+import PendingReviewPage from "./pages/PendingReviewPage";
+
 
 
 function App() {
@@ -77,6 +79,9 @@ function App() {
                                         <Route path="/who-wins" element={<WhoWinsPage />} />
                                         <Route path="/about" element={<AboutPage />} />
                                         <Route path="/term-conditions" element={<TermsCondition/>} />
+                                        <Route path="/term-conditions" element={<TermsCondition/>} />
+
+
 
                                         {/* Protected Routes */}
                                         <Route
@@ -112,6 +117,8 @@ function App() {
                                             <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
                                             <Route path="team" element={<TeamPage />} />
                                             <Route path="team/:id" element={<TeamDetailPage />} />
+                                            <Route path="under-review" element={<PendingReviewPage />} />
+
 
                                         </Route>
 

@@ -24,7 +24,8 @@ import { Modal } from "antd";
 const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen = false, onCloseMobile }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
+
     const { isBlocking } = useOperations();
 
 
@@ -142,6 +143,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
 
 
 
+    const isUnderReview = user?.status === "under_review";
+
+
+    const filteredMenuItems = isUnderReview 
+        ? menuItems.filter(item => ["Support", "Profile Settings"].includes(item.name)) 
+        : menuItems;
+
     return (
         <aside
             className={`text-black h-screen fixed left-0 top-0 transition-all duration-300 ${
@@ -189,7 +197,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
             </div>
 
             <nav className="mt-6">
-                {menuItems.map((item) => {
+                {filteredMenuItems.map((item) => {
                     // Handle active state for nested routes
                     const isActive = item.path === '/dashboard'
                         ? location.pathname === '/dashboard'

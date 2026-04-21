@@ -7,23 +7,11 @@ import { FaEye, FaEyeSlash, FaWallet, FaUniversity, FaCamera, FaRocket, FaCrown,
 import Select from "react-select";
 import countryList from "country-list";
 import { useAuth } from "../context/authContext";
+import { PLANS } from "../config/plans";
+import Navbar from "../components/landing/Navbar";
+import FooterSection from "../components/landing/FooterSection";
 
-const PLANS = [
-    {
-        id: "2-year",
-        name: "2-Year Plan",
-        price: "$30",
-        period: "/ 2 years",
-        icon: FaRocket,
-    },
-    {
-        id: "lifetime",
-        name: "Lifetime Deal",
-        price: "$69",
-        period: "one-time",
-        icon: FaCrown,
-    },
-];
+
 
 const RegisterPage = () => {
     const navigate = useNavigate();
@@ -290,8 +278,11 @@ const RegisterPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-10">
-            {notification && (
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            <Navbar />
+            <div className="flex-grow flex items-center justify-center p-5 pt-28 pb-20">
+                {notification && (
+
                 <Notification
                     message={notification.message}
                     type={notification.type}
@@ -336,7 +327,8 @@ const RegisterPage = () => {
                             </div>
                             <div>
                                 <h4 className="font-bold text-gray-200">JazzCash</h4>
-                                <p className="text-lg font-mono text-primary">0300-1234567</p>
+                                <p className="text-lg font-mono text-primary">0335-1066628</p>
+
                                 <p className="text-xs text-gray-500">Ac Title: Map Harvest</p>
                             </div>
                         </div>
@@ -348,7 +340,8 @@ const RegisterPage = () => {
                             </div>
                             <div>
                                 <h4 className="font-bold text-gray-200">EasyPaisa</h4>
-                                <p className="text-lg font-mono text-green-500">0300-1234567</p>
+                                <p className="text-lg font-mono text-green-500">0335-1066628</p>
+
                                 <p className="text-xs text-gray-500">Ac Title: Map Harvest</p>
                             </div>
                         </div>
@@ -609,8 +602,13 @@ const RegisterPage = () => {
                     )}
                 </div>
             </div>
+            </div>
+            <FooterSection />
         </div>
     );
 };
+
+
+
 
 export default RegisterPage;

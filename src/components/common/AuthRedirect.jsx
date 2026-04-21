@@ -12,11 +12,15 @@ const AuthRedirect = () => {
 
     // If user is authenticated, redirect to dashboard
     // Otherwise, redirect to login
-    return isAuthenticated() ? (
-        <Navigate to="/dashboard" replace />
-    ) : (
-        <Navigate to="/login" replace />
-    );
+    if (isAuthenticated()) {
+        const { user } = useAuth();
+        if (user?.status === "under_review") {
+            return <Navigate to="/dashboard/under-review" replace />;
+        }
+        return <Navigate to="/dashboard" replace />;
+    }
+
+    return <Navigate to="/login" replace />;
 };
 
 export default AuthRedirect;
