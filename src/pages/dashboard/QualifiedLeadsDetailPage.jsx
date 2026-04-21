@@ -204,6 +204,8 @@ const QualifiedLeadsDetailPage = () => {
             favorite: entry.leadId?.favorite || false,
             screenshotUrl: entry.leadId?.screenshotUrl || '',
             leadStatus: entry.leadId?.status || 'not-reached',
+            emails: entry.leadId?.emails || [],
+            socialMedia: entry.leadId?.socialMedia || {},
             // Status tracking from entry
             callStatus: entry.callStatus || 'not-called',
             lastCalledAt: entry.lastCalledAt,
@@ -741,6 +743,67 @@ const QualifiedLeadsDetailPage = () => {
             key: 'phone',
             width: 150,
             render: (phone) => phone || '-',
+        },
+        {
+            title: 'Email',
+            dataIndex: 'emails',
+            key: 'emails',
+            width: 180,
+            render: (emails) => {
+                if (emails && emails.length > 0) {
+                    return (
+                        <div className="flex flex-col gap-1">
+                            {emails.map((e, idx) => (
+                                <Tooltip key={idx} title={`Click to email ${e}`}>
+                                    <a href={`mailto:${e}`} className="text-blue-500 hover:underline text-xs truncate max-w-[150px] flex items-center gap-1">
+                                        <MdEmail size={10} /> {e}
+                                    </a>
+                                </Tooltip>
+                            ))}
+                        </div>
+                    );
+                }
+                return <Tag color="default" className="opacity-50">None found</Tag>;
+            }
+        },
+        {
+            title: 'Social Media',
+            dataIndex: 'socialMedia',
+            key: 'socialMedia',
+            width: 180,
+            render: (socialMedia) => {
+                const platforms = {
+                    facebook: { icon: <BsFacebook className="text-[#1877F2]" />, label: 'Facebook' },
+                    instagram: { icon: <BsInstagram className="text-[#E4405F]" />, label: 'Instagram' },
+                    linkedin: { icon: <BsLinkedin className="text-[#0A66C2]" />, label: 'LinkedIn' },
+                    twitter: { icon: <BsTwitterX className="text-black" />, label: 'X/Twitter' },
+                    youtube: { icon: <BsYoutube className="text-[#FF0000]" />, label: 'YouTube' },
+                    tiktok: { icon: <BsTiktok className="text-black" />, label: 'TikTok' },
+                };
+
+                if (socialMedia && typeof socialMedia === 'object') {
+                    const found = Object.entries(socialMedia).filter(([, url]) => url);
+                    if (found.length > 0) {
+                        return (
+                            <div className="flex flex-wrap gap-2">
+                                {found.map(([platform, url]) => (
+                                    <Tooltip key={platform} title={`${platforms[platform]?.label}: ${url}`}>
+                                        <a
+                                            href={url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-lg hover:scale-125 hover:-translate-y-0.5 transition-all inline-flex p-1 bg-gray-50 rounded-lg hover:shadow-sm"
+                                        >
+                                            {platforms[platform]?.icon}
+                                        </a>
+                                    </Tooltip>
+                                ))}
+                            </div>
+                        );
+                    }
+                }
+                return <Tag color="default" className="opacity-50">None found</Tag>;
+            }
         },
         {
             title: 'City',

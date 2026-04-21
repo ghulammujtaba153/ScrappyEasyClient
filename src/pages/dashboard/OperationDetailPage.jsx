@@ -16,6 +16,7 @@ import {
   Tag,
   Modal,
   Spin,
+  Tooltip,
   message
 } from 'antd';
 import {
@@ -40,9 +41,10 @@ import {
   MdCloudUpload,
   MdEdit,
   MdDelete,
-  MdEmail
+  MdEmail,
+  MdShare
 } from 'react-icons/md';
-import { BsWhatsapp } from 'react-icons/bs';
+import { BsWhatsapp, BsFacebook, BsInstagram, BsLinkedin, BsTwitterX, BsYoutube, BsTiktok } from 'react-icons/bs';
 import axios from 'axios';
 import { QRCodeCanvas } from 'qrcode.react';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
@@ -103,6 +105,7 @@ const OperationDetailPage = () => {
   const screenshotData = useMemo(() => cachedData.screenshotData || {}, [cachedData.screenshotData]);
   const whatsappStatus = useMemo(() => cachedData.whatsappStatus || {}, [cachedData.whatsappStatus]);
   const emailData = useMemo(() => cachedData.emailData || {}, [cachedData.emailData]);
+  const socialData = useMemo(() => cachedData.socialData || {}, [cachedData.socialData]);
 
   const { addToQueue, queue, progress } = useScreenshot();
 
@@ -127,6 +130,8 @@ const OperationDetailPage = () => {
   
   const [extractingMail, setExtractingMail] = useState({});
   const [extractingAllMail, setExtractingAllMail] = useState(false);
+  const [extractingSocial, setExtractingSocial] = useState({});
+  const [extractingAllSocial, setExtractingAllSocial] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -169,6 +174,11 @@ const OperationDetailPage = () => {
   const setEmailData = (newData) => {
     const data = typeof newData === 'function' ? newData(emailData) : newData;
     updateOperationCache(operationId, { emailData: data });
+  };
+
+  const setSocialData = (newData) => {
+    const data = typeof newData === 'function' ? newData(socialData) : newData;
+    updateOperationCache(operationId, { socialData: data });
   };
 
   // Extract coordinates from Google Maps URL
@@ -432,7 +442,7 @@ const OperationDetailPage = () => {
     
     setExtractingMail(prev => ({ ...prev, [leadId]: true }));
     try {
-      const res = await axios.post(`${BASE_URL}/api/mailautomation/extract`, { url }, {
+      const res = await axios.post(`${BASE_URL}/api/mailautomation/extract`, { url, leadId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success && res.data.data) {
@@ -514,6 +524,83 @@ const OperationDetailPage = () => {
       message.error('Bulk email extraction failed: ' + (error.response?.data?.error || error.message));
     } finally {
       setExtractingAllMail(false);
+      setBulkProgress(prev => ({ ...prev, isProcessing: false }));
+    }
+  };
+
+  const extractSocialForLead = async (leadId, url) => {
+    if (!url) return;
+    setExtractingSocial(prev => ({ ...prev, [leadId]: true }));
+    try {
+      const res = await axios.post(`${BASE_URL}/api/social-media/extract`, { url, leadId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success && res.data.data) {
+        setSocialData(prev => ({ ...prev, [leadId]: res.data.data.socials }));
+        const count = res.data.data.count;
+        if (count > 0) {
+          message.success(`Found ${count} social media profile${count > 1 ? 's' : ''}`);
+        } else {
+          message.info('No social media profiles found');
+        }
+      }
+    } catch (error) {
+      console.error('Social media extraction error:', error);
+      message.error('Failed to extract social media profiles');
+    } finally {
+      setExtractingSocial(prev => ({ ...prev, [leadId]: false }));
+    }
+  };
+
+  const extractAllSocials = async () => {
+    if (!isAuthorized) {
+      setLockedFeature('Bulk Social Media Extraction');
+      setIsLockedModalOpen(true);
+      return;
+    }
+    const leadsWithWebsite = filteredData.filter(item =>
+      item.website && !socialData[item.leadId] && (!item.socialMedia || !Object.values(item.socialMedia || {}).some(Boolean))
+    );
+    if (leadsWithWebsite.length === 0) {
+      message.warning('No new websites to extract social media from');
+      return;
+    }
+    setExtractingAllSocial(true);
+    setBulkProgress({
+      isOpen: true,
+      type: 'social',
+      title: 'Social Media Extraction',
+      total: leadsWithWebsite.length,
+      success: 0,
+      failed: 0,
+      extraLabel: 'Profiles Discovered',
+      extraCount: 0,
+      isProcessing: true
+    });
+    try {
+      const payload = leadsWithWebsite.map(item => ({ leadId: item.leadId, url: item.website }));
+      const res = await axios.post(`${BASE_URL}/api/social-media/bulk-extract`, {
+        recordId: record._id,
+        leads: payload
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data.success) {
+        setBulkProgress(prev => ({
+          ...prev,
+          success: res.data.extractedCount,
+          failed: leadsWithWebsite.length - res.data.extractedCount,
+          extraCount: res.data.totalSocials,
+          isProcessing: false
+        }));
+        const updatedSocialData = { ...socialData, ...res.data.data };
+        setSocialData(updatedSocialData);
+        message.success(`Bulk extraction complete! Discovered ${res.data.totalSocials} social profiles.`);
+        fetchRecord(true);
+      }
+    } catch (error) {
+      console.error('Bulk social extraction error:', error);
+      message.error('Bulk social extraction failed: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setExtractingAllSocial(false);
       setBulkProgress(prev => ({ ...prev, isProcessing: false }));
     }
   };
@@ -610,7 +697,7 @@ const OperationDetailPage = () => {
   
   // Navigation blocking logic
   useEffect(() => {
-    const isBusy = verifyingAll || extractingCities || extractingAllMail;
+    const isBusy = verifyingAll || extractingCities || extractingAllMail || extractingAllSocial;
     setIsBlocking(isBusy);
 
     const handleBeforeUnload = (e) => {
@@ -626,7 +713,7 @@ const OperationDetailPage = () => {
       // Clean up global state on unmount just in case
       setIsBlocking(false);
     };
-  }, [verifyingAll, extractingCities, extractingAllMail, setIsBlocking]);
+  }, [verifyingAll, extractingCities, extractingAllMail, extractingAllSocial, setIsBlocking]);
 
 
 
@@ -857,9 +944,10 @@ const OperationDetailPage = () => {
       whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone)] || 'not-checked',
       favorite: item.favorite || false,
       screenshotUrl: item.screenshotUrl || screenshotData[item._id] || '',
-      emails: item.emails || emailData[item._id] || undefined
+      emails: item.emails || emailData[item._id] || undefined,
+      socialMedia: item.socialMedia || socialData[item._id] || undefined
     }));
-  }, [record, cityData, whatsappStatus, screenshotData, emailData]);
+  }, [record, cityData, whatsappStatus, screenshotData, emailData, socialData]);
 
   // Calculate verification statistics - use item.whatsappStatus from new schema
   const verificationStats = useMemo(() => {
@@ -1285,7 +1373,21 @@ const OperationDetailPage = () => {
       ) : '-',
     },
     {
-      title: 'Email',
+      title: (
+        <div className="flex items-center justify-between group">
+          <span>Email</span>
+          <Tooltip title="Batch Extract Emails">
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<MdEmail className="text-primary group-hover:scale-110 transition-transform" />} 
+              onClick={extractAllMails}
+              loading={extractingAllMail}
+              className="p-0 h-6 w-6 flex items-center justify-center hover:bg-primary/10 rounded-full"
+            />
+          </Tooltip>
+        </div>
+      ),
       dataIndex: 'emails',
       key: 'emails',
       width: 180,
@@ -1302,15 +1404,16 @@ const OperationDetailPage = () => {
           return (
             <div className="flex flex-col gap-1">
               {emails.map((e, idx) => (
-                <a key={idx} href={`mailto:${e}`} className="text-blue-500 hover:underline text-xs truncate max-w-[150px]" title={e}>
-                  {e}
-                </a>
+                <Tooltip key={idx} title={`Click to email ${e}`}>
+                  <a href={`mailto:${e}`} className="text-blue-500 hover:underline text-xs truncate max-w-[150px] flex items-center gap-1">
+                    <MdEmail size={10} /> {e}
+                  </a>
+                </Tooltip>
               ))}
             </div>
           );
         }
         
-        // If empty array, it means we checked but found none
         if (emails && Array.isArray(emails) && emails.length === 0) {
              return <Tag color="error">Not Found</Tag>;
         }
@@ -1320,6 +1423,7 @@ const OperationDetailPage = () => {
             size="small"
             icon={<MdEmail />}
             onClick={() => extractMailForLead(record.leadId, record.website)}
+            className="hover:border-primary hover:text-primary transition-colors"
           >
             Extract
           </Button>
@@ -1327,7 +1431,90 @@ const OperationDetailPage = () => {
       }
     },
     {
-      title: 'WhatsApp',
+      title: (
+        <div className="flex items-center justify-between group">
+          <span>Social Media</span>
+          <Tooltip title="Batch Extract Socials">
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<MdShare className="text-primary group-hover:scale-110 transition-transform" />} 
+              onClick={extractAllSocials}
+              loading={extractingAllSocial}
+              className="p-0 h-6 w-6 flex items-center justify-center hover:bg-primary/10 rounded-full"
+            />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'socialMedia',
+      key: 'socialMedia',
+      width: 200,
+      render: (socialMedia, record) => {
+        if (!record.website) return <Tag color="default">N/A</Tag>;
+
+        const isExtracting = extractingSocial[record.leadId];
+        if (isExtracting) return <Spin size="small" />;
+
+        const platforms = {
+          facebook: { icon: <BsFacebook className="text-[#1877F2]" />, label: 'Facebook' },
+          instagram: { icon: <BsInstagram className="text-[#E4405F]" />, label: 'Instagram' },
+          linkedin: { icon: <BsLinkedin className="text-[#0A66C2]" />, label: 'LinkedIn' },
+          twitter: { icon: <BsTwitterX className="text-black" />, label: 'X/Twitter' },
+          youtube: { icon: <BsYoutube className="text-[#FF0000]" />, label: 'YouTube' },
+          tiktok: { icon: <BsTiktok className="text-black" />, label: 'TikTok' },
+        };
+
+        if (socialMedia && typeof socialMedia === 'object') {
+          const found = Object.entries(socialMedia).filter(([, url]) => url);
+          if (found.length > 0) {
+            return (
+              <div className="flex flex-wrap gap-2">
+                {found.map(([platform, url]) => (
+                  <Tooltip key={platform} title={`${platforms[platform]?.label}: ${url}`}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xl hover:scale-125 hover:-translate-y-0.5 transition-all inline-flex p-1 bg-gray-50 rounded-lg hover:shadow-sm"
+                    >
+                      {platforms[platform]?.icon}
+                    </a>
+                  </Tooltip>
+                ))}
+              </div>
+            );
+          }
+          return <Tag color="error" className="rounded-full border-none px-3 bg-red-50 text-red-500 font-medium">Not Found</Tag>;
+        }
+
+        return (
+          <Button
+            size="small"
+            icon={<MdShare />}
+            onClick={() => extractSocialForLead(record.leadId, record.website)}
+            className="hover:border-primary hover:text-primary transition-colors rounded-lg"
+          >
+            Extract
+          </Button>
+        );
+      }
+    },
+    {
+      title: (
+        <div className="flex items-center justify-between group">
+          <span>WhatsApp</span>
+          <Tooltip title="Verify Visible List">
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<BsWhatsapp className="text-[#0F792C] group-hover:scale-110 transition-transform" />} 
+              onClick={handleVerifyAllClick}
+              loading={verifyingAll}
+              className="p-0 h-6 w-6 flex items-center justify-center hover:bg-green-50 rounded-full"
+            />
+          </Tooltip>
+        </div>
+      ),
       key: 'whatsapp',
       width: 140,
       render: (_, record) => {
@@ -1489,6 +1676,16 @@ const OperationDetailPage = () => {
                   className="rounded-lg h-10 px-4 font-medium"
                 >
                   {extractingAllMail ? 'Extracting Mails...' : 'Extract Mails'}
+                </Button>
+                <Button
+                  type="default"
+                  icon={<MdShare />}
+                  onClick={extractAllSocials}
+                  loading={extractingAllSocial}
+                  disabled={extractingAllSocial || !record || filteredData.filter(item => item.website).length === 0}
+                  className="rounded-lg h-10 px-4 font-medium"
+                >
+                  {extractingAllSocial ? 'Extracting Socials...' : 'Extract Socials'}
                 </Button>
                 <Button
                   type="default"
