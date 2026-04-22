@@ -126,12 +126,8 @@ const OperationDetailPage = () => {
 
   const [verifyingAll, setVerifyingAll] = useState(false);
 
-  const [extractingCities, setExtractingCities] = useState(false);
-  
-  const [extractingMail, setExtractingMail] = useState({});
-  const [extractingAllMail, setExtractingAllMail] = useState(false);
-  const [extractingSocial, setExtractingSocial] = useState({});
   const [extractingAllSocial, setExtractingAllSocial] = useState(false);
+  const [extractingSocial, setExtractingSocial] = useState({});
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -150,7 +146,7 @@ const OperationDetailPage = () => {
   // Generic Bulk Operation Progress State
   const [bulkProgress, setBulkProgress] = useState({
     isOpen: false,
-    type: '', // 'mail', 'city', 'whatsapp'
+    type: '', // 'city', 'whatsapp', 'social'
     title: 'Operation Progress',
     total: 0,
     success: 0,
@@ -437,98 +433,7 @@ const OperationDetailPage = () => {
     }
   };
 
-  const extractMailForLead = async (leadId, url) => {
-    if (!url) return;
-    
-    setExtractingMail(prev => ({ ...prev, [leadId]: true }));
-    try {
-      const res = await axios.post(`${BASE_URL}/api/mailautomation/extract`, { url, leadId }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success && res.data.data) {
-        setEmailData(prev => ({ ...prev, [leadId]: res.data.data.emails }));
-        if (res.data.data.emails.length > 0) {
-          message.success(`Found ${res.data.data.emails.length} emails`);
-        } else {
-          message.info('No emails found');
-        }
-      }
-    } catch (error) {
-      console.error('Mail extraction error:', error);
-      message.error('Failed to extract emails');
-    } finally {
-      setExtractingMail(prev => ({ ...prev, [leadId]: false }));
-    }
-  };
-
-  const extractAllMails = async () => {
-    if (!isAuthorized) {
-      setLockedFeature('Bulk Mail Extraction');
-      setIsLockedModalOpen(true);
-      return;
-    }
-
-    const leadsWithWebsite = filteredData.filter(item => 
-      item.website && !emailData[item.leadId] && (!item.emails || item.emails.length === 0)
-    );
-
-    if (leadsWithWebsite.length === 0) {
-      message.warning('No new websites to extract mail from');
-      return;
-    }
-
-    setExtractingAllMail(true);
-    setBulkProgress({
-      isOpen: true,
-      type: 'mail',
-      title: 'Email Extraction',
-      total: leadsWithWebsite.length,
-      success: 0,
-      failed: 0,
-      extraLabel: 'Emails Discovered',
-      extraCount: 0,
-      isProcessing: true
-    });
-
-    try {
-      const payload = leadsWithWebsite.map(item => ({
-        leadId: item.leadId,
-        url: item.website
-      }));
-
-      const res = await axios.post(`${BASE_URL}/api/mailautomation/bulk-extract`, {
-        recordId: record._id,
-        leads: payload
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (res.data.success) {
-        setBulkProgress(prev => ({
-          ...prev,
-          success: res.data.extractedCount,
-          failed: leadsWithWebsite.length - res.data.extractedCount,
-          extraCount: res.data.totalEmails,
-          isProcessing: false
-        }));
-
-        // Update the email data in cache
-        const updatedEmailData = { ...emailData, ...res.data.data };
-        setEmailData(updatedEmailData);
-
-        message.success(`Bulk extraction complete! Discovered ${res.data.totalEmails} emails.`);
-        fetchRecord(true);
-      }
-    } catch (error) {
-      console.error('Bulk mail extraction error:', error);
-      message.error('Bulk email extraction failed: ' + (error.response?.data?.error || error.message));
-    } finally {
-      setExtractingAllMail(false);
-      setBulkProgress(prev => ({ ...prev, isProcessing: false }));
-    }
-  };
-
-  const extractSocialForLead = async (leadId, url) => {
+  const extractSocialsForLead = async (leadId, url) => {
     if (!url) return;
     setExtractingSocial(prev => ({ ...prev, [leadId]: true }));
     try {
@@ -536,16 +441,18 @@ const OperationDetailPage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success && res.data.data) {
-        setSocialData(prev => ({ ...prev, [leadId]: res.data.data.socials }));
-        const count = res.data.data.count;
+        const { socials, emails, count } = res.data.data;
+        setSocialData(prev => ({ ...prev, [leadId]: socials }));
+        setEmailData(prev => ({ ...prev, [leadId]: emails }));
+        
         if (count > 0) {
-          message.success(`Found ${count} social media profile${count > 1 ? 's' : ''}`);
+          message.success(`Found ${count} profiles/emails!`);
         } else {
-          message.info('No social media profiles found');
+          message.info('No profiles or emails found');
         }
       }
     } catch (error) {
-      console.error('Social media extraction error:', error);
+      console.error('Extraction error:', error);
       message.error('Failed to extract social media profiles');
     } finally {
       setExtractingSocial(prev => ({ ...prev, [leadId]: false }));
@@ -559,46 +466,64 @@ const OperationDetailPage = () => {
       return;
     }
     const leadsWithWebsite = filteredData.filter(item =>
-      item.website && !socialData[item.leadId] && (!item.socialMedia || !Object.values(item.socialMedia || {}).some(Boolean))
+      item.website && 
+      !socialData[item.leadId] && 
+      (!item.socialMedia || !Object.values(item.socialMedia || {}).some(Boolean)) &&
+      (!item.emails || item.emails.length === 0)
     );
+
     if (leadsWithWebsite.length === 0) {
-      message.warning('No new websites to extract social media from');
+      message.warning('No new websites to extract from');
       return;
     }
+
     setExtractingAllSocial(true);
     setBulkProgress({
       isOpen: true,
       type: 'social',
-      title: 'Social Media Extraction',
+      title: 'Global Social & Email Discovery',
       total: leadsWithWebsite.length,
       success: 0,
       failed: 0,
-      extraLabel: 'Profiles Discovered',
+      extraLabel: 'Total Items Found',
       extraCount: 0,
       isProcessing: true
     });
+
     try {
       const payload = leadsWithWebsite.map(item => ({ leadId: item.leadId, url: item.website }));
       const res = await axios.post(`${BASE_URL}/api/social-media/bulk-extract`, {
         recordId: record._id,
         leads: payload
       }, { headers: { Authorization: `Bearer ${token}` } });
+
       if (res.data.success) {
         setBulkProgress(prev => ({
           ...prev,
           success: res.data.extractedCount,
           failed: leadsWithWebsite.length - res.data.extractedCount,
-          extraCount: res.data.totalSocials,
+          extraCount: res.data.totalFound,
           isProcessing: false
         }));
-        const updatedSocialData = { ...socialData, ...res.data.data };
-        setSocialData(updatedSocialData);
-        message.success(`Bulk extraction complete! Discovered ${res.data.totalSocials} social profiles.`);
+
+        // Map responses back to cache
+        const newSocialData = { ...socialData };
+        const newEmailData = { ...emailData };
+        
+        Object.entries(res.data.data).forEach(([id, result]) => {
+          newSocialData[id] = result.socials;
+          newEmailData[id] = result.emails;
+        });
+
+        setSocialData(newSocialData);
+        setEmailData(newEmailData);
+
+        message.success(`Discovery complete! Found ${res.data.totalFound} items.`);
         fetchRecord(true);
       }
     } catch (error) {
-      console.error('Bulk social extraction error:', error);
-      message.error('Bulk social extraction failed: ' + (error.response?.data?.error || error.message));
+      console.error('Bulk extraction error:', error);
+      message.error('Bulk extraction failed: ' + (error.response?.data?.error || error.message));
     } finally {
       setExtractingAllSocial(false);
       setBulkProgress(prev => ({ ...prev, isProcessing: false }));
@@ -697,7 +622,7 @@ const OperationDetailPage = () => {
   
   // Navigation blocking logic
   useEffect(() => {
-    const isBusy = verifyingAll || extractingCities || extractingAllMail || extractingAllSocial;
+    const isBusy = verifyingAll || extractingCities || extractingAllSocial;
     setIsBlocking(isBusy);
 
     const handleBeforeUnload = (e) => {
@@ -713,7 +638,7 @@ const OperationDetailPage = () => {
       // Clean up global state on unmount just in case
       setIsBlocking(false);
     };
-  }, [verifyingAll, extractingCities, extractingAllMail, extractingAllSocial, setIsBlocking]);
+  }, [verifyingAll, extractingCities, extractingAllSocial, setIsBlocking]);
 
 
 
@@ -1376,13 +1301,13 @@ const OperationDetailPage = () => {
       title: (
         <div className="flex items-center justify-between group">
           <span>Email</span>
-          <Tooltip title="Batch Extract Emails">
+          <Tooltip title="Verify Visible List">
             <Button 
               type="text" 
               size="small" 
               icon={<MdEmail className="text-primary group-hover:scale-110 transition-transform" />} 
-              onClick={extractAllMails}
-              loading={extractingAllMail}
+              onClick={extractAllSocials}
+              loading={extractingAllSocial}
               className="p-0 h-6 w-6 flex items-center justify-center hover:bg-primary/10 rounded-full"
             />
           </Tooltip>
@@ -1394,7 +1319,7 @@ const OperationDetailPage = () => {
       render: (emails, record) => {
         if (!record.website) return <Tag color="default">N/A</Tag>;
         
-        const isExtracting = extractingMail[record.leadId];
+        const isExtracting = extractingSocial[record.leadId];
         
         if (isExtracting) {
           return <Spin size="small" />;
@@ -1422,7 +1347,7 @@ const OperationDetailPage = () => {
           <Button
             size="small"
             icon={<MdEmail />}
-            onClick={() => extractMailForLead(record.leadId, record.website)}
+            onClick={() => extractSocialsForLead(record.leadId, record.website)}
             className="hover:border-primary hover:text-primary transition-colors"
           >
             Extract
@@ -1491,7 +1416,7 @@ const OperationDetailPage = () => {
           <Button
             size="small"
             icon={<MdShare />}
-            onClick={() => extractSocialForLead(record.leadId, record.website)}
+            onClick={() => extractSocialsForLead(record.leadId, record.website)}
             className="hover:border-primary hover:text-primary transition-colors rounded-lg"
           >
             Extract
@@ -1667,16 +1592,6 @@ const OperationDetailPage = () => {
 
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap gap-2 justify-end">
-                <Button
-                  type="default"
-                  icon={<MdEmail />}
-                  onClick={extractAllMails}
-                  loading={extractingAllMail}
-                  disabled={extractingAllMail || !record || filteredData.filter(item => item.website).length === 0}
-                  className="rounded-lg h-10 px-4 font-medium"
-                >
-                  {extractingAllMail ? 'Extracting Mails...' : 'Extract Mails'}
-                </Button>
                 <Button
                   type="default"
                   icon={<MdShare />}
