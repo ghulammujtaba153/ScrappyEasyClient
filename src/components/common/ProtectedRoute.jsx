@@ -22,6 +22,10 @@ const ProtectedRoute = ({ children }) => {
         return <Navigate to="/dashboard/under-review" replace />;
     }
 
+    if (!isUnderReview && isUnderReviewPage) {
+        return <Navigate to="/dashboard" replace />;
+    }
+
     return children;
 };
 

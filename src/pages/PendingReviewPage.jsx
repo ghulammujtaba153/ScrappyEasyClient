@@ -1,10 +1,17 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 import { FaClock, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 
 const PendingReviewPage = () => {
     const { logout, user } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (user && user.status === "active") {
+            navigate("/dashboard");
+        }
+    }, [user, navigate]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
