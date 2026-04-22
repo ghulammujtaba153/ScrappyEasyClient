@@ -107,7 +107,7 @@ const SubscriptionPage = () => {
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan Name</p>
                                     <p className="text-xl font-bold text-gray-900 leading-tight">
-                                        {displayUser.planName || "Pro Plan"}
+                                        {displayUser.planName || displayUser.name || "Pro Plan"}
                                     </p>
                                 </div>
                             </div>
@@ -120,7 +120,9 @@ const SubscriptionPage = () => {
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount Paid</p>
                                     <p className="text-2xl font-bold text-gray-900 leading-tight">
-                                        ${displayUser.planAmount || "0"}
+                                        {(displayUser.planAmount || displayUser.amount || "0").startsWith('$') 
+                                            ? (displayUser.planAmount || displayUser.amount) 
+                                            : `$${displayUser.planAmount || displayUser.amount || "0"}`}
                                     </p>
                                 </div>
                             </div>
@@ -133,7 +135,7 @@ const SubscriptionPage = () => {
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Expiry Date</p>
                                     <p className="text-lg font-bold text-gray-900 leading-tight whitespace-pre-line">
-                                        {formatDate(displayUser.expiryDate).replace(', ', ',\n')}
+                                        {formatDate(displayUser.expiryDate || displayUser.planExpiry).replace(', ', ',\n')}
                                     </p>
                                 </div>
                             </div>
