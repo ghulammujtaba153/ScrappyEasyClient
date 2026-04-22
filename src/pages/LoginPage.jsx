@@ -115,7 +115,7 @@ const LoginPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navbar />
+            {/* <Navbar /> */}
             <div className="flex-grow flex items-center justify-center p-5 pt-28 pb-20">
                 {notification && (
                     <Notification
@@ -214,7 +214,7 @@ const LoginPage = () => {
                     </div>
                 </div>
             </div>
-            <FooterSection />
+            {/* <FooterSection /> */}
         </div>
     );
 };
