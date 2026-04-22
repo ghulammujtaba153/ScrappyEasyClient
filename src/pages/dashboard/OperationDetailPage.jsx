@@ -125,6 +125,7 @@ const OperationDetailPage = () => {
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
 
   const [verifyingAll, setVerifyingAll] = useState(false);
+  const [extractingCities, setExtractingCities] = useState(false);
 
   const [extractingAllSocial, setExtractingAllSocial] = useState(false);
   const [extractingSocial, setExtractingSocial] = useState({});
