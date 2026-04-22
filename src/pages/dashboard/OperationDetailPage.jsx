@@ -2118,10 +2118,22 @@ const OperationDetailPage = () => {
                   label={bulkProgress.type === 'whatsapp' ? 'Verified' : 'Scanned'} 
                 />
                 <p className="text-gray-500 font-medium animate-pulse">
-                  {bulkProgress.type === 'mail' ? 'Analyzing domains...' : 
+                  {bulkProgress.type === 'social' ? 'Performing deep exploration...' : 
+                   bulkProgress.type === 'mail' ? 'Analyzing domains...' : 
                    bulkProgress.type === 'city' ? 'Mapping coordinates...' : 
                    'Verifying credentials...'}
                 </p>
+                {bulkProgress.total > 0 && (
+                  <p className="text-xs text-gray-400 font-bold bg-gray-100 px-3 py-1 rounded-full">
+                    Estimated time: ~{(() => {
+                      const remaining = bulkProgress.total - (bulkProgress.success + bulkProgress.failed);
+                      const seconds = remaining * 5;
+                      const m = Math.floor(seconds / 60);
+                      const s = seconds % 60;
+                      return m > 0 ? `${m}m ${s}s` : `${s}s`;
+                    })()} remaining
+                  </p>
+                )}
              </div>
            )}
 
