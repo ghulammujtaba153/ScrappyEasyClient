@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../../context/authContext";
 import { BASE_URL } from "../../config/URL";
 import Notification from "../../components/common/Notification";
-import { FaCamera, FaWallet, FaUniversity, FaTimes, FaSpinner, FaCheck } from "react-icons/fa";
+import { FaCamera, FaWallet, FaUniversity, FaTimes, FaSpinner, FaCheck, FaRocket, FaCalendarAlt } from "react-icons/fa";
 import axios from "axios";
 import { PLANS } from "../../config/plans";
 
@@ -14,6 +14,15 @@ const SubscriptionPage = () => {
     const [screenshotPreview, setScreenshotPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState(null);
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "N/A";
+        return new Date(dateString).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric"
+        });
+    };
 
     const handleSelectPlan = (plan) => {
         if (user?.planId === plan.id && user?.status === "active") return;
@@ -83,6 +92,65 @@ const SubscriptionPage = () => {
             )}
 
             <div className="max-w-7xl mx-auto">
+                {user?.status === "active" && (
+                    <div className="mb-12 max-w-lg">
+                        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Subscription Details</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Card: Plan Name */}
+                            <div className="bg-white/60 backdrop-blur-sm p-6 py-8 rounded-[2rem] border border-gray-100/50 flex flex-col gap-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+                                    <FaRocket size={18} />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan Name</p>
+                                    <p className="text-xl font-bold text-gray-900 leading-tight">
+                                        {user.planName || "Pro Plan"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Card: Amount Paid */}
+                            <div className="bg-white/60 backdrop-blur-sm p-6 py-8 rounded-[2rem] border border-gray-100/50 flex flex-col gap-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+                                    <FaWallet size={18} />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount Paid</p>
+                                    <p className="text-2xl font-bold text-gray-900 leading-tight">
+                                        ${user.planAmount || "0"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Card: Expiry Date */}
+                            <div className="bg-white/60 backdrop-blur-sm p-6 py-8 rounded-[2rem] border border-gray-100/50 flex flex-col gap-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+                                    <FaCalendarAlt size={18} />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Expiry Date</p>
+                                    <p className="text-lg font-bold text-gray-900 leading-tight whitespace-pre-line">
+                                        {formatDate(user.expiryDate).replace(', ', ',\n')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Card: Member Since */}
+                            <div className="bg-white/60 backdrop-blur-sm p-6 py-8 rounded-[2rem] border border-gray-100/50 flex flex-col gap-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+                                    <FaCalendarAlt size={18} />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Member Since</p>
+                                    <p className="text-lg font-bold text-gray-900 leading-tight whitespace-pre-line">
+                                        {formatDate(user.createdAt).replace(', ', ',\n')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="text-center mb-16">
                     <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Simple, Transparent Pricing</h1>
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto">
