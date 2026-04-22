@@ -491,40 +491,57 @@ const OperationDetailPage = () => {
       isProcessing: true
     });
 
-    try {
-      const payload = leadsWithWebsite.map(item => ({ leadId: item.leadId, url: item.website }));
-      const res = await axios.post(`${BASE_URL}/api/social-media/bulk-extract`, {
-        recordId: record._id,
-        leads: payload
-      }, { headers: { Authorization: `Bearer ${token}` } });
+    let successCount = 0;
+    let failedCount = 0;
+    let totalItemsFound = 0;
 
-      if (res.data.success) {
+    const newSocialData = { ...socialData };
+    const newEmailData = { ...emailData };
+
+    try {
+      for (let i = 0; i < leadsWithWebsite.length; i++) {
+        const item = leadsWithWebsite[i];
+        
+        try {
+          const res = await axios.post(`${BASE_URL}/api/social-media/extract`, { 
+            url: item.website, 
+            leadId: item.leadId 
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
+          if (res.data.success && res.data.data) {
+            const { socials, emails, count } = res.data.data;
+            newSocialData[item.leadId] = socials;
+            newEmailData[item.leadId] = emails;
+            totalItemsFound += count;
+            successCount++;
+
+            // Update UI/Cache immediately
+            setSocialData({ ...newSocialData });
+            setEmailData({ ...newEmailData });
+          } else {
+            failedCount++;
+          }
+        } catch (err) {
+          console.error(`Failed to extract from ${item.website}:`, err);
+          failedCount++;
+        }
+
+        // Update Progress
         setBulkProgress(prev => ({
           ...prev,
-          success: res.data.extractedCount,
-          failed: leadsWithWebsite.length - res.data.extractedCount,
-          extraCount: res.data.totalFound,
-          isProcessing: false
+          success: successCount,
+          failed: failedCount,
+          extraCount: totalItemsFound
         }));
-
-        // Map responses back to cache
-        const newSocialData = { ...socialData };
-        const newEmailData = { ...emailData };
-        
-        Object.entries(res.data.data).forEach(([id, result]) => {
-          newSocialData[id] = result.socials;
-          newEmailData[id] = result.emails;
-        });
-
-        setSocialData(newSocialData);
-        setEmailData(newEmailData);
-
-        message.success(`Discovery complete! Found ${res.data.totalFound} items.`);
-        fetchRecord(true);
       }
+
+      message.success(`Discovery complete! Found ${totalItemsFound} items.`);
+      fetchRecord(true);
     } catch (error) {
-      console.error('Bulk extraction error:', error);
-      message.error('Bulk extraction failed: ' + (error.response?.data?.error || error.message));
+      console.error('Bulk extraction loop error:', error);
+      message.error('Bulk extraction encountered an issue.');
     } finally {
       setExtractingAllSocial(false);
       setBulkProgress(prev => ({ ...prev, isProcessing: false }));
