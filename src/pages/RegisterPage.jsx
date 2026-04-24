@@ -353,8 +353,9 @@ const RegisterPage = () => {
                             </div>
                             <div>
                                 <h4 className="font-bold text-gray-200">Bank Transfer</h4>
-                                <p className="text-sm font-mono text-blue-400">Acc: 1234567890</p>
-                                <p className="text-xs text-gray-500 uppercase tracking-wider">HBL Bank Limited</p>
+                                <p className="text-sm font-mono text-blue-400">Acc: 00380320207934</p>
+                                <p className="text-xs text-gray-500 uppercase tracking-wider">MUHAMMAD IBRAHEEM</p>
+                                <p className="text-xs text-gray-500 uppercase tracking-wider">Askari Bank</p>
                             </div>
                         </div>
                     </div>
