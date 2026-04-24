@@ -44,7 +44,7 @@ import WhoWinsPage from "./pages/WhoWinsPage";
 import AboutPage from "./pages/AboutPage";
 import TermsCondition from "./pages/TermsConditionPage";
 import PendingReviewPage from "./pages/PendingReviewPage";
-
+import ExtensionPage from "./pages/ExtensionPage";
 
 
 function App() {
@@ -75,6 +75,7 @@ function App() {
                                         <Route path="/lemon-squeezy" element={<LemonSqueezy />} />
                                         <Route path="/landing" element={<LandingPage />} />
                                         <Route path="/pricing" element={<PricingPage />} />
+                                        <Route path="/extension" element={<ExtensionPage />} />
 
                                         <Route path="/who-wins" element={<WhoWinsPage />} />
                                         <Route path="/about" element={<AboutPage />} />

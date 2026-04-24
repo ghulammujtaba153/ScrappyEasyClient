@@ -239,6 +239,13 @@ const Navbar = () => {
                             <FaStar size={11} className="text-amber-400" />
                         </Link>
 
+                        <Link
+                            to="/extension"
+                            className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
+                        >
+                            Get Extension
+                        </Link>
+
                         {/* Our Story */}
                         <Link
                             to="/about"
@@ -254,14 +261,7 @@ const Navbar = () => {
                         >
                             Pricing
                         </Link>
-                        <Link
-                            to="https://chromewebstore.google.com/detail/lead-buddy-business-conta/lkacglodcmpgjejflajjdcglneamnnim?hl=en-US&utm_source=ext_sidebar"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
-                        >
-                            Get Extension
-                        </Link>
+                        
                     </div>
 
                     {/* Right side: Auth + Mobile hamburger */}
