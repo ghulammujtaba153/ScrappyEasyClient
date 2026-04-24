@@ -57,6 +57,7 @@ const RegisterPage = () => {
         aboutUser: "",
         password: "",
         confirmPassword: "",
+        userType: "local",
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
@@ -126,8 +127,8 @@ const RegisterPage = () => {
             newErrors.confirmPassword = "Passwords do not match";
         }
 
-        if (selectedPlan && !screenshot) {
-            newErrors.screenshot = "Payment screenshot is required for paid plans";
+        if (selectedPlan && form.userType === 'local' && !screenshot) {
+            newErrors.screenshot = "Payment screenshot is required for local payments";
         }
 
         setErrors(newErrors);
@@ -219,12 +220,15 @@ const RegisterPage = () => {
             formData.append("country", form.country);
             formData.append("aboutUser", form.aboutUser);
             formData.append("password", form.password);
+            formData.append("userType", form.userType);
             
             if (selectedPlan) {
                 formData.append("planId", selectedPlan.id);
                 formData.append("planName", selectedPlan.name);
                 formData.append("planAmount", selectedPlan.price);
-                formData.append("screenshot", screenshot);
+                if (form.userType === 'local' && screenshot) {
+                    formData.append("screenshot", screenshot);
+                }
             }
 
             const registerResponse = await fetch(`${BASE_URL}/api/auth/register`, {
@@ -293,76 +297,121 @@ const RegisterPage = () => {
             <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden w-full max-w-6xl flex flex-col md:flex-row animate-slideUp">
                 
                 {/* Left Panel: Payment Instructions */}
-                <div className="w-full md:w-[35%] bg-gray-800 p-8 md:p-12 text-white flex flex-col justify-center relative overflow-hidden">
+                <div className="w-full md:w-[35%] bg-gray-800 p-8 md:p-12 text-white flex flex-col  relative overflow-hidden">
                     {/* Decorative Background Element */}
                     <div className="absolute -top-20 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
                     
-                    <div className="mb-10 relative z-10">
-                        <img src="/map.png" alt="" className="w-12 h-12 mb-6" />
-                        <h2 className="text-3xl font-black mb-4 tracking-tight">Payment Details</h2>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            Complete your payment using any method below and upload the screenshot for instant activation.
-                        </p>
-                    </div>
-
-                    {/* Amount to Pay Card */}
-                    {selectedPlan && (
-                        <div className="mb-12 p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-sm relative z-10 animate-slideIn">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2">Amount to Pay</p>
-                            <div className="flex items-baseline gap-2 mb-1">
-                                <h3 className="text-4xl font-black text-white">{selectedPlan.price}</h3>
-                                <span className="text-gray-400 text-sm font-medium">{selectedPlan.period}</span>
+                    {form.userType === 'local' ? (
+                        <>
+                            <div className="mb-10 relative z-10">
+                                <img src="/map.png" alt="" className="w-12 h-12 mb-6" />
+                                <h2 className="text-3xl font-black mb-4 tracking-tight">Payment Details</h2>
+                                <p className="text-gray-400 text-sm leading-relaxed">
+                                    Complete your payment using any method below and upload the screenshot for instant activation.
+                                </p>
                             </div>
-                            <div className="mt-4 pt-4 border-t border-white/5">
-                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Plan: {selectedPlan.name}</p>
+
+                            {/* Amount to Pay Card */}
+                            {selectedPlan && (
+                                <div className="mb-12 p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-sm relative z-10 animate-slideIn">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2">Amount to Pay</p>
+                                    <div className="flex items-baseline gap-2 mb-1">
+                                        <h3 className="text-4xl font-black text-white">{selectedPlan.price}</h3>
+                                        <span className="text-gray-400 text-sm font-medium">{selectedPlan.period}</span>
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t border-white/5">
+                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Plan: {selectedPlan.name}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-8 relative z-10">
+                                {/* JazzCash */}
+                                <div className="flex items-start gap-4 group">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                        <FaWallet className="text-primary" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-200">JazzCash/EasyPaisa</h4>
+                                        <p className="text-lg font-mono text-primary">0335-1066628</p>
+                                        <p className="text-xs text-gray-500">Ac Title: MUHAMMAD IBRAHEEM</p>
+                                    </div>
+                                </div>
+
+                                {/* EasyPaisa */}
+                                {/* <div className="flex items-start gap-4 group">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+                                        <FaWallet className="text-green-500" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-200">EasyPaisa</h4>
+                                        <p className="text-lg font-mono text-green-500">0335-1066628</p>
+                                        <p className="text-xs text-gray-500">Ac Title: MUHAMMAD IBRAHEEM</p>
+                                    </div>
+                                </div> */}
+
+                                {/* Bank Transfer */}
+                                <div className="flex items-start gap-4 group">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                                        <FaUniversity className="text-blue-400" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-200">Bank Transfer</h4>
+                                        <p className="text-sm font-mono text-blue-400">Acc: 00380320207934</p>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">MUHAMMAD IBRAHEEM</p>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">Askari Bank</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-12 pt-8 border-t border-white/10 italic text-gray-500 text-xs">
+                                * Upload your payment screenshot in the form to get your account approved within 2-4 hours.
+                            </div>
+                        </>
+                    ) : (
+                        <div className="relative z-10">
+                            <div className="mb-10">
+                                <img src="/map.png" alt="" className="w-12 h-12 mb-6" />
+                                <h2 className="text-3xl font-black mb-4 tracking-tight">International Payments</h2>
+                                <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                                    For International Payments: We will send an invoice through Payoneer to your registered email.
+                                </p>
+                            </div>
+                            
+                            <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-sm animate-slideIn">
+                                <div className="flex flex-col items-center text-center group mb-6">
+                                    <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                        <FaCrown className="text-primary" size={28} />
+                                    </div>
+                                    <h4 className="font-bold text-xl text-white mb-2">Payoneer Invoice</h4>
+                                    <p className="text-sm text-gray-400 leading-relaxed">
+                                        Complete your registration form on the right to proceed. Our team will verify your details and send a secure Payoneer payment link directly to your inbox.
+                                    </p>
+                                </div>
+
+                                <div className="bg-black/20 rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                                            <span className="text-green-500 text-xs font-bold">1</span>
+                                        </div>
+                                        <span className="text-sm text-gray-300 font-medium">Register your account</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                            <span className="text-blue-400 text-xs font-bold">2</span>
+                                        </div>
+                                        <span className="text-sm text-gray-300 font-medium">Receive Payoneer Email</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                            <span className="text-purple-400 text-xs font-bold">3</span>
+                                        </div>
+                                        <span className="text-sm text-gray-300 font-medium">Pay to Activate Instant Access</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
-
-                    <div className="space-y-8 relative z-10">
-                        {/* JazzCash */}
-                        <div className="flex items-start gap-4 group">
-                            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                <FaWallet className="text-primary" size={20} />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-200">JazzCash</h4>
-                                <p className="text-lg font-mono text-primary">0335-1066628</p>
-
-                                <p className="text-xs text-gray-500">Ac Title: Map Harvest</p>
-                            </div>
-                        </div>
-
-                        {/* EasyPaisa */}
-                        <div className="flex items-start gap-4 group">
-                            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
-                                <FaWallet className="text-green-500" size={20} />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-200">EasyPaisa</h4>
-                                <p className="text-lg font-mono text-green-500">0335-1066628</p>
-
-                                <p className="text-xs text-gray-500">Ac Title: Map Harvest</p>
-                            </div>
-                        </div>
-
-                        {/* Bank Transfer */}
-                        <div className="flex items-start gap-4 group">
-                            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
-                                <FaUniversity className="text-blue-400" size={20} />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-200">Bank Transfer</h4>
-                                <p className="text-sm font-mono text-blue-400">Acc: 00380320207934</p>
-                                <p className="text-xs text-gray-500 uppercase tracking-wider">MUHAMMAD IBRAHEEM</p>
-                                <p className="text-xs text-gray-500 uppercase tracking-wider">Askari Bank</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-12 pt-8 border-t border-white/10 italic text-gray-500 text-xs">
-                        * Upload your payment screenshot in the form to get your account approved within 2-4 hours.
-                    </div>
                 </div>
 
                 {/* Right Panel: Form */}
@@ -376,6 +425,31 @@ const RegisterPage = () => {
 
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Account Type Selection */}
+                                    <div className="space-y-3 md:col-span-2">
+                                        <label className="text-sm font-bold text-gray-700">Payment Region</label>
+                                        <div className="flex flex-col sm:flex-row gap-4">
+                                            <label className={`flex-1 border-2 rounded-2xl p-4 cursor-pointer transition-all ${form.userType === 'local' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <input type="radio" name="userType" value="local" checked={form.userType === 'local'} onChange={handleChange} className="w-4 h-4 text-primary focus:ring-primary" />
+                                                    <div>
+                                                        <p className="font-bold text-gray-900 text-sm">Local (Pakistan)</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">JazzCash, EasyPaisa, Bank</p>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                            <label className={`flex-1 border-2 rounded-2xl p-4 cursor-pointer transition-all ${form.userType === 'INTL' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <input type="radio" name="userType" value="INTL" checked={form.userType === 'INTL'} onChange={handleChange} className="w-4 h-4 text-primary focus:ring-primary" />
+                                                    <div>
+                                                        <p className="font-bold text-gray-900 text-sm">International</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">Payoneer Invoice via Email</p>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     {/* Name */}
                                     <div className="space-y-1.5">
                                         <label className="text-sm font-bold text-gray-700">Full Name</label>
@@ -501,8 +575,8 @@ const RegisterPage = () => {
                                     {errors.aboutUser && <p className="text-red-500 text-[10px] font-bold uppercase">{errors.aboutUser}</p>}
                                 </div>
 
-                                {/* Payment Screenshot Upload */}
-                                {selectedPlan && (
+                                {/* Payment Screenshot Upload (Only for Local) */}
+                                {form.userType === 'local' && (
                                     <div className="space-y-3">
                                         <label className="text-sm font-bold text-gray-700">Upload Payment Screenshot</label>
                                         <div className="flex items-center gap-6">
