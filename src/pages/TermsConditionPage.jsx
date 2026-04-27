@@ -163,7 +163,7 @@ const TermsCondition = () => {
                             <p>If you have questions about these Terms:</p>
                             <div className="bg-gray-50 rounded-xl p-6 space-y-1">
                                 <p className="font-bold text-gray-900">Sleek AI SMC Pvt Ltd</p>
-                                <p>Email: <a href="mailto:support@mapharvest.com" className="text-primary font-bold hover:underline">support@mapharvest.com</a></p>
+                                <p>Email: <a href="mailto:grow@mapharvest.com" className="text-primary font-bold hover:underline">grow@mapharvest.com</a></p>
                             </div>
                         </section>
                     </div>
