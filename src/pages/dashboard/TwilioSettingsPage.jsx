@@ -364,8 +364,23 @@ const TwilioSettingsPage = () => {
                     <h3 className="text-blue-800 font-bold flex items-center gap-2 mb-2 text-sm">
                         <MdHelpOutline /> Where do I find these?
                     </h3>
-                    <ul className="text-sm text-blue-700 space-y-1">
-                        <li>• <span className="font-medium">Account SID & Auth Token:</span> Found on the main Twilio Console dashboard.</li>
+                    <ul className="text-sm text-blue-700 space-y-2">
+                        <li>
+                            • <span className="font-medium">Account SID & Auth Token:</span> 
+                            Found on the main <span className="underline">Twilio Console Dashboard</span> home page.
+                        </li>
+                        <li>
+                            • <span className="font-medium">TwiML App SID:</span> 
+                            Go to <span className="font-medium italic">Develop &gt; Voice &gt; TwiML Apps</span>. Create one and copy the SID (starts with AP...).
+                        </li>
+                        <li>
+                            • <span className="font-medium">API Key SID & Secret:</span> 
+                            Go to <span className="font-medium italic">Account &gt; API Keys & Tokens</span>. Create a "Standard" API Key to get your SID (SK...) and Secret.
+                        </li>
+                        <li>
+                            • <span className="font-medium">Active Phone Number:</span> 
+                            Must be a Twilio number with <span className="underline">Voice capabilities</span> enabled.
+                        </li>
                     </ul>
                 </div>
             </div>

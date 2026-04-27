@@ -383,7 +383,7 @@ const QualifiedLeadsPage = () => {
                     form.resetFields();
                 }}
                 footer={null}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form
                     form={form}

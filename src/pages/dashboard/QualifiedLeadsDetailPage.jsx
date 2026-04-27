@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Table, Tag, Spin, message, Tooltip, Form, Select, Checkbox } from 'antd';
-import { MdOpenInNew, MdCheckCircle, MdClose, MdFavorite, MdPhone, MdMessage, MdLock } from 'react-icons/md';
+import { MdOpenInNew, MdCheckCircle, MdClose, MdFavorite, MdPhone, MdMessage, MdLock, MdEmail } from 'react-icons/md';
+import { BsFacebook, BsInstagram, BsLinkedin, BsTwitterX, BsYoutube, BsTiktok } from 'react-icons/bs';
 import { PhoneOutlined, MessageOutlined } from '@ant-design/icons';
 import { Button, Space, Modal, Alert } from 'antd';
 import axios from 'axios';
@@ -134,8 +135,10 @@ const QualifiedLeadsDetailPage = () => {
 
     // Check WhatsApp connection status
     const checkWhatsAppStatus = async () => {
+        const userId = user?._id || user?.id;
+        if (!userId) return;
         try {
-            const res = await axios.get(`${BASE_URL}/api/verification/status`, {
+            const res = await axios.get(`${BASE_URL}/api/verification/status?userId=${userId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.data.success && res.data.data) {

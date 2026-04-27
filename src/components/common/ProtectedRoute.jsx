@@ -4,7 +4,7 @@ import { useAuth } from "../../context/authContext";
 import Loader from "./Loader";
 
 const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, loading } = useAuth();
+    const { isAuthenticated, loading, user } = useAuth();
 
     if (loading) {
         return <Loader />;
@@ -13,8 +13,6 @@ const ProtectedRoute = ({ children }) => {
     if (!isAuthenticated()) {
         return <Navigate to="/login" replace />;
     }
-
-    const { user } = useAuth();
     const isUnderReview = user?.status === "under_review";
     const isUnderReviewPage = window.location.pathname === "/dashboard/under-review";
 

@@ -70,6 +70,8 @@ const defaultFilters = {
   whatsappStatus: '',
   ratingMin: null,
   ratingMax: null,
+  reviewsMin: null,
+  reviewsMax: null,
   hasWebsite: '',
   hasPhone: '',
   favorite: ''
@@ -982,6 +984,20 @@ const OperationDetailPage = () => {
       filtered = filtered.filter(item => {
         const rating = parseFloat(item.rating);
         return !Number.isNaN(rating) && rating <= filters.ratingMax;
+      });
+    }
+
+    if (filters.reviewsMin !== null) {
+      filtered = filtered.filter(item => {
+        const reviews = parseInt(item.reviews);
+        return !Number.isNaN(reviews) && reviews >= filters.reviewsMin;
+      });
+    }
+
+    if (filters.reviewsMax !== null) {
+      filtered = filtered.filter(item => {
+        const reviews = parseInt(item.reviews);
+        return !Number.isNaN(reviews) && reviews <= filters.reviewsMax;
       });
     }
 
@@ -2027,6 +2043,32 @@ const OperationDetailPage = () => {
                 <Option value="no">Missing Phone</Option>
               </Select>
             </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Minimum Reviews
+              </label>
+              <InputNumber
+                placeholder="Min reviews"
+                className="w-full h-12 border-gray-200 rounded-xl hover:border-primary focus:border-primary transition-all shadow-sm flex items-center"
+                value={filters.reviewsMin}
+                onChange={(val) => setFilters({ ...filters, reviewsMin: val })}
+                min={0}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Maximum Reviews
+              </label>
+              <InputNumber
+                placeholder="Max reviews"
+                className="w-full h-12 border-gray-200 rounded-xl hover:border-primary focus:border-primary transition-all shadow-sm flex items-center"
+                value={filters.reviewsMax}
+                onChange={(val) => setFilters({ ...filters, reviewsMax: val })}
+                min={0}
+              />
+            </div>
           </div>
         </div>
 
@@ -2034,6 +2076,8 @@ const OperationDetailPage = () => {
           filters.whatsappStatus ||
           filters.ratingMin !== null ||
           filters.ratingMax !== null ||
+          filters.reviewsMin !== null ||
+          filters.reviewsMax !== null ||
           filters.hasWebsite ||
           filters.hasPhone ||
           filters.favorite) && (
