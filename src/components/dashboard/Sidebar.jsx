@@ -51,11 +51,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
             path: "/dashboard/qualified-leads",
             icon: <MdVerified className="w-5 h-5" />,
         },
-        {
-            name: "Message Automation",
-            path: "/dashboard/message-automation",
-            icon: <MdMessage className="w-5 h-5" />,
-        },
+        // {
+        //     name: "Message Automation",
+        //     path: "/dashboard/message-automation",
+        //     icon: <MdMessage className="w-5 h-5" />,
+        // },
         {
             name: "Map",
             path: "/dashboard/heat-map",

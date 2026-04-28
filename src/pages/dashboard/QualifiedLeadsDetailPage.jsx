@@ -9,19 +9,19 @@ import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import Dialer from '../../components/Dialer';
-import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
+// import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 import { checkAccessStatus } from '../../api/subscriptionApi';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
 
 // Import QualifiedLeads components
 import {
     CallStatusModal,
-    SendMessageModal,
-    BatchMessagingBar,
+    // SendMessageModal,
+    // BatchMessagingBar,
     QualifiedLeadsFilters,
     QualifiedLeadsInfoCards,
     ColdCallCampaignModal,
-    MessageCampaignModal,
+    // MessageCampaignModal,
     ActiveFiltersDisplay,
     QualifiedLeadsHeader
 } from '../../components/QualifiedLeads';
@@ -35,7 +35,7 @@ const defaultFilters = {
     hasPhone: '',
     favorite: '',
     callStatus: '',
-    messageStatus: '',
+    // messageStatus: '',
     leadStatus: '',
     searchText: ''
 };
@@ -50,10 +50,10 @@ const QualifiedLeadsDetailPage = () => {
 
     // Campaign creation modals
     const [coldCallModalVisible, setColdCallModalVisible] = useState(false);
-    const [messageModalVisible, setMessageModalVisible] = useState(false);
+    // const [messageModalVisible, setMessageModalVisible] = useState(false);
     const [campaignLoading, setCampaignLoading] = useState(false);
     const [coldCallForm] = Form.useForm();
-    const [messageForm] = Form.useForm();
+    // const [messageForm] = Form.useForm();
 
     // Filters - matching OperationDetailPage structure
     const [filters, setFilters] = useState({ ...defaultFilters });
@@ -72,6 +72,7 @@ const QualifiedLeadsDetailPage = () => {
     const [updatingCallStatus, setUpdatingCallStatus] = useState(false);
 
     // Messaging States
+    /*
     const [sendMessageModalVisible, setSendMessageModalVisible] = useState(false);
     const [messageContent, setMessageContent] = useState('');
     const [messagingEntryId, setMessagingEntryId] = useState(null);
@@ -92,6 +93,7 @@ const QualifiedLeadsDetailPage = () => {
         }
         setWhatsappConnectModalOpen(true);
     };
+    */
 
     // Subscription/Trial State
     const [isAuthorized, setIsAuthorized] = useState(true);
@@ -118,6 +120,7 @@ const QualifiedLeadsDetailPage = () => {
         }
     };
 
+    /*
     // Fetch remaining messages for today
     const fetchRemainingMessages = async () => {
         try {
@@ -169,6 +172,7 @@ const QualifiedLeadsDetailPage = () => {
             setDisconnecting(false);
         }
     };
+    */
 
     useEffect(() => {
         if (!user || !token) return;
@@ -178,9 +182,9 @@ const QualifiedLeadsDetailPage = () => {
             setIsAuthorized(status.isAuthorized);
 
             fetchLeadDetails();
-            fetchRemainingMessages();
+            // fetchRemainingMessages();
             if (status.isAuthorized) {
-                checkWhatsAppStatus();
+                // checkWhatsAppStatus();
             }
         };
         init();
@@ -295,9 +299,11 @@ const QualifiedLeadsDetailPage = () => {
         }
 
         // Message status filter
+        /*
         if (filters.messageStatus) {
             data = data.filter(item => item.messageStatus === filters.messageStatus);
         }
+        */
 
         // Lead status filter
         if (filters.leadStatus) {
@@ -317,7 +323,7 @@ const QualifiedLeadsDetailPage = () => {
             filters.hasPhone ||
             filters.favorite ||
             filters.callStatus ||
-            filters.messageStatus ||
+            // filters.messageStatus ||
             filters.leadStatus;
     };
 
@@ -359,6 +365,7 @@ const QualifiedLeadsDetailPage = () => {
     };
 
     // Create Message Campaign from this qualified leads list
+    /*
     const handleCreateMessageCampaign = async (values) => {
         if (!isAuthorized) {
             setLockedFeature('Message Campaign');
@@ -394,6 +401,7 @@ const QualifiedLeadsDetailPage = () => {
             setCampaignLoading(false);
         }
     };
+    */
 
     const tableData = getTableData();
     const filteredTableData = getFilteredTableData();
@@ -401,7 +409,7 @@ const QualifiedLeadsDetailPage = () => {
     // Calculate stats for leads with phone
     const leadsWithPhone = tableData.filter(d => d.phone);
     const notCalledLeads = leadsWithPhone.filter(d => d.callStatus === 'not-called');
-    const notMessagedLeads = leadsWithPhone.filter(d => d.messageStatus === 'not-sent');
+    // const notMessagedLeads = leadsWithPhone.filter(d => d.messageStatus === 'not-sent');
 
     const exportToCSV = () => {
         if (!isAuthorized) {
@@ -424,8 +432,8 @@ const QualifiedLeadsDetailPage = () => {
             item.city || '',
             item.website || '',
             item.whatsappStatus || '',
-            item.callStatus || '',
-            item.messageStatus || ''
+            item.callStatus || ''
+            // item.messageStatus || ''
         ]);
 
         const csvContent = [
@@ -569,6 +577,7 @@ const QualifiedLeadsDetailPage = () => {
     };
 
     // Open message modal for single entry
+    /*
     const handleOpenMessageModal = (record) => {
         if (!isAuthorized) {
             setLockedFeature('WhatsApp Messaging');
@@ -706,6 +715,7 @@ const QualifiedLeadsDetailPage = () => {
 
     // Get current lead being messaged for modal display
     const currentMessagingLead = filteredTableData.find(d => d.entryId === messagingEntryId);
+    */
 
     // Get current lead being called for modal display
     const currentCallingLead = filteredTableData.find(d => d.entryId === callingEntryId);
@@ -863,6 +873,7 @@ const QualifiedLeadsDetailPage = () => {
                 </Tooltip>
             ),
         },
+        /*
         {
             title: 'Message Status',
             dataIndex: 'messageStatus',
@@ -876,6 +887,7 @@ const QualifiedLeadsDetailPage = () => {
                 </Tooltip>
             ),
         },
+        */
         {
             title: 'Website',
             dataIndex: 'website',
@@ -907,6 +919,7 @@ const QualifiedLeadsDetailPage = () => {
                 <MdFavorite className="text-red-500 text-xl" />
             ) : '-',
         },
+        /*
         {
             title: () => {
                 const pendingEntries = filteredTableData.filter(d => d.phone && (d.messageStatus === 'not-sent' || d.messageStatus === 'pending'));
@@ -935,6 +948,7 @@ const QualifiedLeadsDetailPage = () => {
                 );
             }
         },
+        */
         {
             title: 'Actions',
             key: 'actions',
@@ -950,6 +964,7 @@ const QualifiedLeadsDetailPage = () => {
                             style={{ backgroundColor: '#0F792C', borderColor: '#0F792C' }}
                         />
                     </Tooltip>
+                    {/*
                     <Tooltip title={
                         record.messageStatus === 'sent' || record.messageStatus === 'delivered' || record.messageStatus === 'read'
                             ? 'Already sent'
@@ -969,6 +984,7 @@ const QualifiedLeadsDetailPage = () => {
                             }}
                         />
                     </Tooltip>
+                    */}
                 </Space>
             ) : '-',
         },
@@ -984,7 +1000,7 @@ const QualifiedLeadsDetailPage = () => {
 
     const verifiedWhatsApp = tableData.filter(d => d.whatsappStatus === 'verified').length;
     const calledCount = tableData.filter(d => d.callStatus !== 'not-called').length;
-    const messagedCount = tableData.filter(d => d.messageStatus !== 'not-sent').length;
+    // const messagedCount = tableData.filter(d => d.messageStatus !== 'not-sent').length;
 
     return (
         <div className="space-y-6">
@@ -1014,6 +1030,7 @@ const QualifiedLeadsDetailPage = () => {
             />
 
             {/* Send Message Modal */}
+            {/*
             <SendMessageModal
                 visible={sendMessageModalVisible}
                 onOk={handleSendSingleMessage}
@@ -1029,21 +1046,24 @@ const QualifiedLeadsDetailPage = () => {
                 whatsappInitialized={whatsappInitialized}
                 onConnectWhatsApp={handleConnectWhatsAppClick}
             />
+            */}
 
             {/* WhatsApp Connect Modal */}
+            {/*
             <WhatsAppConnectModal
                 visible={whatsappConnectModalOpen}
-                onCancel={() => setWhatsappConnectModalOpen(false)}
+                onCancel={() => setwhatsappConnectModalOpen(false)}
                 onConnected={() => {
-                    setWhatsappConnectModalOpen(false);
-                    setWhatsappInitialized(true);
+                    setwhatsappConnectModalOpen(false);
+                    setwhatsappInitialized(true);
                     checkWhatsAppStatus(); // Refresh to get phone number
                 }}
                 onDisconnected={() => {
-                    setWhatsappInitialized(false);
-                    setConnectedPhoneNumber(null);
+                    setwhatsappInitialized(false);
+                    setconnectedPhoneNumber(null);
                 }}
             />
+            */}
 
             {/* Header */}
             <QualifiedLeadsHeader
@@ -1062,10 +1082,12 @@ const QualifiedLeadsDetailPage = () => {
                     if (!isAuthorized) { setLockedFeature('Cold Call Campaign'); setIsLockedModalOpen(true); return; }
                     setColdCallModalVisible(true);
                 }}
+                /*
                 onCreateMessageCampaign={() => {
                     if (!isAuthorized) { setLockedFeature('Message Campaign'); setIsLockedModalOpen(true); return; }
                     setMessageModalVisible(true);
                 }}
+                */
                 onShowDialer={() => {
                     if (!isAuthorized) {
                         setLockedFeature('Dialer');
@@ -1081,7 +1103,7 @@ const QualifiedLeadsDetailPage = () => {
                 totalRecords={leadData?.totalRecords || tableData.length || 0}
                 verifiedWhatsApp={verifiedWhatsApp}
                 calledCount={calledCount}
-                messagedCount={messagedCount}
+                // messagedCount={messagedCount}
             />
 
             {/* Active Filters Display */}
@@ -1101,6 +1123,7 @@ const QualifiedLeadsDetailPage = () => {
             />
 
             {/* WhatsApp Connection Status */}
+            {/*
             <div className={`rounded-2xl overflow-hidden border transition-all duration-300 ${
                 whatsappInitialized
                     ? 'border-green-200 shadow-sm shadow-green-100'
@@ -1172,8 +1195,10 @@ const QualifiedLeadsDetailPage = () => {
                     </div>
                 </div>
             </div>
+            */}
 
             {/* Batch Messaging Bar */}
+            {/*
             <BatchMessagingBar
                 selectedCount={selectedMessageEntries.length}
                 remainingMessages={remainingMessages}
@@ -1185,6 +1210,7 @@ const QualifiedLeadsDetailPage = () => {
                 whatsappInitialized={whatsappInitialized}
                 onConnectWhatsApp={handleConnectWhatsAppClick}
             />
+            */}
 
             {/* Data Table */}
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -1223,6 +1249,7 @@ const QualifiedLeadsDetailPage = () => {
             />
 
             {/* Message Campaign Modal */}
+            {/*
             <MessageCampaignModal
                 visible={messageModalVisible}
                 onCancel={() => {
@@ -1236,6 +1263,7 @@ const QualifiedLeadsDetailPage = () => {
                 notMessagedCount={notMessagedLeads.length}
                 loading={campaignLoading}
             />
+            */}
 
             <SubscriptionRestrictedModal
                 open={isLockedModalOpen}

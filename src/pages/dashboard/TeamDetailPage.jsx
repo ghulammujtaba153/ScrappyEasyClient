@@ -4,10 +4,11 @@ import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import { useSocket } from '../../context/SocketContext';
-import { Table, Select, message, Popconfirm, Tooltip, Tag, Button, Alert } from 'antd';
+import { Table, Select, message, Popconfirm, Tooltip, Tag, Button, Alert, Tabs } from 'antd';
 import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaUsers, FaPhone, FaLink, FaEye, FaFileDownload } from 'react-icons/fa';
-import { MdCheckCircle, MdClose } from 'react-icons/md';
+import { MdCheckCircle, MdClose, MdStorage, MdEventNote } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
+import TeamNotes from './TeamNotes';
 import Loader from '../../components/common/Loader';
 import TeamDataModal from '../../components/dashboard/TeamDataModal';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
@@ -559,7 +560,7 @@ const TeamDetailPage = () => {
                     href={link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    className="text-[#0F792C] hover:text-[#0a5a20] flex items-center gap-1"
                 >
                     <FaLink /> View
                 </a>
@@ -578,7 +579,7 @@ const TeamDetailPage = () => {
                     className={`rounded-full px-2 font-bold text-xs uppercase ${
                         status === 'new' ? 'bg-blue-50 text-blue-600' :
                         status === 'contacted' ? 'bg-orange-50 text-orange-600' :
-                        status === 'qualified' ? 'bg-green-50 text-green-600' :
+                        status === 'qualified' ? 'bg-green-50 text-[#0F792C]' :
                         'bg-red-50 text-red-600'
                     }`}
                     style={{ width: '100%' }}
@@ -633,7 +634,7 @@ const TeamDetailPage = () => {
                     <button
                         onClick={() => handleOpenDialer(firstPhone, record._id)}
                         disabled={!hasPhone}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-2 text-[#0F792C] hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title={hasPhone ? `Call ${firstPhone}` : 'No phone number'}
                     >
                         <FaPhone />
@@ -664,7 +665,7 @@ const TeamDetailPage = () => {
                              <Tooltip title="Verify WhatsApp">
                                 <button
                                     onClick={() => handleVerifyWhatsApp(record._id, firstPhone)}
-                                    className="w-9 h-9 flex items-center justify-center text-green-500 hover:bg-green-50 rounded-xl transition-all"
+                                    className="w-9 h-9 flex items-center justify-center text-[#0F792C] hover:bg-green-50 rounded-xl transition-all"
                                 >
                                     <BsWhatsapp size={16} />
                                 </button>
@@ -683,7 +684,7 @@ const TeamDetailPage = () => {
                         <Tooltip title="Quick View">
                             <button
                                 onClick={() => handleOpenModal(record, true)}
-                                className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                                className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-[#0F792C] hover:bg-green-50 rounded-xl transition-all"
                             >
                                 <FaEye size={16} />
                             </button>
@@ -729,7 +730,7 @@ const TeamDetailPage = () => {
                     <p className="text-gray-600 mb-4">You don't have access to this team.</p>
                     <button
                         onClick={() => navigate('/dashboard/team')}
-                        className="text-primary hover:text-primary/80"
+                        className="text-[#0F792C] hover:text-[#0a5a20]"
                     >
                         Back to Teams
                     </button>
@@ -741,46 +742,7 @@ const TeamDetailPage = () => {
     return (
         <div className="space-y-6">
             <div className="max-w-7xl mx-auto space-y-6">
-                {/* WhatsApp Connection Status */}
-                <div className="relative">
-                    {whatsappInitialized ? (
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-green-50 rounded-lg text-green-600">
-                                    <BsWhatsapp size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-md font-bold text-gray-800">WhatsApp Connected</h3>
-                                    <p className="text-gray-500 text-xs">Bulk verification and automated messaging enabled.</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={disconnectWhatsApp}
-                                className="px-4 py-2 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
-                            >
-                                <MdClose /> Disconnect
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="bg-white rounded-lg shadow-sm border border-orange-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-orange-50 rounded-lg text-orange-500">
-                                    <BsWhatsapp size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-md font-bold text-gray-800">Link WhatsApp</h3>
-                                    <p className="text-gray-500 text-xs">Connect your account to unlock bulk verification tools.</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => { if (!requireSubscription('WhatsApp Connect')) return; setIsConnectModalOpen(true); }}
-                                className="bg-[#25D366] hover:bg-[#128C7E] text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm"
-                            >
-                                <BsWhatsapp /> Connect Now
-                            </button>
-                        </div>
-                    )}
-                </div>
+                
 
                 {/* Header Section */}
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -807,28 +769,28 @@ const TeamDetailPage = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                         <button
                             onClick={handleExportCSV}
-                            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-green-50 hover:border-[#0F792C] hover:text-[#0F792C] transition-colors font-medium text-sm"
                         >
                             <FaFileDownload size={14} />
                             Export
                         </button>
                         <button
                             onClick={() => { if (!requireSubscription('WhatsApp Verification')) return; handleVerifyAllWhatsApp(); }}
-                            className="flex items-center gap-2 bg-white border border-green-500 text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm"
+                            className="flex items-center gap-2 bg-[#0F792C] text-white px-4 py-2 rounded-lg hover:bg-[#0a5a20] transition-colors font-medium text-sm shadow-md shadow-green-100"
                         >
                             <MdCheckCircle size={16} />
-                            Verify
+                            Verify All
                         </button>
                         <button
                             onClick={() => { if (!requireSubscription('Dialer')) return; handleOpenDialer(); }}
-                            className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm"
+                            className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm shadow-md"
                         >
                             <FaPhone size={12} />
                             Dialer
                         </button>
                         <button
                             onClick={() => handleOpenModal()}
-                            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+                            className="flex items-center gap-2 bg-[#0F792C] text-white px-4 py-2 rounded-lg hover:bg-[#0a5a20] transition-colors font-medium text-sm shadow-md shadow-green-100"
                         >
                             <FaPlus size={14} />
                             New Record
@@ -846,13 +808,13 @@ const TeamDetailPage = () => {
                     
                     <div className="flex flex-wrap gap-4">
                         {/* Owner Bubble */}
-                        <div className="flex items-center gap-3 p-1.5 pr-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:shadow-sm">
+                        <div className="flex items-center gap-3 p-1.5 pr-4 bg-green-50/50 rounded-2xl border border-green-100 transition-all hover:shadow-sm">
                             <div className="relative">
-                                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary font-bold">
+                                <div className="w-10 h-10 bg-[#0F792C]/10 rounded-xl flex items-center justify-center text-[#0F792C] font-bold">
                                     {(team?.owner?.name || team?.owner?.email)?.[0]?.toUpperCase()}
                                 </div>
                                 <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${(onlineUsers.some(u => u.userId === team?.owner?._id) || team?.owner?._id === user?._id)
-                                    ? 'bg-green-500 shadow-sm shadow-green-200'
+                                    ? 'bg-[#0F792C] shadow-sm shadow-green-200'
                                     : 'bg-slate-300'
                                     }`}></div>
                             </div>
@@ -860,7 +822,7 @@ const TeamDetailPage = () => {
                                 <p className="text-sm font-bold text-slate-900 leading-none">
                                     {team?.owner?.name || team?.owner?.email?.split('@')[0]}
                                 </p>
-                                <p className="text-[10px] font-medium text-primary uppercase tracking-tighter mt-1">Workspace Owner</p>
+                                <p className="text-[10px] font-medium text-[#0F792C] uppercase tracking-tighter mt-1">Workspace Owner</p>
                             </div>
                         </div>
 
@@ -875,11 +837,11 @@ const TeamDetailPage = () => {
                                         ? 'bg-blue-50 border-blue-100' 
                                         : 'bg-white border-slate-100'}`}>
                                         <div className="relative">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${isMe ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${isMe ? 'bg-[#0F792C] text-white' : 'bg-slate-100 text-slate-600'}`}>
                                                 {(member.name || member.email)?.[0]?.toUpperCase()}
                                             </div>
                                             <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${isOnline 
-                                                ? 'bg-green-500 shadow-sm shadow-green-200' 
+                                                ? 'bg-[#0F792C] shadow-sm shadow-green-200' 
                                                 : 'bg-slate-300'}`}></div>
                                         </div>
                                         <div>
@@ -897,37 +859,107 @@ const TeamDetailPage = () => {
                     </div>
                 </div>
 
-                {/* Main Content Area */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                        <h2 className="text-lg font-bold text-gray-800">Lead Database</h2>
-                        <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-200 shadow-sm">
-                            {teamData?.length || 0} Entries
-                        </span>
-                    </div>
-                    <Table
-                        columns={columns}
-                        dataSource={teamData}
-                        rowKey="_id"
-                        rowClassName={(record) =>
-                            selectedDataId === record._id
-                                ? 'bg-blue-50 hover:bg-blue-100'
-                                : ''
-                        }
-                        scroll={{ x: 1200 }}
-                        pagination={{
-                            pageSize: 10,
-                            showSizeChanger: true,
-                            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
-                        }}
-                        locale={{
-                            emptyText: (
-                                <div className="py-8 text-center">
-                                    <FaUsers className="mx-auto text-4xl text-gray-300 mb-3" />
-                                    <p className="text-gray-500">No data yet. Click "Add Data" to get started.</p>
+                {/* WhatsApp Connection Status */}
+                <div className="relative">
+                    {whatsappInitialized ? (
+                        <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-green-50 rounded-lg text-[#0F792C]">
+                                    <BsWhatsapp size={20} />
                                 </div>
-                            )
-                        }}
+                                <div>
+                                    <h3 className="text-md font-bold text-gray-800">WhatsApp Connected</h3>
+                                    <p className="text-gray-500 text-xs">Bulk verification and automated messaging enabled.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={disconnectWhatsApp}
+                                className="px-4 py-2 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+                            >
+                                <MdClose /> Disconnect
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+                                    <BsWhatsapp size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-md font-bold text-gray-800">Link WhatsApp</h3>
+                                    <p className="text-gray-500 text-xs">Connect your account to unlock bulk verification tools.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { if (!requireSubscription('WhatsApp Connect')) return; setIsConnectModalOpen(true); }}
+                                className="bg-[#0F792C] hover:bg-[#0a5a20] text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm shadow-md shadow-green-100"
+                            >
+                                <BsWhatsapp /> Connect Now
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Content Tabs */}
+                <div className="team-detail-tabs">
+                    <Tabs
+                        defaultActiveKey="database"
+                        items={[
+                            {
+                                key: 'database',
+                                label: (
+                                    <span className="flex items-center gap-2 px-2 py-1">
+                                        <MdStorage size={18} />
+                                        Lead Database
+                                    </span>
+                                ),
+                                children: (
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                                            <h2 className="text-lg font-bold text-gray-800">Lead Database</h2>
+                                            <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-200 shadow-sm">
+                                                {teamData?.length || 0} Entries
+                                            </span>
+                                        </div>
+                                        <Table
+                                            columns={columns}
+                                            dataSource={teamData}
+                                            rowKey="_id"
+                                            rowClassName={(record) =>
+                                                selectedDataId === record._id
+                                                    ? 'bg-blue-50 hover:bg-blue-100'
+                                                    : ''
+                                            }
+                                            scroll={{ x: 1200 }}
+                                            pagination={{
+                                                pageSize: 10,
+                                                showSizeChanger: true,
+                                                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+                                            }}
+                                            locale={{
+                                                emptyText: (
+                                                    <div className="py-8 text-center">
+                                                        <FaUsers className="mx-auto text-4xl text-gray-300 mb-3" />
+                                                        <p className="text-gray-500">No data yet. Click "Add Data" to get started.</p>
+                                                    </div>
+                                                )
+                                            }}
+                                        />
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: 'notes',
+                                label: (
+                                    <span className="flex items-center gap-2 px-2 py-1">
+                                        <MdEventNote size={18} />
+                                        Team Notes
+                                    </span>
+                                ),
+                                children: <TeamNotes teamId={id} />,
+                            },
+                        ]}
+                        className="custom-tabs"
                     />
                 </div>
 

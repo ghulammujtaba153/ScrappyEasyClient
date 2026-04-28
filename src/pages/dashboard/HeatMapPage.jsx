@@ -197,15 +197,14 @@ const HeatMapPage = () => {
 
     const allPoints = [];
     filteredData.forEach(record => {
-      if (record.data && Array.isArray(record.data)) {
-        record.data.forEach((item, index) => {
+      // New schema uses 'leads' array which contains populated LeadData objects
+      if (record.leads && Array.isArray(record.leads)) {
+        record.leads.forEach((item) => {
           if (item.googleMapsLink) {
             const coords = extractCoordinates(item.googleMapsLink);
             if (coords) {
-              // Get city from cityData map using index as key
-              const city = record.cityData && record.cityData[index.toString()]
-                ? record.cityData[index.toString()]
-                : 'Unknown';
+              // In new schema, city is directly on the LeadData item
+              const city = item.city || 'Unknown';
 
               allPoints.push({
                 lat: coords.lat,
@@ -413,7 +412,7 @@ const HeatMapPage = () => {
             <option value="all">All Operations</option>
             {operations.map(op => (
               <option key={op._id} value={op._id}>
-                {op.searchString} ({op.data?.length || 0} records)
+                {op.searchString} ({op.leads?.length || 0} records)
               </option>
             ))}
           </select>

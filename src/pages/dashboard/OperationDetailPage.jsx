@@ -59,6 +59,7 @@ import WebsiteCarouselViewer from '../../components/dashboard/WebsiteCarouselVie
 import { checkAccessStatus } from '../../api/subscriptionApi';
 import Loader from '../../components/common/Loader';
 import ExtractionLoader from '../../components/common/ExtractionLoader';
+import LinkedInInformation from '../../components/dashboard/LinkedInInformation';
 
 
 const { Option } = Select;
@@ -140,6 +141,10 @@ const OperationDetailPage = () => {
   const [recommendedCities, setRecommendedCities] = useState([]);
   const [isRecommendModalOpen, setIsRecommendModalOpen] = useState(false);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+
+  // LinkedIn Personnel State
+  const [isLinkedInModalOpen, setIsLinkedInModalOpen] = useState(false);
+  const [selectedLeadForLinkedIn, setSelectedLeadForLinkedIn] = useState(null);
 
   // Subscription/Trial State
   const [isAuthorized, setIsAuthorized] = useState(true);
@@ -1573,25 +1578,23 @@ const OperationDetailPage = () => {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       {/* Premium Header Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="bg-gradient-to-r from-primary/5 to-transparent p-6 md:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-4">
-              <Button
-                icon={<MdArrowBack />}
-                onClick={() => navigate('/dashboard/operations')}
-                type="text"
-                className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors p-0 h-auto"
-              >
-                Back to Operations
-              </Button>
-              
+          <div className="flex flex-col gap-6">
+            <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+                <Button
+                  type="text"
+                  icon={<MdArrowBack />}
+                  onClick={() => navigate('/dashboard/operations')}
+                  className="mb-2 p-0 text-gray-400 hover:text-primary flex items-center gap-1 transition-colors"
+                >
+                  Back to Operations
+                </Button>
+                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">
                   {record?.searchString || 'Operation Detail'}
                 </h1>
                 <div className="flex items-center gap-2 mt-2 text-gray-500">
@@ -1602,150 +1605,136 @@ const OperationDetailPage = () => {
                 </div>
               </div>
 
-              {verificationStats.total > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xlg:grid-cols-4 gap-3">
-                  <div className="bg-white/50 backdrop-blur-sm p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-20">
-                    <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Total Leads</p>
-                    <p className="text-lg font-bold text-gray-900 mt-auto">{verificationStats.total}</p>
-                  </div>
-                  <div className="bg-green-50/50 backdrop-blur-sm p-3 rounded-xl border border-green-100 shadow-sm flex flex-col justify-between h-20">
-                    <p className="text-[10px] uppercase tracking-wider text-green-600 font-bold">Verified</p>
-                    <p className="text-lg font-bold text-green-700 mt-auto">{verificationStats.verified}</p>
-                  </div>
-                  <div className="bg-red-50/50 backdrop-blur-sm p-3 rounded-xl border border-red-100 shadow-sm flex flex-col justify-between h-20">
-                    <p className="text-[10px] uppercase tracking-wider text-red-600 font-bold">No WhatsApp</p>
-                    <p className="text-lg font-bold text-red-700 mt-auto">{verificationStats.notVerified}</p>
-                  </div>
-                  <div className="bg-orange-50/50 backdrop-blur-sm p-3 rounded-xl border border-orange-100 shadow-sm flex flex-col justify-between h-20">
-                    <p className="text-[10px] uppercase tracking-wider text-orange-600 font-bold">Pending</p>
-                    <p className="text-lg font-bold text-orange-700 mt-auto">{verificationStats.notChecked}</p>
-                  </div>
+              <Button
+                icon={<MdRefresh />}
+                onClick={fetchRecord}
+                loading={loading}
+                className="rounded-xl h-10 px-4 bg-gray-50 border-gray-200 hover:bg-gray-100 transition-all font-medium"
+              >
+                Refresh
+              </Button>
+            </div>
+
+            {verificationStats.total > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-24">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-black">Total Leads</p>
+                  <p className="text-2xl font-black text-gray-900 mt-auto">{verificationStats.total}</p>
                 </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button
-                  type="default"
-                  icon={<MdShare />}
-                  onClick={extractAllSocials}
-                  loading={extractingAllSocial}
-                  disabled={extractingAllSocial || !record || filteredData.filter(item => item.website).length === 0}
-                  className="rounded-lg h-10 px-4 font-medium"
-                >
-                  {extractingAllSocial ? 'Extracting Socials...' : 'Extract Socials'}
-                </Button>
-                <Button
-                  type="default"
-                  icon={<MdLocationOn />}
-                  onClick={extractCitiesForRecord}
-                  loading={extractingCities}
-                  disabled={extractingCities || !record}
-                  className="rounded-lg h-10 px-4 font-medium"
-                >
-                  {extractingCities ? 'Processing...' : 'Extract Cities'}
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<MdLocationOn />}
-                  onClick={getRecommendedCities}
-                  loading={loadingRecommendations}
-                  disabled={loadingRecommendations || !record}
-                  className="bg-primary hover:bg-primary/80 border-none rounded-lg h-10 px-4 font-medium"
-                >
-                  Recommend Nearby Location
-                </Button>
-                <Button
-                  icon={<MdWeb />}
-                  onClick={() => {
-                    if (!isAuthorized) { setLockedFeature('iFrame View'); setIsLockedModalOpen(true); return; }
-                    setIsCarouselOpen(true);
-                  }}
-                  disabled={filteredData.filter(item => item.website).length === 0}
-                  className="rounded-lg h-10 px-4 font-medium"
-                >
-                  iFrame View
-                </Button>
-                {/* <Button
-                  icon={<MdCameraAlt />}
-                  onClick={() => captureAllScreenshots(true)}
-                  loading={progress.isProcessing && progress.operationId === record?._id}
-                  disabled={progress.isProcessing || filteredData.length === 0}
-                  className="rounded-lg h-10 px-4 font-medium"
-                >
-                  Capture All
-                </Button> */}
-                <Button
-                  icon={<MdSave />}
-                  onClick={() => {
-                    if (!isAuthorized) { setLockedFeature('Message Export'); setIsLockedModalOpen(true); return; }
-                    setIsSaveModalOpen(true);
-                  }}
-                  disabled={filteredData.filter(item => item.phone && item.leadId).length === 0}
-                  className="text-[#0F792C] border-[#0F792C] hover:text-white hover:bg-[#0F792C] rounded-lg h-10 px-4 font-medium"
-                >
-                  Message Export
-                </Button>
-                <Button
-                  icon={<MdStar />}
-                  onClick={() => {
-                    if (!isAuthorized) { setLockedFeature('Save Qualified Leads'); setIsLockedModalOpen(true); return; }
-                    setIsQualifiedLeadsModalOpen(true);
-                  }}
-                  disabled={filteredData.length === 0}
-                  className="text-amber-600 border-amber-500 hover:text-white hover:bg-amber-500 rounded-lg h-10 px-4 font-medium"
-                >
-                  Save Qualify Leads
-                </Button>
+                <div className="bg-green-50/50 backdrop-blur-sm p-4 rounded-2xl border border-green-100 shadow-sm flex flex-col justify-between h-24">
+                  <p className="text-[10px] uppercase tracking-wider text-green-600 font-black">Verified</p>
+                  <p className="text-2xl font-black text-green-700 mt-auto">{verificationStats.verified}</p>
+                </div>
+                <div className="bg-red-50/50 backdrop-blur-sm p-4 rounded-2xl border border-red-100 shadow-sm flex flex-col justify-between h-24">
+                  <p className="text-[10px] uppercase tracking-wider text-red-600 font-black">No WhatsApp</p>
+                  <p className="text-2xl font-black text-red-700 mt-auto">{verificationStats.notVerified}</p>
+                </div>
+                <div className="bg-orange-50/50 backdrop-blur-sm p-4 rounded-2xl border border-orange-100 shadow-sm flex flex-col justify-between h-24">
+                  <p className="text-[10px] uppercase tracking-wider text-orange-600 font-black">Pending</p>
+                  <p className="text-2xl font-black text-orange-700 mt-auto">{verificationStats.notChecked}</p>
+                </div>
               </div>
-
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button
-                  className="bg-[#0F792C] hover:bg-[#0a5a20] text-white border-none rounded-lg h-10 px-6 font-bold"
-                  type="primary"
-                  icon={<BsWhatsapp />}
-                  onClick={handleVerifyAllClick}
-                  loading={verifyingAll}
-                  disabled={verifyingAll || filteredData.length === 0}
-                >
-                  Verify List ({filteredData.length})
-                </Button>
-
-                <Button
-                  icon={<MdDownload />}
-                  onClick={exportToCSV}
-                  disabled={filteredData.length === 0}
-                  className="rounded-lg h-10 px-4"
-                >
-                  CSV
-                </Button>
-                <Button
-                  icon={<MdDescription />}
-                  onClick={exportToXLS}
-                  disabled={filteredData.length === 0}
-                  className="rounded-lg h-10 px-4"
-                >
-                  XLS
-                </Button>
-                <Button
-                  icon={<MdRefresh />}
-                  onClick={fetchRecord}
-                  loading={loading}
-                  className="rounded-lg h-10 px-4"
-                >
-                  Refresh
-                </Button>
-                <Button
-                  icon={<MdCloudUpload />}
-                  onClick={() => setIsImportModalOpen(true)}
-                  className="rounded-lg h-10 px-4 bg-primary text-white border-none font-bold shadow-md shadow-primary/20 hover:scale-105 transition-all"
-                >
-                  Import CSV
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
+
+            {/* Action Row 1: Data Enrichment */}
+            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
+              <Button
+                type="default"
+                icon={<MdShare />}
+                onClick={extractAllSocials}
+                loading={extractingAllSocial}
+                disabled={extractingAllSocial || !record || filteredData.filter(item => item.website).length === 0}
+                className="rounded-xl h-10 px-4 font-bold border-gray-200"
+              >
+                Extract Socials
+              </Button>
+              <Button
+                type="default"
+                icon={<MdLocationOn />}
+                onClick={extractCitiesForRecord}
+                loading={extractingCities}
+                disabled={extractingCities || !record}
+                className="rounded-xl h-10 px-4 font-bold border-gray-200"
+              >
+                Extract Cities
+              </Button>
+              <Button
+                type="primary"
+                icon={<MdLocationOn />}
+                onClick={getRecommendedCities}
+                loading={loadingRecommendations}
+                disabled={loadingRecommendations || !record}
+                className="bg-[#0F792C] hover:bg-[#0a5a20] border-none rounded-xl h-10 px-4 font-bold"
+              >
+                Recommend Nearby Location
+              </Button>
+              <Button
+                icon={<MdWeb />}
+                onClick={() => {
+                  if (!isAuthorized) { setLockedFeature('iFrame View'); setIsLockedModalOpen(true); return; }
+                  setIsCarouselOpen(true);
+                }}
+                disabled={filteredData.filter(item => item.website).length === 0}
+                className="rounded-xl h-10 px-4 font-bold border-gray-200"
+              >
+                iFrame View
+              </Button>
+            </div>
+
+            {/* Action Row 2: Export & Verification */}
+            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-50">
+              <Button
+                icon={<MdStar />}
+                onClick={() => {
+                  if (!isAuthorized) { setLockedFeature('Save Qualified Leads'); setIsLockedModalOpen(true); return; }
+                  setIsQualifiedLeadsModalOpen(true);
+                }}
+                disabled={filteredData.length === 0}
+                className="text-amber-600 border-amber-500 hover:bg-amber-50 rounded-xl h-10 px-4 font-bold"
+              >
+                Save Qualify Leads
+              </Button>
+
+              <div className="w-px h-6 bg-gray-200 mx-1 hidden lg:block"></div>
+
+              <Button
+                icon={<MdDownload />}
+                onClick={exportToCSV}
+                disabled={filteredData.length === 0}
+                className="rounded-xl h-10 px-4 font-bold border-gray-200"
+              >
+                CSV
+              </Button>
+              <Button
+                icon={<MdDescription />}
+                onClick={exportToXLS}
+                disabled={filteredData.length === 0}
+                className="rounded-xl h-10 px-4 font-bold border-gray-200"
+              >
+                XLS
+              </Button>
+              <Button
+                icon={<MdCloudUpload />}
+                onClick={() => setIsImportModalOpen(true)}
+                className="rounded-xl h-10 px-4 bg-primary text-white border-none font-black shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+              >
+                Import CSV
+              </Button>
+
+              <div className="flex-grow"></div>
+
+              <Button
+                className="bg-[#0F792C] hover:bg-[#0a5a20] text-white border-none rounded-xl h-10 px-6 font-black shadow-lg shadow-green-100/40"
+                type="primary"
+                icon={<BsWhatsapp />}
+                onClick={handleVerifyAllClick}
+                loading={verifyingAll}
+                disabled={verifyingAll || filteredData.length === 0}
+              >
+                WhatsApp Verification ({filteredData.length})
+              </Button>
+            </div>
         </div>
       </div>
 
@@ -2239,8 +2228,6 @@ const OperationDetailPage = () => {
            )}
         </div>
       </Modal>
-
-
     </div>
   );
 };

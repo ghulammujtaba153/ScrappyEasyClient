@@ -166,6 +166,7 @@ const QualifiedLeadsFilters = ({
                             <Option value="not-interested">Not Interested</Option>
                         </Select>
                     </div>
+                    {/*
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             Message Status
@@ -185,6 +186,7 @@ const QualifiedLeadsFilters = ({
                             <Option value="failed">Failed</Option>
                         </Select>
                     </div>
+                    */}
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-2">
                             Lead Status

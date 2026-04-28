@@ -46,6 +46,7 @@ const QualifiedLeadsHeader = ({
                     Refresh
                 </Button>
                 <Button
+                    
                     icon={<MdDownload />}
                     onClick={onExportCSV}
                     disabled={!filteredDataLength}
@@ -53,21 +54,23 @@ const QualifiedLeadsHeader = ({
                     Export CSV
                 </Button>
                 <Button
+                    type="primary"
                     icon={<MdPhone />}
                     onClick={onShowDialer}
-                    className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
+                    className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C]"
                 >
                     Show Dialer
                 </Button>
-                <Button
+                {/* <Button
                     type="primary"
                     icon={<MdPhone />}
                     onClick={onCreateColdCallCampaign}
                     disabled={leadsWithPhoneCount === 0}
-                    className="bg-blue-600 hover:bg-blue-700 border-blue-600"
+                    className="bg-[#0F792C] hover:bg-[#0a5a20] border-[#0F792C]"
                 >
                     Create Cold Call Campaign
-                </Button>
+                </Button> */}
+                {/*
                 <Button
                     type="primary"
                     icon={<BsWhatsapp />}
@@ -77,6 +80,7 @@ const QualifiedLeadsHeader = ({
                 >
                     Create Message Campaign
                 </Button>
+                */}
             </Space>
         </div>
     );
