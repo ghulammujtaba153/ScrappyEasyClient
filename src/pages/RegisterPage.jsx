@@ -634,36 +634,69 @@ const RegisterPage = () => {
                             <div className="w-24 h-24 bg-yellow-50 rounded-full flex items-center justify-center mb-8 relative">
                                 <FaHourglassHalf className="text-yellow-600 animate-pulse" size={48} />
                                 <div className="absolute -top-2 -right-2 bg-yellow-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                                    Pending
+                                    {form.userType === 'local' ? 'Pending' : 'Under Review'}
                                 </div>
                             </div>
-                            
-                            <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Almost There!</h2>
-                            <p className="text-gray-500 mb-10 max-w-sm text-lg leading-relaxed">
-                                Your registration and payment proof have been received. We are now **manually verifying** your details to activate your pro features.
-                            </p>
-                            
-                            <div className="w-full max-w-md space-y-4 mb-10">
-                                <div className="bg-primary/5 p-5 rounded-3xl border-2 border-primary/10 flex items-center gap-4 text-left">
-                                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                        <FaCheckCircle className="text-primary" size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 leading-tight">Verification in Progress</h4>
-                                        <p className="text-xs text-gray-500 mt-1">Our team checks payments 24/7. Average wait: **2-4 hours**.</p>
-                                    </div>
-                                </div>
 
-                                <div className="bg-blue-50 p-5 rounded-3xl border-2 border-blue-100 flex items-center gap-4 text-left">
-                                    <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                        <FaUniversity className="text-blue-600" size={24} />
+                            {form.userType === 'local' ? (
+                                <>
+                                    <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Almost There!</h2>
+                                    <p className="text-gray-500 mb-10 max-w-sm text-lg leading-relaxed">
+                                        Your registration and payment proof have been received. We are now **manually verifying** your details to activate your pro features.
+                                    </p>
+
+                                    <div className="w-full max-w-md space-y-4 mb-10">
+                                        <div className="bg-primary/5 p-5 rounded-3xl border-2 border-primary/10 flex items-center gap-4 text-left">
+                                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                <FaCheckCircle className="text-primary" size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 leading-tight">Verification in Progress</h4>
+                                                <p className="text-xs text-gray-500 mt-1">Our team checks payments 24/7. Average wait: **2-4 hours**.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-blue-50 p-5 rounded-3xl border-2 border-blue-100 flex items-center gap-4 text-left">
+                                            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                <FaUniversity className="text-blue-600" size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 leading-tight">Email Confirmation</h4>
+                                                <p className="text-xs text-gray-500 mt-1">You will receive an email once your subscription is active.</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 leading-tight">Email Confirmation</h4>
-                                        <p className="text-xs text-gray-500 mt-1">You will receive an email once your subscription is active.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Registration Complete</h2>
+                                    <p className="text-gray-500 mb-10 max-w-sm text-lg leading-relaxed">
+                                        Your registration has been received. Our admin team will review your details and email you the payment link shortly.
+                                    </p>
+
+                                    <div className="w-full max-w-md space-y-4 mb-10">
+                                        <div className="bg-primary/5 p-5 rounded-3xl border-2 border-primary/10 flex items-center gap-4 text-left">
+                                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                <FaCheckCircle className="text-primary" size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 leading-tight">Payment Link Pending</h4>
+                                                <p className="text-xs text-gray-500 mt-1">You’ll receive a separate email with the payment link from our admin team.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-blue-50 p-5 rounded-3xl border-2 border-blue-100 flex items-center gap-4 text-left">
+                                            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                <FaUniversity className="text-blue-600" size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 leading-tight">Manual Review</h4>
+                                                <p className="text-xs text-gray-500 mt-1">After payment, send us your screenshot and we will update your status.</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
+                                </>
+                            )}
 
                             <div className="flex flex-col gap-4 w-full">
                                 <Link to="/login" className="bg-primary text-white w-full py-5 rounded-3xl font-black text-xl shadow-[0_20px_50px_rgba(15,121,44,0.3)] hover:shadow-none hover:translate-y-1 transition-all">
