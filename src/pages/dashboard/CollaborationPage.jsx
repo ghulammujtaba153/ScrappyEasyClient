@@ -7,7 +7,6 @@ import {
     Badge, 
     Typography, 
     Empty, 
-    Spin, 
     Tag, 
     Space,
     Divider,
@@ -16,7 +15,9 @@ import {
     Col,
     Popconfirm,
     message,
-    Input
+    Input,
+    Statistic,
+    Modal
 } from 'antd';
 import { 
     UserOutlined, 
@@ -30,8 +31,12 @@ import {
     DeleteOutlined,
     ProfileOutlined,
     SearchOutlined,
-    ClearOutlined
+    ClearOutlined,
+    HistoryOutlined,
+    GlobalOutlined,
+    ArrowUpOutlined
 } from '@ant-design/icons';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/authContext';
 import MeetingRequestModal from '../../components/collaboration/MeetingRequestModal';
@@ -43,8 +48,25 @@ import Loader from '../../components/common/Loader';
 
 const { Title, Text, Paragraph } = Typography;
 
-// Global primary color
+// Premium Design Constants
 const PRIMARY_COLOR = '#0F792C';
+const ACCENT_COLOR = '#064E3B';
+const GLASS_BG = 'rgba(255, 255, 255, 0.8)';
+const GLASS_BORDER = '1px solid rgba(255, 255, 255, 0.3)';
+
+const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+        opacity: 1, 
+        y: 0,
+        transition: { duration: 0.5, staggerChildren: 0.1 }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0 }
+};
 
 const CollaborationPage = () => {
     const { user, token, updateUser } = useAuth();
@@ -59,7 +81,11 @@ const CollaborationPage = () => {
     } = useSocket();
     
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [editingCollab, setEditingCollab] = useState(null);
+    const [editFormValues, setEditFormValues] = useState({ message: '', meetLink: '' });
     const [sendingRequest, setSendingRequest] = useState(false);
+    const [updatingCollab, setUpdatingCollab] = useState(false);
     const [pastCollaborations, setPastCollaborations] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -70,16 +96,12 @@ const CollaborationPage = () => {
     const [emailFilter, setEmailFilter] = useState('');
     const [collaborationFilter, setCollaborationFilter] = useState('');
 
-    // Track window width for responsive layout
     useEffect(() => {
-        const handleResize = () => {
-            setWindowWidth(window.innerWidth);
-        };
+        const handleResize = () => setWindowWidth(window.innerWidth);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Fetch fresh user data from API to check profile completion
     useEffect(() => {
         const checkProfileCompletion = async () => {
             if (!user?._id) {
@@ -90,534 +112,539 @@ const CollaborationPage = () => {
                 const res = await axios.get(`${BASE_URL}/api/user/${user._id}`);
                 if (res.data.success) {
                     const userData = res.data.data;
-                    const complete = !!(userData?.gender && userData?.dob && userData?.areaOfInterest);
+                    const complete = userData?.isProfileComplete || !!(userData?.gender && userData?.dob && userData?.areaOfInterest?.length > 0);
                     setIsProfileComplete(complete);
-                    // Update local user if needed
-                    if (updateUser) {
-                        updateUser(userData);
-                    }
+                    if (updateUser) updateUser(userData);
                 }
             } catch (error) {
                 console.error('Error checking profile:', error);
-                // Fallback to local user data
-                setIsProfileComplete(!!(user?.gender && user?.dob && user?.areaOfInterest));
+                const complete = user?.isProfileComplete || !!(user?.gender && user?.dob && user?.areaOfInterest?.length > 0);
+                setIsProfileComplete(complete);
             } finally {
                 setProfileCheckLoading(false);
             }
         };
         checkProfileCompletion();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?._id]);
+    }, [user?._id, updateUser]);
 
     const handleProfileComplete = (updatedUser) => {
-        if (updateUser) {
-            updateUser(updatedUser);
-        }
+        if (updateUser) updateUser(updatedUser);
         setIsProfileComplete(true);
     };
 
-    // Fetch past collaborations
     const fetchPastCollaborations = useCallback(async () => {
         if (!user?._id) return;
         try {
             setLoadingHistory(true);
             const res = await axios.get(`${BASE_URL}/api/collaboration/user/${user._id}`);
-            if (res.data.success) {
-                setPastCollaborations(res.data.data || []);
-            }
+            if (res.data.success) setPastCollaborations(res.data.data || []);
         } catch (error) {
             console.error('Error fetching collaborations:', error);
         } finally {
             setLoadingHistory(false);
         }
-    }, [user]);
+    }, [user?._id]);
 
     useEffect(() => {
         fetchPastCollaborations();
     }, [fetchPastCollaborations]);
 
-    // Real-time collaboration history updates - use shared socket context
     useEffect(() => {
         if (!user?._id) return;
-
-        // Subscribe to collaboration updates from shared socket context
-        const unsubscribe = subscribeToEvent('collaboration_updated', () => {
-            fetchPastCollaborations();
-        });
-
-        return () => {
-            unsubscribe();
-        };
+        const unsubscribe = subscribeToEvent('collaboration_updated', fetchPastCollaborations);
+        return () => unsubscribe();
     }, [user?._id, fetchPastCollaborations, subscribeToEvent]);
-
-    // Also refresh when incoming requests change (means we received/responded to something)
-    useEffect(() => {
-        fetchPastCollaborations();
-    }, [incomingRequests.length, fetchPastCollaborations]);
 
     const handleSendRequest = (data) => {
         setSendingRequest(true);
         sendMeetingRequest(data.receiverId, data.meetLink, data.message);
         setSendingRequest(false);
         setIsModalVisible(false);
+        message.success('Meeting request sent successfully!');
+    };
+
+    const handleUpdateCollaboration = async () => {
+        if (!editingCollab) return;
+        setUpdatingCollab(true);
+        try {
+            const res = await axios.put(`${BASE_URL}/api/collaboration/${editingCollab._id}`, editFormValues);
+            if (res.data.success) {
+                message.success('Collaboration updated successfully');
+                setIsEditModalVisible(false);
+                fetchPastCollaborations();
+            }
+        } catch (error) {
+            message.error('Failed to update collaboration');
+        } finally {
+            setUpdatingCollab(false);
+        }
     };
 
     const handleAccept = (request) => {
         acceptMeetingRequest(request.collaborationId);
-        // Open the meet link
-        if (request.meetLink) {
-            window.open(request.meetLink, '_blank');
-        }
+        if (request.meetLink) window.open(request.meetLink, '_blank');
     };
 
     const handleDecline = (request) => {
         declineMeetingRequest(request.collaborationId);
+        message.info('Request declined');
     };
 
     const handleDeleteCollaboration = async (collaborationId) => {
         try {
             const res = await axios.delete(`${BASE_URL}/api/collaboration/${collaborationId}`);
             if (res.data.success) {
-                message.success('Collaboration deleted successfully');
+                message.success('Collaboration deleted');
                 fetchPastCollaborations();
             }
         } catch (error) {
-            console.error('Error deleting collaboration:', error);
-            message.error('Failed to delete collaboration');
+            message.error('Failed to delete');
         }
     };
 
-    const formatTime = (date) => {
-        return new Date(date).toLocaleString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
+    const formatTime = (date) => new Date(date).toLocaleString('en-US', {
+        hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric'
+    });
 
-    // Filter online users by email and name
     const filteredUsers = useMemo(() => {
-        if (!emailFilter.trim()) {
-            return onlineUsers;
-        }
+        if (!emailFilter.trim()) return onlineUsers;
         const query = emailFilter.toLowerCase();
-        return onlineUsers.filter(user =>
-            user.email?.toLowerCase().includes(query) ||
-            user.name?.toLowerCase().includes(query)
-        );
+        return onlineUsers.filter(u => u.email?.toLowerCase().includes(query) || u.name?.toLowerCase().includes(query));
     }, [onlineUsers, emailFilter]);
 
-    // Filter collaborations by name or email
     const filteredCollaborations = useMemo(() => {
-        if (!collaborationFilter.trim()) {
-            return pastCollaborations;
-        }
+        if (!collaborationFilter.trim()) return pastCollaborations;
         const query = collaborationFilter.toLowerCase();
         return pastCollaborations.filter(collab => {
-            const collaboratorName = collab.sentByYou 
-                ? collab.participants[1]?.name 
-                : collab.participants[0]?.name;
-            const collaboratorEmail = collab.sentByYou 
-                ? collab.participants[1]?.email 
-                : collab.participants[0]?.email;
-            
-            return (
-                collaboratorName?.toLowerCase().includes(query) ||
-                collaboratorEmail?.toLowerCase().includes(query)
-            );
+            const partner = collab.sentByYou ? collab.participants[1] : collab.participants[0];
+            return partner?.name?.toLowerCase().includes(query) || partner?.email?.toLowerCase().includes(query);
         });
     }, [pastCollaborations, collaborationFilter]);
 
-    // Show loading while checking profile
-    if (profileCheckLoading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 200px)' }}>
-                <Loader/>
-            </div>
-        );
-    }
+    if (profileCheckLoading) return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc' }}>
+            <Loader />
+        </div>
+    );
 
     return (
-        <div style={{ padding: '24px' }}>
-            {/* Profile Completion Modal */}
-            <ProfileCompletionForm 
-                visible={!isProfileComplete}
-                user={user} 
-                onComplete={handleProfileComplete}
-                onClose={() => setIsProfileComplete(true)}
-                token={token}
-            />
-
-            {/* Header */}
-            <div style={{ marginBottom: 24 }}>
-                <Title level={2} style={{ margin: 0 }}>
-                    <TeamOutlined style={{ marginRight: 12 }} />
-                    Collaboration Hub
-                </Title>
-                <Text type="secondary">
-                    Connect with online users and schedule meetings in real-time
-                </Text>
+        <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            style={{ 
+                padding: '32px', 
+                maxWidth: '1600px', 
+                margin: '0 auto',
+                background: '#f8fafc',
+                minHeight: '100vh'
+            }}
+        >
+            {/* Glassmorphism Header */}
+            <div style={{ 
+                marginBottom: 40, 
+                padding: '32px', 
+                background: `linear-gradient(135deg, ${PRIMARY_COLOR} 0%, ${ACCENT_COLOR} 100%)`,
+                borderRadius: '24px',
+                color: 'white',
+                boxShadow: '0 20px 40px rgba(15, 121, 44, 0.15)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                    <Row justify="space-between" align="middle">
+                        <Col>
+                            <Space align="center" size={16}>
+                                <div style={{ 
+                                    padding: '12px', 
+                                    background: 'rgba(255, 255, 255, 0.2)', 
+                                    borderRadius: '16px',
+                                    backdropFilter: 'blur(10px)'
+                                }}>
+                                    <TeamOutlined style={{ fontSize: 32 }} />
+                                </div>
+                                <div>
+                                    <Title level={1} style={{ margin: 0, color: 'white', letterSpacing: '-0.5px' }}>
+                                        Collaboration Hub
+                                    </Title>
+                                    <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 16 }}>
+                                        Empowering connections in real-time
+                                    </Text>
+                                </div>
+                            </Space>
+                        </Col>
+                        <Col>
+                            <Badge status={isConnected ? 'success' : 'error'} text={
+                                <span style={{ color: 'white', fontWeight: 500 }}>
+                                    {isConnected ? 'LIVE NETWORK ACTIVE' : 'NETWORK DISCONNECTED'}
+                                </span>
+                            } />
+                        </Col>
+                    </Row>
+                </div>
+                {/* Decorative Elements */}
+                <div style={{ 
+                    position: 'absolute', 
+                    top: '-50px', 
+                    right: '-50px', 
+                    width: '200px', 
+                    height: '200px', 
+                    background: 'rgba(255, 255, 255, 0.1)', 
+                    borderRadius: '50%' 
+                }} />
             </div>
 
-            {/* Connection Status */}
-            <Card size="small" style={{ marginBottom: 24 }}>
-                <Space>
-                    <Badge 
-                        status={isConnected ? 'success' : 'error'} 
-                        text={isConnected ? 'Connected' : 'Disconnected'} 
-                    />
-                    <Divider type="vertical" />
-                    <Text>
-                        <UserOutlined style={{ marginRight: 6 }} />
-                        {onlineUsers.length} users online
-                    </Text>
-                </Space>
-            </Card>
-
-            <Row gutter={[24, 24]}>
-                {/* Online Users Section */}
-                <Col xs={24} lg={12}>
-                    <Card 
-                        title={
-                            <Space className='mt-2'>
-                                <Badge count={onlineUsers.length} showZero color={PRIMARY_COLOR}>
-                                    <UserOutlined style={{ fontSize: 18 }} />
-                                </Badge>
-                                <span>Online Users</span>
-                            </Space>
-                        }
-                        style={{ height: '100%' }}
-                    >
-                        {onlineUsers.length === 0 ? (
-                            <Empty 
-                                description="No other users online"
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            />
-                        ) : (
-                            <>
-                                {/* Email Filter */}
-                                <Input
-                                    placeholder="Search by name or email..."
-                                    prefix={<SearchOutlined />}
-                                    value={emailFilter}
-                                    onChange={(e) => setEmailFilter(e.target.value)}
-                                    suffix={
-                                        emailFilter && (
-                                            <ClearOutlined 
-                                                onClick={() => setEmailFilter('')}
-                                                style={{ cursor: 'pointer', color: '#999' }}
-                                            />
-                                        )
+            {/* Quick Stats Grid */}
+            <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+                {[
+                    { title: 'Online Now', value: onlineUsers.length, icon: <UserOutlined />, color: '#10b981' },
+                    { title: 'Pending Requests', value: incomingRequests.length, icon: <BellOutlined />, color: '#f59e0b' },
+                    { title: 'Total History', value: pastCollaborations.length, icon: <HistoryOutlined />, color: '#6366f1' },
+                    { title: 'Network Quality', value: 'Excellent', icon: <GlobalOutlined />, color: '#3b82f6' }
+                ].map((stat, idx) => (
+                    <Col xs={24} sm={12} lg={6} key={idx}>
+                        <motion.div whileHover={{ y: -5 }}>
+                            <Card style={{ 
+                                borderRadius: '20px', 
+                                border: 'none', 
+                                boxShadow: '0 4px 6px rgba(0,0,0,0.02)',
+                                background: 'white'
+                            }}>
+                                <Statistic 
+                                    title={<span style={{ color: '#64748b', fontWeight: 500 }}>{stat.title}</span>}
+                                    value={stat.value}
+                                    prefix={
+                                        <div style={{ 
+                                            marginRight: 12, 
+                                            color: stat.color, 
+                                            background: `${stat.color}15`, 
+                                            padding: '8px', 
+                                            borderRadius: '12px' 
+                                        }}>
+                                            {stat.icon}
+                                        </div>
                                     }
-                                    style={{ width: '100%', marginBottom: 16 }}
+                                    valueStyle={{ color: '#1e293b', fontWeight: 700 }}
                                 />
+                            </Card>
+                        </motion.div>
+                    </Col>
+                ))}
+            </Row>
 
-                                {/* Results Count */}
-                                <Text type="secondary" style={{ marginBottom: 12, display: 'block', fontSize: 12 }}>
-                                    Showing {filteredUsers.length} of {onlineUsers.length} users
-                                </Text>
-
-                                {filteredUsers.length === 0 ? (
-                                    <Empty 
-                                        description="No users match your search"
-                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                    />
-                                ) : (
-                                    <List
-                                        itemLayout="horizontal"
-                                        dataSource={filteredUsers}
-                                        style={{ maxHeight: 400, overflowY: 'auto' }}
-                                        renderItem={item => (
-                                            <List.Item
-                                                actions={[
-                                                    <Space wrap style={{ gap: 8 }}>
-                                                        <Tooltip title="View Profile">
-                                                            <Button
-                                                                type="primary"
-                                                                shape="circle"
-                                                                icon={<ProfileOutlined />}
-                                                                onClick={() => {
-                                                                    setSelectedUser(item);
-                                                                    setIsProfileVisible(true);
-                                                                }}
-                                                                size="small"
-                                                            />
-                                                        </Tooltip>
-                                                        <Tooltip title="Send meeting request">
-                                                            <Button
-                                                                type="primary"
-                                                                shape="circle"
-                                                                icon={<VideoCameraOutlined />}
-                                                                onClick={() => setIsModalVisible(true)}
-                                                                size="small"
-                                                            />
-                                                        </Tooltip>
-                                                    </Space>
-                                                ]}
-                                            >
-                                                <List.Item.Meta
-                                                    avatar={
-                                                        <Badge dot status="success" offset={[-4, 32]}>
-                                                            <Avatar 
-                                                                icon={<UserOutlined />}
-                                                                style={{ backgroundColor: PRIMARY_COLOR }}
-                                                            />
-                                                        </Badge>
-                                                    }
-                                                    title={item.name}
-                                                    description={
-                                                        <Space direction="vertical" size={0}>
-                                                            <Text type="secondary" style={{ fontSize: 11 }}>
-                                                                {item.email}
-                                                            </Text>
-                                                            <Text type="secondary" style={{ fontSize: 11 }}>
-                                                                <ClockCircleOutlined style={{ marginRight: 4 }} />
-                                                                Online since {formatTime(item.connectedAt)}
-                                                            </Text>
-                                                        </Space>
-                                                    }
-                                                />
-                                            </List.Item>
-                                        )}
-                                    />
-                                )}
-                            </>
-                        )}
-                    </Card>
-                </Col>
-
-                {/* Incoming Requests Section */}
-                <Col xs={24} lg={12}>
+            <Row gutter={[32, 32]}>
+                {/* Left Panel: Online Users */}
+                <Col xs={24} lg={14}>
                     <Card 
                         title={
-                            <Space className='mt-2'>
-                                <Badge count={incomingRequests.length} showZero>
-                                    <BellOutlined style={{ fontSize: 18 }} />
-                                </Badge>
-                                <span>Incoming Requests</span>
-                            </Space>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                <Space>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                                    <span style={{ fontSize: 18, fontWeight: 600 }}>Active Users</span>
+                                </Space>
+                                <Tag color="green">{onlineUsers.length} Online</Tag>
+                            </div>
                         }
-                        style={{ height: '100%' }}
+                        style={{ 
+                            borderRadius: '24px', 
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+                            border: 'none',
+                            minHeight: '500px'
+                        }}
                     >
-                        {incomingRequests.length === 0 ? (
-                            <Empty 
-                                description="No pending requests"
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            />
-                        ) : (
-                            <List
-                                itemLayout="vertical"
-                                dataSource={incomingRequests}
-                                style={{ maxHeight: 400, overflowY: 'auto' }}
-                                renderItem={request => (
-                                    <List.Item
-                                        key={request.collaborationId}
-                                        actions={[
-                                            <Space wrap style={{ gap: 8 }}>
-                                                <Button 
-                                                    type="primary" 
-                                                    icon={<CheckOutlined />}
-                                                    onClick={() => handleAccept(request)}
-                                                    size="small"
-                                                >
-                                                    Accept
-                                                </Button>
-                                                <Button 
-                                                    danger
-                                                    icon={<CloseOutlined />}
-                                                    onClick={() => handleDecline(request)}
-                                                    size="small"
-                                                >
-                                                    Decline
-                                                </Button>
-                                            </Space>
-                                        ]}
-                                    >
+                        <Input
+                            placeholder="Search by name or email..."
+                            prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+                            className="premium-search"
+                            value={emailFilter}
+                            onChange={e => setEmailFilter(e.target.value)}
+                            style={{ 
+                                borderRadius: '12px', 
+                                padding: '12px 16px', 
+                                marginBottom: 24,
+                                border: '1px solid #e2e8f0',
+                                background: '#f8fafc'
+                            }}
+                        />
+
+                        <List
+                            dataSource={filteredUsers}
+                            pagination={{ 
+                                pageSize: 6, 
+                                size: 'small', 
+                                hideOnSinglePage: true,
+                                style: { marginTop: 16, textAlign: 'center' }
+                            }}
+                            renderItem={(item, index) => (
+                                <motion.div 
+                                    variants={itemVariants}
+                                    whileHover={{ x: 5, backgroundColor: '#f1f5f9' }}
+                                    style={{ 
+                                        padding: '12px 16px', 
+                                        borderRadius: '16px', 
+                                        marginBottom: 4, 
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    <List.Item style={{ border: 'none', padding: 0 }}>
                                         <List.Item.Meta
                                             avatar={
-                                                <Avatar 
-                                                    icon={<UserOutlined />}
-                                                    style={{ backgroundColor: PRIMARY_COLOR }}
-                                                />
+                                                <Badge dot status="success" offset={[-2, 36]}>
+                                                    <Avatar 
+                                                        size={44}
+                                                        icon={<UserOutlined />}
+                                                        style={{ background: `linear-gradient(135deg, ${PRIMARY_COLOR} 0%, ${ACCENT_COLOR} 100%)` }}
+                                                    />
+                                                </Badge>
                                             }
-                                            title={
-                                                <Space>
-                                                    <Text strong>{request.senderName}</Text>
-                                                    <Tag color="blue">Meeting Request</Tag>
-                                                </Space>
-                                            }
+                                            title={<span style={{ fontSize: 15, fontWeight: 600, color: '#1e293b' }}>{item.name}</span>}
                                             description={
-                                                <Space direction="vertical" size={4}>
-                                                    <Paragraph 
-                                                        style={{ margin: 0 }}
-                                                        ellipsis={{ rows: 2 }}
-                                                    >
-                                                        {request.message}
-                                                    </Paragraph>
-                                                    <Space>
-                                                        <LinkOutlined />
-                                                        <a 
-                                                            href={request.meetLink} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer"
-                                                        >
-                                                            {request.meetLink}
-                                                        </a>
-                                                    </Space>
-                                                    <Text type="secondary" style={{ fontSize: 11 }}>
+                                                <Space direction="vertical" size={0}>
+                                                    <Text type="secondary" style={{ fontSize: 12 }}>{item.email}</Text>
+                                                    <Text style={{ fontSize: 11, color: '#94a3b8' }}>
                                                         <ClockCircleOutlined style={{ marginRight: 4 }} />
-                                                        {formatTime(request.createdAt)}
+                                                        {formatTime(item.connectedAt)}
                                                     </Text>
                                                 </Space>
                                             }
                                         />
+                                        <Space size={8}>
+                                            <Tooltip title="View Profile">
+                                                <Button 
+                                                    icon={<ProfileOutlined />} 
+                                                    shape="circle" 
+                                                    size="small"
+                                                    onClick={() => { setSelectedUser(item); setIsProfileVisible(true); }}
+                                                />
+                                            </Tooltip>
+                                            <Button 
+                                                type="primary" 
+                                                icon={<VideoCameraOutlined />} 
+                                                size="small"
+                                                style={{ borderRadius: '8px', background: PRIMARY_COLOR }}
+                                                onClick={() => setIsModalVisible(true)}
+                                            >
+                                                Connect
+                                            </Button>
+                                        </Space>
                                     </List.Item>
-                                )}
-                            />
-                        )}
+                                </motion.div>
+                            )}
+                            locale={{ emptyText: <Empty description="No collaborators online" /> }}
+                        />
                     </Card>
                 </Col>
 
-                {/* Past Collaborations */}
-                <Col xs={24}>
+                {/* Right Panel: Incoming Requests */}
+                <Col xs={24} lg={10}>
                     <Card 
                         title={
                             <Space>
-                                <TeamOutlined style={{ fontSize: 18 }} />
-                                <span>Collaboration History</span>
+                                <BellOutlined style={{ color: '#f59e0b' }} />
+                                <span style={{ fontSize: 18, fontWeight: 600 }}>Active Requests</span>
                             </Space>
                         }
+                        style={{ 
+                            borderRadius: '24px', 
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+                            border: 'none',
+                            background: '#ffffff',
+                            minHeight: '500px'
+                        }}
                     >
-                        {loadingHistory ? (
-                            <Loader/>
-                        ) : pastCollaborations.length === 0 ? (
-                            <Empty 
-                                description="No collaboration history"
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            />
-                        ) : (
-                            <>
-                                {/* Search Filter */}
+                        <AnimatePresence>
+                            {incomingRequests.length === 0 ? (
+                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="All caught up!" />
+                            ) : (
+                                <List
+                                    dataSource={incomingRequests}
+                                    pagination={{ 
+                                        pageSize: 6, 
+                                        size: 'small', 
+                                        hideOnSinglePage: true,
+                                        style: { marginTop: 16, textAlign: 'center' }
+                                    }}
+                                    renderItem={(req) => (
+                                        <motion.div 
+                                            key={req.collaborationId}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            style={{ 
+                                                padding: '16px', 
+                                                background: '#fdfdfd', 
+                                                border: '1px solid #f1f5f9', 
+                                                borderRadius: '20px', 
+                                                marginBottom: 12,
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                <Space>
+                                                    <Avatar icon={<UserOutlined />} style={{ background: PRIMARY_COLOR }} size="small" />
+                                                    <div>
+                                                        <Text strong style={{ display: 'block', fontSize: 14 }}>{req.senderName}</Text>
+                                                        <Tag color="gold" style={{ borderRadius: '6px', fontSize: 9 }}>MEETING</Tag>
+                                                    </div>
+                                                </Space>
+                                                <Text type="secondary" style={{ fontSize: 10 }}>{formatTime(req.createdAt)}</Text>
+                                            </div>
+                                            <Paragraph ellipsis={{ rows: 1 }} style={{ color: '#64748b', marginBottom: 12, fontSize: 12 }}>
+                                                "{req.message}"
+                                            </Paragraph>
+                                            <Row gutter={8}>
+                                                <Col span={12}>
+                                                    <Button 
+                                                        block 
+                                                        type="primary" 
+                                                        size="small"
+                                                        icon={<CheckOutlined />} 
+                                                        onClick={() => handleAccept(req)}
+                                                        style={{ borderRadius: '8px', background: PRIMARY_COLOR }}
+                                                    >
+                                                        Accept
+                                                    </Button>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <Button 
+                                                        block 
+                                                        danger 
+                                                        size="small"
+                                                        icon={<CloseOutlined />} 
+                                                        onClick={() => handleDecline(req)}
+                                                        style={{ borderRadius: '8px' }}
+                                                    >
+                                                        Decline
+                                                    </Button>
+                                                </Col>
+                                            </Row>
+                                        </motion.div>
+                                    )}
+                                />
+                            )}
+                        </AnimatePresence>
+                    </Card>
+                </Col>
+
+                {/* History Section: Full Width Bottom */}
+                <Col xs={24}>
+                    <Card 
+                        title={
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                <Space>
+                                    <HistoryOutlined style={{ fontSize: 20, color: PRIMARY_COLOR }} />
+                                    <span style={{ fontSize: 18, fontWeight: 600 }}>Collaboration Journey</span>
+                                </Space>
                                 <Input
-                                    placeholder="Search by name or email..."
+                                    placeholder="Filter history..."
                                     prefix={<SearchOutlined />}
                                     value={collaborationFilter}
-                                    onChange={(e) => setCollaborationFilter(e.target.value)}
-                                    suffix={
-                                        collaborationFilter && (
-                                            <ClearOutlined 
-                                                onClick={() => setCollaborationFilter('')}
-                                                style={{ cursor: 'pointer', color: '#999' }}
-                                            />
-                                        )
-                                    }
-                                    style={{ width: '100%', marginBottom: 16 }}
+                                    onChange={e => setCollaborationFilter(e.target.value)}
+                                    style={{ width: '300px', borderRadius: '10px' }}
                                 />
-
-                                {/* Results Count */}
-                                <Text type="secondary" style={{ marginBottom: 12, display: 'block', fontSize: 12 }}>
-                                    Showing {filteredCollaborations.length} of {pastCollaborations.length} collaborations
-                                </Text>
-
-                                {filteredCollaborations.length === 0 ? (
-                                    <Empty 
-                                        description="No collaborations match your search"
-                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                    />
-                                ) : (
-                                    <List
-                                        itemLayout={windowWidth < 500 ? "vertical" : "horizontal"}
-                                        dataSource={filteredCollaborations}
-                                        pagination={{ pageSize: 5 }}
-                                        renderItem={collab => (
-                                            <List.Item
-                                                actions={[
-                                                    <Space wrap style={{ gap: 8 }}>
-                                                        {collab.meetLink && (
-                                                            <Button 
-                                                                type="link" 
-                                                                href={collab.meetLink}
-                                                                target="_blank"
-                                                                icon={<LinkOutlined />}
-                                                                size="small"
-                                                            >
-                                                                Open Link
-                                                            </Button>
-                                                        )}
-                                                        <Popconfirm
-                                                            title="Delete collaboration"
-                                                            description="Are you sure you want to delete this collaboration?"
-                                                            onConfirm={() => handleDeleteCollaboration(collab._id)}
-                                                            okText="Yes"
-                                                            cancelText="No"
-                                                            okButtonProps={{ danger: true }}
-                                                        >
+                            </div>
+                        }
+                        style={{ 
+                            borderRadius: '24px', 
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+                            border: 'none',
+                            marginTop: 16
+                        }}
+                    >
+                        {loadingHistory ? <Loader /> : (
+                            <List
+                                grid={{ gutter: 24, xs: 1, sm: 1, md: 2, lg: 3, xl: 3, xxl: 4 }}
+                                dataSource={filteredCollaborations}
+                                pagination={{ 
+                                    pageSize: 6, 
+                                    hideOnSinglePage: true,
+                                    style: { textAlign: 'center', marginTop: 24 }
+                                }}
+                                renderItem={collab => {
+                                    const partner = collab.sentByYou ? collab.participants[1] : collab.participants[0];
+                                    const statusColor = collab.status === 'accepted' ? '#10b981' : collab.status === 'declined' ? '#ef4444' : '#f59e0b';
+                                    
+                                    return (
+                                        <List.Item>
+                                            <Card 
+                                                hoverable 
+                                                style={{ 
+                                                    borderRadius: '20px', 
+                                                    border: '1px solid #f1f5f9',
+                                                    overflow: 'hidden'
+                                                }}
+                                                bodyStyle={{ padding: '20px' }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                                                    <Avatar 
+                                                        size={40} 
+                                                        icon={<VideoCameraOutlined />} 
+                                                        style={{ background: `${statusColor}20`, color: statusColor }} 
+                                                    />
+                                                    <Space>
+                                                        {collab.sentByYou && (
                                                             <Button 
                                                                 type="text" 
-                                                                danger
-                                                                icon={<DeleteOutlined />}
-                                                                size="small"
-                                                            >
-                                                                Delete
-                                                            </Button>
+                                                                icon={<ProfileOutlined style={{ color: '#6366f1' }} />} 
+                                                                size="small" 
+                                                                onClick={() => {
+                                                                    setEditingCollab(collab);
+                                                                    setEditFormValues({ 
+                                                                        message: collab.message || '', 
+                                                                        meetLink: collab.meetLink || '' 
+                                                                    });
+                                                                    setIsEditModalVisible(true);
+                                                                }}
+                                                            />
+                                                        )}
+                                                        <Popconfirm title="Delete this record?" onConfirm={() => handleDeleteCollaboration(collab._id)}>
+                                                            <Button type="text" danger icon={<DeleteOutlined />} size="small" />
                                                         </Popconfirm>
                                                     </Space>
-                                                ]}
-                                            >
-                                                <List.Item.Meta
-                                                    avatar={
-                                                        <Avatar 
-                                                            icon={<VideoCameraOutlined />}
-                                                            style={{ 
-                                                                backgroundColor: collab.status === 'accepted' 
-                                                                    ? PRIMARY_COLOR 
-                                                                    : collab.status === 'declined'
-                                                                    ? '#ff4d4f'
-                                                                    : '#faad14'
-                                                            }}
-                                                        />
-                                                    }
-                                                    title={
-                                                        <Space>
-                                                            <Text>Meeting</Text>
-                                                            <Tag color={collab.sentByYou ? 'blue' : 'purple'}>
-                                                                {collab.sentByYou ? 'Sent' : 'Received'}
-                                                            </Tag>
-                                                            <Tag color={
-                                                                collab.status === 'accepted' ? 'green' :
-                                                                collab.status === 'declined' ? 'red' : 'orange'
-                                                            }>
-                                                                {collab.status}
-                                                            </Tag>
-                                                        </Space>
-                                                    }
-                                                    description={
-                                                        <Space direction="vertical" size={0}>
-                                                            <Text type="secondary">
-                                                                {collab.sentByYou 
-                                                                    ? `To: ${collab.participants[1]?.name || 'Unknown'}` 
-                                                                    : `From: ${collab.participants[0]?.name || 'Unknown'}`
-                                                                }
-                                                            </Text>
-                                                            <Text type="secondary">{collab.message}</Text>
-                                                            <Text type="secondary" style={{ fontSize: 11 }}>
-                                                                {formatTime(collab.createdAt)}
-                                                            </Text>
-                                                        </Space>
-                                                    }
-                                                />
-                                            </List.Item>
-                                        )}
-                                    />
-                                )}
-                            </>
+                                                </div>
+                                                <Title level={5} style={{ marginBottom: 4 }}>Meeting with {partner?.name || 'User'}</Title>
+                                                <Text type="secondary" block style={{ marginBottom: 12, fontSize: 12 }}>{partner?.email}</Text>
+                                                
+                                                <div style={{ marginBottom: 16 }}>
+                                                    <Tag color={collab.sentByYou ? 'blue' : 'purple'} style={{ borderRadius: '6px' }}>
+                                                        {collab.sentByYou ? 'OUTGOING' : 'INCOMING'}
+                                                    </Tag>
+                                                    <Tag color={collab.status === 'accepted' ? 'green' : collab.status === 'declined' ? 'red' : 'orange'} style={{ borderRadius: '6px' }}>
+                                                        {collab.status.toUpperCase()}
+                                                    </Tag>
+                                                </div>
+
+                                                <div style={{ 
+                                                    background: '#f8fafc', 
+                                                    padding: '12px', 
+                                                    borderRadius: '12px', 
+                                                    marginBottom: 16,
+                                                    fontSize: 13,
+                                                    minHeight: '60px'
+                                                }}>
+                                                    {collab.message || 'No message provided'}
+                                                </div>
+
+                                                <Row justify="space-between" align="middle">
+                                                    <Text style={{ fontSize: 11, color: '#94a3b8' }}>{formatTime(collab.createdAt)}</Text>
+                                                    {collab.meetLink && (
+                                                        <Button type="link" href={collab.meetLink} target="_blank" icon={<LinkOutlined />} size="small">
+                                                            Join
+                                                        </Button>
+                                                    )}
+                                                </Row>
+                                            </Card>
+                                        </List.Item>
+                                    );
+                                }}
+                            />
                         )}
                     </Card>
                 </Col>
             </Row>
 
-            {/* Meeting Request Modal */}
+            {/* Modals */}
             <MeetingRequestModal
                 visible={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
@@ -626,20 +653,67 @@ const CollaborationPage = () => {
                 loading={sendingRequest}
             />
 
-            {/* Collaborator Profile Modal */}
             <CollaboratorProfile
                 visible={isProfileVisible}
-                onClose={() => {
-                    setIsProfileVisible(false);
-                    setSelectedUser(null);
-                }}
+                onClose={() => { setIsProfileVisible(false); setSelectedUser(null); }}
                 user={selectedUser}
-                onSendMeetingRequest={() => {
-                    setIsProfileVisible(false);
-                    setIsModalVisible(true);
-                }}
+                onSendMeetingRequest={() => { setIsProfileVisible(false); setIsModalVisible(true); }}
             />
-        </div>
+
+            <ProfileCompletionForm 
+                visible={!isProfileComplete}
+                user={user} 
+                onComplete={handleProfileComplete}
+                onClose={() => setIsProfileComplete(true)}
+                token={token}
+            />
+
+            {/* Edit Collaboration Modal */}
+            <Modal
+                title={
+                    <Space>
+                        <ProfileOutlined style={{ color: '#6366f1' }} />
+                        <span>Edit Collaboration Details</span>
+                    </Space>
+                }
+                open={isEditModalVisible}
+                onCancel={() => setIsEditModalVisible(false)}
+                footer={[
+                    <Button key="cancel" onClick={() => setIsEditModalVisible(false)}>Cancel</Button>,
+                    <Button 
+                        key="submit" 
+                        type="primary" 
+                        loading={updatingCollab} 
+                        onClick={handleUpdateCollaboration}
+                        style={{ background: PRIMARY_COLOR }}
+                    >
+                        Save Changes
+                    </Button>
+                ]}
+                centered
+                borderRadius={16}
+            >
+                <div style={{ padding: '8px 0' }}>
+                    <Text strong style={{ display: 'block', marginBottom: 8 }}>Meeting Message</Text>
+                    <Input.TextArea 
+                        rows={4} 
+                        value={editFormValues.message}
+                        onChange={e => setEditFormValues({ ...editFormValues, message: e.target.value })}
+                        placeholder="Update your collaboration message..."
+                        style={{ borderRadius: '12px', marginBottom: 20 }}
+                    />
+                    
+                    <Text strong style={{ display: 'block', marginBottom: 8 }}>Meeting Link</Text>
+                    <Input 
+                        prefix={<LinkOutlined />}
+                        value={editFormValues.meetLink}
+                        onChange={e => setEditFormValues({ ...editFormValues, meetLink: e.target.value })}
+                        placeholder="Update meeting URL (Zoom, Google Meet, etc.)"
+                        style={{ borderRadius: '12px' }}
+                    />
+                </div>
+            </Modal>
+        </motion.div>
     );
 };
 

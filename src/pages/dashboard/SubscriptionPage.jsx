@@ -96,31 +96,31 @@ const SubscriptionPage = () => {
 
             <div className="max-w-7xl mx-auto">
                 {(user?.status === "active" || accessStatus?.isAuthorized) && (
-                    <div className="mb-12 max-w-lg">
+                    <div className="mb-12 w-full">
                         <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Subscription Details</h2>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {/* Card: Plan Name */}
-                            <div className="bg-white/60 backdrop-blur-sm p-6 py-8 rounded-[2rem] border border-gray-100/50 flex flex-col gap-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
+                            <div className="bg-white/60 backdrop-blur-sm p-5 py-6 rounded-[2rem] border border-gray-100/50 flex flex-col gap-4 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                                     <FaRocket size={18} />
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan Name</p>
-                                    <p className="text-xl font-bold text-gray-900 leading-tight">
+                                    <p className="text-lg font-bold text-gray-900 leading-tight">
                                         {displayUser.planName || displayUser.name || "Pro Plan"}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Card: Amount Paid */}
-                            <div className="bg-white/60 backdrop-blur-sm p-6 py-8 rounded-[2rem] border border-gray-100/50 flex flex-col gap-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
+                            <div className="bg-white/60 backdrop-blur-sm p-5 py-6 rounded-[2rem] border border-gray-100/50 flex flex-col gap-4 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                                     <FaWallet size={18} />
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount Paid</p>
-                                    <p className="text-2xl font-bold text-gray-900 leading-tight">
-                                        {(displayUser.planAmount || displayUser.amount || "0").startsWith('$') 
+                                    <p className="text-xl font-bold text-gray-900 leading-tight">
+                                        {(displayUser.planAmount || displayUser.amount || "0").toString().startsWith('$') 
                                             ? (displayUser.planAmount || displayUser.amount) 
                                             : `$${displayUser.planAmount || displayUser.amount || "0"}`}
                                     </p>
@@ -128,27 +128,27 @@ const SubscriptionPage = () => {
                             </div>
 
                             {/* Card: Expiry Date */}
-                            <div className="bg-white/60 backdrop-blur-sm p-6 py-8 rounded-[2rem] border border-gray-100/50 flex flex-col gap-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
+                            <div className="bg-white/60 backdrop-blur-sm p-5 py-6 rounded-[2rem] border border-gray-100/50 flex flex-col gap-4 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                                     <FaCalendarAlt size={18} />
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Expiry Date</p>
-                                    <p className="text-lg font-bold text-gray-900 leading-tight whitespace-pre-line">
-                                        {formatDate(displayUser.expiryDate || displayUser.planExpiry).replace(', ', ',\n')}
+                                    <p className="text-lg font-bold text-gray-900 leading-tight">
+                                        {formatDate(displayUser.expiryDate || displayUser.planExpiry)}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Card: Member Since */}
-                            <div className="bg-white/60 backdrop-blur-sm p-6 py-8 rounded-[2rem] border border-gray-100/50 flex flex-col gap-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
+                            <div className="bg-white/60 backdrop-blur-sm p-5 py-6 rounded-[2rem] border border-gray-100/50 flex flex-col gap-4 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                                     <FaCalendarAlt size={18} />
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Member Since</p>
-                                    <p className="text-lg font-bold text-gray-900 leading-tight whitespace-pre-line">
-                                        {formatDate(displayUser.createdAt).replace(', ', ',\n')}
+                                    <p className="text-lg font-bold text-gray-900 leading-tight">
+                                        {formatDate(displayUser.createdAt)}
                                     </p>
                                 </div>
                             </div>

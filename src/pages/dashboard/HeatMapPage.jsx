@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import axios from 'axios';
@@ -6,6 +6,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat/dist/leaflet-heat.js";
 import Loader from '../../components/common/Loader';
+import { Button, Tooltip } from 'antd';
+import { MdContentCopy } from 'react-icons/md';
 
 const HeatMapPage = () => {
   const { user } = useAuth();
@@ -19,8 +21,34 @@ const HeatMapPage = () => {
   const [heatIntensity, setHeatIntensity] = useState(1.0);
   const [heatRadius, setHeatRadius] = useState(40);
   const token = localStorage.getItem('token');
+  const [copiedRecommendationKey, setCopiedRecommendationKey] = useState('');
 
-  const extractCoordinates = (url) => {
+  const getSelectedOperationTitle = useCallback(() => {
+    if (selectedOperation === 'all') return 'All Operations';
+    const selected = operations.find(op => op._id === selectedOperation);
+    return selected?.searchString || 'Operation';
+  }, [selectedOperation, operations]);
+
+  const copyRecommendedCity = async (city, copyKey) => {
+    const operationTitle = getSelectedOperationTitle();
+    const cityName = city?.city || '';
+    const adminName = city?.admin_name || '';
+    const countryName = city?.country || '';
+    const locationText = [cityName, adminName, countryName].filter(Boolean).join(', ');
+    const copyText = `${operationTitle} ${locationText}`.trim();
+
+    try {
+      await navigator.clipboard.writeText(copyText);
+      setCopiedRecommendationKey(copyKey || locationText);
+      window.setTimeout(() => {
+        setCopiedRecommendationKey((current) => (current === (copyKey || locationText) ? '' : current));
+      }, 900);
+    } catch (error) {
+      console.error('Failed to copy recommended city:', error);
+    }
+  };
+
+  const extractCoordinates = useCallback((url) => {
     if (!url) return null;
 
     const patterns = [
@@ -38,10 +66,10 @@ const HeatMapPage = () => {
       }
     }
     return null;
-  };
+  }, []);
 
   // Fetch recommended neighboring cities using coordinates
-  const fetchRecommendedCities = async (exploredPoints) => {
+  const fetchRecommendedCities = useCallback(async (exploredPoints) => {
     if (exploredPoints.length === 0) {
       setRecommendedCities([]);
       return;
@@ -164,32 +192,9 @@ const HeatMapPage = () => {
     } finally {
       setLoadingRecommendations(false);
     }
-  };
+  }, [token]);
 
-  const fetchData = async () => {
-    if (!user?._id && !user?.id) return;
-
-    setLoading(true);
-    try {
-      const res = await axios.get(`${BASE_URL}/api/data/${user._id || user.id}`, {
-        params: { limit: 1000 }, headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (res.data?.success && res.data.data) {
-        setOperations(res.data.data);
-        processMapData(res.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      alert('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const processMapData = (data, operationId = 'all') => {
+  const processMapData = useCallback((data, operationId = 'all') => {
     let filteredData = data;
     if (operationId !== 'all') {
       filteredData = data.filter(record => record._id === operationId);
@@ -238,11 +243,34 @@ const HeatMapPage = () => {
     if (pointsWithDensity.length > 0) {
       fetchRecommendedCities(pointsWithDensity);
     }
-  };
+  }, [extractCoordinates, fetchRecommendedCities]);
 
   useEffect(() => {
+    const fetchData = async () => {
+      if (!user?._id && !user?.id) return;
+
+      setLoading(true);
+      try {
+        const res = await axios.get(`${BASE_URL}/api/data/${user._id || user.id}`, {
+          params: { limit: 1000 }, headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (res.data?.success && res.data.data) {
+          setOperations(res.data.data);
+          processMapData(res.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
-  }, [user]);
+  }, [user, token, processMapData]);
 
   useEffect(() => {
     if (mapData.length === 0) return;
@@ -276,7 +304,7 @@ const HeatMapPage = () => {
     const adjustedMax = Math.max(maxIntensity, 1);
 
     // Add heat layer with reduced blur for faster rendering
-    const heat = L.heatLayer(heatData, {
+    L.heatLayer(heatData, {
       radius: heatRadius,
       blur: 10,
       maxZoom: 18,
@@ -334,7 +362,7 @@ const HeatMapPage = () => {
       recommendedCities.forEach(city => {
         // Calculate marker size based on population
         const popSize = city.population ? Math.min(Math.log10(city.population) * 3, 15) : 10;
-
+        const copyText = `${getSelectedOperationTitle()} ${city.city || ''}, ${city.admin_name || ''}, ${city.country || ''}`.replace(/\s+,/g, ',').replace(/,+\s*$/g, '').trim();
         L.circleMarker([parseFloat(city.lat), parseFloat(city.lng)], {
           radius: popSize,
           fillColor: '#10B981',
@@ -353,6 +381,10 @@ const HeatMapPage = () => {
             ${city.population ? `<span style="color: #8b5cf6;">👥 Population: ${city.population.toLocaleString()}</span><br/>` : ''}
             <span style="color: #0ea5e9;">📏 Distance: ${city.distance_km} km</span><br/>
             ${city.sourceCity ? `<span style="color: #f59e0b; font-size: 11px;">Near: ${city.sourceCity}</span><br/>` : ''}
+            <button type="button" onclick="(async function(btn){ try { await navigator.clipboard.writeText('${copyText.replace(/'/g, "\\'")}'); const original = btn.innerHTML; btn.innerHTML = '<span>✅</span><span>Copied!</span>'; btn.style.background = '#dcfce7'; btn.style.borderColor = '#86efac'; btn.style.color = '#047857'; btn.style.transform = 'scale(1.03)'; btn.style.boxShadow = '0 0 0 4px rgba(34,197,94,0.12)'; setTimeout(function(){ btn.innerHTML = original; btn.style.background = '#ecfdf5'; btn.style.borderColor = '#d1fae5'; btn.style.color = '#059669'; btn.style.transform = ''; btn.style.boxShadow = ''; }, 900); } catch(e) { console.error(e); } })(this)" style="margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d1fae5; background: #ecfdf5; color: #059669; border-radius: 6px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 180ms ease;">
+              <span>📋</span>
+              <span>Copy</span>
+            </button>
             <div style="margin-top: 8px; padding: 6px; background: #ecfdf5; border-radius: 4px; text-align: center;">
               <span style="color: #059669; font-weight: 600; font-size: 12px;">✨ Unexplored - Worth exploring!</span>
             </div>
@@ -370,7 +402,7 @@ const HeatMapPage = () => {
       map.off('zoomend', updateMarkers);
       map.remove();
     };
-  }, [mapData, recommendedCities, showRecommendations, heatIntensity, heatRadius]);
+  }, [mapData, recommendedCities, showRecommendations, heatIntensity, heatRadius, getSelectedOperationTitle]);
 
   const handleOperationChange = (value) => {
     setSelectedOperation(value);
@@ -477,6 +509,31 @@ const HeatMapPage = () => {
                   <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
                     💡 {recommendedCities.length} areas to explore
                   </div>
+                  {recommendedCities.length > 0 && (
+                    <div className="mt-3 max-h-40 overflow-auto space-y-2 pr-1">
+                      {recommendedCities.slice(0, 5).map((city, index) => (
+                        <div key={city.id || `${city.city}-${index}`} className="flex items-center justify-between gap-2 bg-white border border-green-100 rounded-lg px-2 py-2 shadow-sm">
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-gray-800 truncate">
+                              {index + 1}. {city.city}
+                            </div>
+                            <div className="text-[10px] text-gray-500 truncate">
+                              {city.admin_name && `${city.admin_name}, `}{city.country}
+                            </div>
+                          </div>
+                            <Tooltip title={copiedRecommendationKey === `${city.id || `${city.city}-${index}`}` ? 'Copied!' : 'Copy operation + location'}>
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<MdContentCopy />}
+                              onClick={() => copyRecommendedCity(city, `${city.id || `${city.city}-${index}`}`)}
+                              className={`text-gray-500 hover:text-green-600 hover:bg-green-50 transition-all duration-200 ${copiedRecommendationKey === `${city.id || `${city.city}-${index}`}` ? 'text-green-600 scale-110 animate-pulse' : ''}`}
+                            />
+                          </Tooltip>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
 

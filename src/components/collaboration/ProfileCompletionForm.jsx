@@ -17,6 +17,16 @@ const { TextArea } = Input;
 // Global primary color
 const PRIMARY_COLOR = '#0F792C';
 
+const countries = [
+    "United States", "United Kingdom", "Canada", "Australia", "Germany", 
+    "France", "Italy", "Spain", "Japan", "China", "India", "Brazil", 
+    "Mexico", "Russia", "South Africa", "United Arab Emirates", "Saudi Arabia",
+    "Singapore", "South Korea", "Netherlands", "Sweden", "Switzerland", 
+    "Norway", "Denmark", "Finland", "Belgium", "Austria", "Portugal", "Greece",
+    "Turkey", "Israel", "Egypt", "Nigeria", "Kenya", "Pakistan", "Bangladesh",
+    "Vietnam", "Thailand", "Malaysia", "Indonesia", "Philippines", "New Zealand"
+];
+
 const ProfileCompletionForm = ({ visible, user, onComplete, onClose, token }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
@@ -29,7 +39,7 @@ const ProfileCompletionForm = ({ visible, user, onComplete, onClose, token }) =>
                 {
                     gender: values.gender,
                     dob: values.dob ? values.dob.toISOString() : null,
-                    areaOfInterest: values.areaOfInterest
+                    areaOfInterest: values.areaOfInterest // This will now be an array
                 },
                 {
                     headers: { Authorization: `Bearer ${token}` }
@@ -42,7 +52,8 @@ const ProfileCompletionForm = ({ visible, user, onComplete, onClose, token }) =>
                     ...user,
                     gender: values.gender,
                     dob: values.dob ? values.dob.toISOString() : null,
-                    areaOfInterest: values.areaOfInterest
+                    areaOfInterest: values.areaOfInterest,
+                    isProfileComplete: true
                 };
                 onComplete(updatedUser);
             }
@@ -95,7 +106,7 @@ const ProfileCompletionForm = ({ visible, user, onComplete, onClose, token }) =>
 
             <Alert
                 message="Why is this needed?"
-                description="This information helps other users know more about you and find collaborators with similar interests."
+                description="This information helps other users know more about you and find collaborators with similar interests in specific regions."
                 type="info"
                 showIcon
                 style={{ marginBottom: 24 }}
@@ -108,7 +119,7 @@ const ProfileCompletionForm = ({ visible, user, onComplete, onClose, token }) =>
                     initialValues={{
                         gender: user?.gender || undefined,
                         dob: user?.dob ? dayjs(user.dob) : undefined,
-                        areaOfInterest: user?.areaOfInterest || ''
+                        areaOfInterest: Array.isArray(user?.areaOfInterest) ? user.areaOfInterest : []
                     }}
                 >
                     <Form.Item
@@ -127,7 +138,7 @@ const ProfileCompletionForm = ({ visible, user, onComplete, onClose, token }) =>
                             <Option value="other">Other</Option>
                         </Select>
                     </Form.Item>
-
+ 
                     <Form.Item
                         name="dob"
                         label={
@@ -145,23 +156,28 @@ const ProfileCompletionForm = ({ visible, user, onComplete, onClose, token }) =>
                             disabledDate={(current) => current && current > dayjs().endOf('day')}
                         />
                     </Form.Item>
-
+ 
                     <Form.Item
                         name="areaOfInterest"
                         label={
                             <Space>
                                 <HeartOutlined style={{ color: PRIMARY_COLOR }} />
-                                Area of Interest
+                                Target Countries (Areas of Interest)
                             </Space>
                         }
-                        rules={[{ required: true, message: 'Please enter your area of interest' }]}
+                        rules={[{ required: true, message: 'Please select at least one country' }]}
                     >
-                        <TextArea 
-                            rows={3} 
-                            placeholder="e.g., Web Development, Data Science, Marketing, Design..."
-                            maxLength={200}
-                            showCount
-                        />
+                        <Select
+                            mode="multiple"
+                            size="large"
+                            placeholder="Select countries you are interested in"
+                            style={{ width: '100%' }}
+                            optionFilterProp="children"
+                        >
+                            {countries.map(country => (
+                                <Option key={country} value={country}>{country}</Option>
+                            ))}
+                        </Select>
                     </Form.Item>
 
                     <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>

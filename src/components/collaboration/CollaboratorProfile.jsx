@@ -198,11 +198,19 @@ const CollaboratorProfile = ({ visible, onClose, user, onSendMeetingRequest }) =
                                 label={
                                     <Space>
                                         <HeartOutlined style={{ color: PRIMARY_COLOR }} />
-                                        Area of Interest
+                                        Target Countries
                                     </Space>
                                 }
                             >
-                                <Text>{userDetails.areaOfInterest}</Text>
+                                <Space wrap>
+                                    {Array.isArray(userDetails.areaOfInterest) ? (
+                                        userDetails.areaOfInterest.map(country => (
+                                            <Tag key={country} color="green">{country}</Tag>
+                                        ))
+                                    ) : (
+                                        <Text>{userDetails.areaOfInterest}</Text>
+                                    )}
+                                </Space>
                             </Descriptions.Item>
                         )}
 

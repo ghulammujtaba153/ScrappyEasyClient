@@ -73,24 +73,15 @@ export const SocketProvider = ({ children }) => {
         console.log('🔌 Initializing socket connection for user:', user.name);
 
         const socketInstance = io(BASE_URL, {
-                // Try WebSocket first (more reliable), fall back to polling if needed
+                // Try WebSocket first, fall back to polling
                 transports: ['websocket', 'polling'],
-                upgrade: true,
                 reconnection: true,
                 reconnectionAttempts: Infinity,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
-                timeout: 30000,
-                // Match server CORS credentials setting
+                timeout: 20000,
                 withCredentials: true,
-                // Force new connection
-                forceNew: true,
-                // Auto connect
                 autoConnect: true,
-                // Response timeout for polling
-                httpCompression: true,
-                // Disable reconnection on auth errors
-                reconnectionDelayMax: 5000
             });
 
             socketRef.current = socketInstance;
@@ -236,7 +227,7 @@ export const SocketProvider = ({ children }) => {
                 socketRef.current = null;
                 setIsConnected(false);
             };
-    }, [user?._id, user?.name, user?.email, notifyListeners, isAuthenticated]);
+    }, [user?._id, isAuthenticated, notifyListeners]);
 
     // Send meeting request
     const sendMeetingRequest = useCallback((receiverId, meetLink, requestMessage) => {

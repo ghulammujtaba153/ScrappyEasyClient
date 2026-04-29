@@ -24,6 +24,7 @@ import CallPage from "./pages/dashboard/CallPage";
 import TwilioSettingsPage from "./pages/dashboard/TwilioSettingsPage";
 import { OperationsProvider } from "./context/operationsContext";
 import { ScreenshotProvider } from "./context/screenshotContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import SupportPage from "./pages/dashboard/SupportPage";
 import ProfilePage from "./pages/dashboard/ProfilePage";
 import SubscriptionPage from "./pages/dashboard/SubscriptionPage";
@@ -61,9 +62,10 @@ function App() {
                 <Router>
                     <AuthProvider>
                         <SocketProvider>
-                            <OperationsProvider>
-                                <ScreenshotProvider>
-                                    <Routes>
+                            <NotificationProvider>
+                                <OperationsProvider>
+                                    <ScreenshotProvider>
+                                        <Routes>
                                         <Route path="/" element={<AuthRedirect />} />
                                         <Route path="/register" element={<RegisterPage />} />
                                         <Route path="/login" element={<LoginPage />} />
@@ -128,9 +130,10 @@ function App() {
                                     </Routes>
                                 </ScreenshotProvider>
                             </OperationsProvider>
-                        </SocketProvider>
-                    </AuthProvider>
-                </Router>
+                        </NotificationProvider>
+                    </SocketProvider>
+                </AuthProvider>
+            </Router>
             </div>
         </ConfigProvider>
     );

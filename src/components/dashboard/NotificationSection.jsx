@@ -2,52 +2,21 @@ import React, { useEffect, useState } from "react";
 import { BASE_URL } from "../../config/URL";
 import axios from "axios";
 import { useAuth } from "../../context/authContext";
+import { useNotification } from "../../context/NotificationContext";
 import { Spin } from "antd";
 
 const NotificationSection = () => {
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { notifications, loading } = useNotification();
     const { user, token } = useAuth();
-
-    useEffect(() => {
-        const fetchNotifications = async () => {
-            if (!user?._id && !user?.id) {
-                setLoading(false);
-                return;
-            }
-
-            try {
-                // Correctly fetching from the user-specific route
-                const response = await axios.get(`${BASE_URL}/api/notifications/user/${user._id || user.id}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                
-                // The API directly returns an array of notifications
-                if (Array.isArray(response.data)) {
-                    setData(response.data);
-                } else if (response.data?.success) {
-                    setData(response.data.data);
-                }
-            } catch (error) {
-                console.error('Failed to fetch notifications:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchNotifications();
-    }, [user, token]);
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex flex-col h-[400px]">
             <h3 className="text-lg font-bold text-gray-800 mb-4 shrink-0">Notification Section</h3>
             {loading ? (
                  <div className="flex-1 flex justify-center items-center p-4"><Spin /></div>
-            ) : data.length > 0 ? (
+            ) : notifications.length > 0 ? (
                 <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                    {data.map((notification) => (
+                    {notifications.map((notification) => (
                         <div 
                             key={notification._id} 
                             className={`p-4 border rounded-lg transition-colors ${notification.isRead ? 'bg-gray-50 border-gray-100 hover:bg-gray-100' : 'bg-blue-50 border-blue-100 hover:bg-blue-100'}`}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../config/URL";
 import { checkAccessStatus } from "../api/subscriptionApi";
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     // Login function
-    const login = async (userData, authToken) => {
+    const login = useCallback(async (userData, authToken) => {
         setUser(userData);
         setToken(authToken);
         localStorage.setItem("token", authToken);
@@ -106,10 +106,10 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error("Error fetching access status on login:", error);
         }
-    };
+    }, []);
 
     // Logout function
-    const logout = async () => {
+    const logout = useCallback(async () => {
         // Disconnect WhatsApp session before logging out
         const currentToken = token || localStorage.getItem("token");
         if (currentToken && user) {
@@ -134,20 +134,20 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
-    };
+    }, [token, user, navigate]);
 
     // Check if user is authenticated
-    const isAuthenticated = () => {
+    const isAuthenticated = useCallback(() => {
         return !!token && !!user;
-    };
+    }, [token, user]);
 
     // Update user data
-    const updateUser = (updatedUserData) => {
+    const updateUser = useCallback((updatedUserData) => {
         setUser(updatedUserData);
         localStorage.setItem("user", JSON.stringify(updatedUserData));
-    };
+    }, []);
 
-    const refreshAccessStatus = async () => {
+    const refreshAccessStatus = useCallback(async () => {
         if (activeTeam && activeTeam.owner) {
             const ownerId = activeTeam.owner._id || activeTeam.owner;
             const status = await checkAccessStatus(ownerId, token);
@@ -156,14 +156,14 @@ export const AuthProvider = ({ children }) => {
             const status = await checkAccessStatus(user._id || user.id, token);
             setAccessStatus(status);
         }
-    };
+    }, [activeTeam, user, token]);
 
     // React to activeTeam changes
     useEffect(() => {
         refreshAccessStatus();
-    }, [activeTeam]);
+    }, [refreshAccessStatus]);
 
-    const value = {
+    const value = useMemo(() => ({
         user,
         token,
         accessStatus,
@@ -176,7 +176,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         updateUser,
         refreshAccessStatus,
-    };
+    }), [user, token, accessStatus, loading, activeTeam, effectiveUser, login, logout, isAuthenticated, updateUser, refreshAccessStatus]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

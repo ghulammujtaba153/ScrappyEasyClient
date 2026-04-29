@@ -3,75 +3,22 @@ import axios from 'axios';
 import { MdNotifications, MdCheck, MdDelete, MdCheckCircle } from 'react-icons/md';
 import { useAuth } from '../../context/authContext';
 import { useSocket } from '../../context/SocketContext';
+import { useNotification } from '../../context/NotificationContext';
 import { BASE_URL } from '../../config/URL';
 import { message } from 'antd';
 
 const NotificationDropdown = () => {
     const { user, token } = useAuth();
-    const { subscribeToEvent } = useSocket();
+    const { 
+        notifications, 
+        loading, 
+        unreadCount, 
+        markAsRead, 
+        markAllAsRead, 
+        deleteNotification 
+    } = useNotification();
     const [showNotifications, setShowNotifications] = useState(false);
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(false);
     const notificationRef = useRef(null);
-
-    // Fetch notifications from API
-    const fetchNotifications = async () => {
-        if (!user?._id || !token) return;
-        
-        try {
-            setLoading(true);
-            const res = await axios.get(`${BASE_URL}/api/notifications/user/${user._id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setNotifications(res.data);
-        } catch (error) {
-            console.error('Error fetching notifications:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Initial fetch
-    useEffect(() => {
-        fetchNotifications();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, token]);
-
-    // Listen for real-time notifications via socket
-    useEffect(() => {
-        if (!subscribeToEvent) return;
-
-        // Subscribe to new notification events
-        const unsubscribeNewNotification = subscribeToEvent('new_notification', (notification) => {
-            console.log('🔔 NotificationDropdown received:', notification);
-            // Server already filters, so just add it
-            setNotifications(prev => [notification, ...prev]);
-            message.info(notification.title || 'New notification');
-        });
-
-        // Subscribe to team-related notifications
-        const unsubscribeTeamNotification = subscribeToEvent('team_notification', (notification) => {
-            console.log('🔔 Team notification received:', notification);
-            setNotifications(prev => [notification, ...prev]);
-            message.info(notification.title || 'Team notification');
-        });
-
-        // Subscribe to broadcast notifications
-        const unsubscribeBroadcast = subscribeToEvent('broadcast_notification', (notification) => {
-            setNotifications(prev => [{
-                ...notification,
-                _id: notification._id || Date.now(),
-                user: user?._id
-            }, ...prev]);
-            message.info(notification.title || 'New notification');
-        });
-
-        return () => {
-            unsubscribeNewNotification?.();
-            unsubscribeTeamNotification?.();
-            unsubscribeBroadcast?.();
-        };
-    }, [subscribeToEvent, user]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -84,53 +31,6 @@ const NotificationDropdown = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    // Mark single notification as read
-    const markAsRead = async (notificationId) => {
-        try {
-            await axios.put(
-                `${BASE_URL}/api/notifications/mark-read/${notificationId}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setNotifications(prev =>
-                prev.map(n => n._id === notificationId ? { ...n, isRead: true } : n)
-            );
-        } catch (error) {
-            console.error('Error marking notification as read:', error);
-        }
-    };
-
-    // Mark all notifications as read
-    const markAllAsRead = async () => {
-        if (!user?._id) return;
-        try {
-            await axios.put(
-                `${BASE_URL}/api/notifications/mark-all-read/${user._id}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-            message.success('All notifications marked as read');
-        } catch (error) {
-            console.error('Error marking all as read:', error);
-            message.error('Failed to mark all as read');
-        }
-    };
-
-    // Delete notification
-    const deleteNotification = async (notificationId, e) => {
-        e.stopPropagation();
-        try {
-            await axios.delete(`${BASE_URL}/api/notifications/delete/${notificationId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setNotifications(prev => prev.filter(n => n._id !== notificationId));
-            message.success('Notification deleted');
-        } catch (error) {
-            console.error('Error deleting notification:', error);
-        }
-    };
 
     // Format time ago
     const formatTimeAgo = (date) => {
@@ -145,8 +45,6 @@ const NotificationDropdown = () => {
         if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
         return `${days} day${days > 1 ? 's' : ''} ago`;
     };
-
-    const unreadCount = notifications.filter(n => !n.isRead).length;
 
     return (
         <div className="relative" ref={notificationRef}>

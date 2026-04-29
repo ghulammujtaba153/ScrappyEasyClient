@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Spin, Tag, Empty, Button, message, Avatar } from 'antd';
 import { 
     MdClose, 
@@ -8,7 +8,9 @@ import {
     MdLocationOn, 
     MdBusinessCenter, 
     MdRefresh,
-    MdPeople
+    MdPeople,
+    MdContentCopy,
+    MdOpenInNew
 } from 'react-icons/md';
 import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
@@ -16,9 +18,13 @@ import { BASE_URL } from '../../config/URL';
 const LinkedInInformation = ({ isOpen, onClose, leadData }) => {
     const [loading, setLoading] = useState(false);
     const [people, setPeople] = useState([]);
+    const [firstLinkedIn, setFirstLinkedIn] = useState('');
+    const [topGoogleResult, setTopGoogleResult] = useState('');
+    const [topLinkedInResults, setTopLinkedInResults] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState(null);
 
-    const fetchPersonnelInfo = async () => {
+    const fetchPersonnelInfo = useCallback(async () => {
         if (!leadData?.website) {
             setError("No website available for this lead to scan.");
             return;
@@ -38,6 +44,10 @@ const LinkedInInformation = ({ isOpen, onClose, leadData }) => {
 
             if (response.data.success) {
                 setPeople(response.data.data || []);
+                setFirstLinkedIn(response.data.firstLinkedIn || response.data?.data?.[0]?.linkedin || '');
+                setTopGoogleResult(response.data.topGoogleResult || '');
+                setTopLinkedInResults(response.data.topLinkedInResults || []);
+                setSearchQuery(response.data.query || '');
             } else {
                 setError(response.data.message || "Failed to retrieve information.");
             }
@@ -47,13 +57,13 @@ const LinkedInInformation = ({ isOpen, onClose, leadData }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [leadData]);
 
     useEffect(() => {
         if (isOpen && leadData) {
             fetchPersonnelInfo();
         }
-    }, [isOpen, leadData]);
+    }, [isOpen, leadData, fetchPersonnelInfo]);
 
     const copyToClipboard = (text, label) => {
         navigator.clipboard.writeText(text);
@@ -117,8 +127,76 @@ const LinkedInInformation = ({ isOpen, onClose, leadData }) => {
                             Try Again
                         </Button>
                     </div>
-                ) : people.length > 0 ? (
+                ) : (people.length > 0 || topGoogleResult || topLinkedInResults.length > 0) ? (
                     <div className="space-y-4">
+                        {searchQuery && (
+                            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                                <p className="text-[10px] font-black text-gray-600 uppercase tracking-wider mb-2">Search Query Used</p>
+                                <p className="text-xs text-gray-700 break-all">{searchQuery}</p>
+                            </div>
+                        )}
+
+                        {topGoogleResult && (
+                            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-600 uppercase tracking-wider">Top Google Result</p>
+                                    <a href={topGoogleResult} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-800 font-semibold break-all hover:underline">
+                                        {topGoogleResult}
+                                    </a>
+                                </div>
+                                <a href={topGoogleResult} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-800">
+                                    <MdOpenInNew size={20} />
+                                </a>
+                            </div>
+                        )}
+
+                        {topLinkedInResults.length > 0 && (
+                            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-3">Top LinkedIn Profile Matches</p>
+                                <div className="space-y-2">
+                                    {topLinkedInResults.map((link, index) => (
+                                        <div key={link} className="flex items-center justify-between gap-3 bg-white border border-blue-100 rounded-xl px-3 py-2">
+                                            <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 font-medium break-all hover:underline">
+                                                {index + 1}. {link}
+                                            </a>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <button
+                                                    onClick={() => copyToClipboard(link, 'LinkedIn URL')}
+                                                    className="p-1.5 hover:bg-gray-100 rounded text-gray-500"
+                                                    title="Copy"
+                                                >
+                                                    <MdContentCopy size={14} />
+                                                </button>
+                                                <a href={link} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Open">
+                                                    <MdOpenInNew size={14} />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {firstLinkedIn && (
+                            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Top Google LinkedIn Result</p>
+                                    <a href={firstLinkedIn} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 font-semibold break-all hover:underline">
+                                        {firstLinkedIn}
+                                    </a>
+                                </div>
+                                <a href={firstLinkedIn} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                                    <MdOpenInNew size={20} />
+                                </a>
+                            </div>
+                        )}
+
+                        {people.length === 0 && firstLinkedIn && (
+                            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-sm text-blue-800">
+                                LinkedIn profile found from Google. Open the link above.
+                            </div>
+                        )}
+
                         {people.map((person, index) => (
                             <div 
                                 key={index} 
@@ -193,6 +271,26 @@ const LinkedInInformation = ({ isOpen, onClose, leadData }) => {
                                             </div>
 
                                             <div className="space-y-2">
+                                                <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl group/item">
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <MdBusinessCenter className="text-gray-400 shrink-0" />
+                                                        {person.linkedin ? (
+                                                            <a href={person.linkedin} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 truncate hover:underline">
+                                                                {person.linkedin}
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-sm text-gray-600 truncate">No LinkedIn found</span>
+                                                        )}
+                                                    </div>
+                                                    {person.linkedin && (
+                                                        <button 
+                                                            onClick={() => copyToClipboard(person.linkedin, 'LinkedIn URL')}
+                                                            className="p-1 hover:bg-gray-200 rounded text-gray-400 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                                        >
+                                                            <MdContentCopy size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl">
                                                     <MdLocationOn className="text-gray-400 shrink-0" />
                                                     <span className="text-sm text-gray-600 truncate">{person.location || leadData?.city || 'N/A'}</span>

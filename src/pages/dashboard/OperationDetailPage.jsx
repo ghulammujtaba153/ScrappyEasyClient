@@ -42,7 +42,8 @@ import {
   MdEdit,
   MdDelete,
   MdEmail,
-  MdShare
+  MdShare,
+  MdContentCopy
 } from 'react-icons/md';
 import { BsWhatsapp, BsFacebook, BsInstagram, BsLinkedin, BsTwitterX, BsYoutube, BsTiktok } from 'react-icons/bs';
 import axios from 'axios';
@@ -51,7 +52,6 @@ import SubscriptionRestrictedModal from '../../components/SubscriptionRestricted
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import { useOperations } from '../../context/operationsContext';
-import { useScreenshot } from '../../context/screenshotContext';
 import Notes from '../../components/dashboard/Notes';
 import SaveColdCallsModal from '../../components/dashboard/SaveColdCallsModal';
 import ScreenshotViewer from '../../components/dashboard/ScreenshotViewer';
@@ -109,8 +109,6 @@ const OperationDetailPage = () => {
   const whatsappStatus = useMemo(() => cachedData.whatsappStatus || {}, [cachedData.whatsappStatus]);
   const emailData = useMemo(() => cachedData.emailData || {}, [cachedData.emailData]);
   const socialData = useMemo(() => cachedData.socialData || {}, [cachedData.socialData]);
-
-  const { addToQueue, queue, progress } = useScreenshot();
 
   const [loading, setLoading] = useState(!record);
   const [filters, setFilters] = useState({ ...defaultFilters });
@@ -319,6 +317,20 @@ const OperationDetailPage = () => {
     }
 
     setLoadingRecommendations(false);
+  };
+
+  const copyRecommendedLocation = async (city) => {
+    const operationTitle = record?.searchString || record?.title || 'Operation';
+    const locationText = city?.city || '';
+    const copyText = `${operationTitle} ${locationText}`.trim();
+
+    try {
+      await navigator.clipboard.writeText(copyText);
+      message.success('Copied recommended location');
+    } catch (error) {
+      console.error('Copy recommended location failed:', error);
+      message.error('Failed to copy location text');
+    }
   };
 
   // Extract cities for all items in record
@@ -1163,49 +1175,7 @@ const OperationDetailPage = () => {
     message.success('XLS export ready');
   };
 
-  const handleCapture = async (url, key) => {
-    if (!isAuthorized) {
-      setLockedFeature('Website Capture');
-      setIsLockedModalOpen(true);
-      return;
-    }
-    if (!url) return;
-
-    addToQueue([{
-      url,
-      key,
-      recordId: record._id,
-      title: record.title // or item title if available, but key usually maps to index so title is harder to get here without looking up item?
-      // Actually handleCapture is called with website and key. We'll rely on context logic.
-    }], record._id);
-
-    message.success('Added to capture queue');
-  };
-
-  const captureAllScreenshots = async (onlyFiltered = true) => {
-    if (!isAuthorized) {
-      setLockedFeature('Bulk Capture');
-      setIsLockedModalOpen(true);
-      return;
-    }
-    const dataToProcess = onlyFiltered ? filteredData : flattenedData;
-    const websitesToCapture = dataToProcess.filter(item => item.website && !screenshotData[item.key]);
-
-    if (websitesToCapture.length === 0) {
-      message.warning('No new websites to capture');
-      return;
-    }
-
-    const items = websitesToCapture.map(item => ({
-      url: item.website,
-      key: item.key,
-      recordId: record._id,
-      title: item.title
-    }));
-
-    addToQueue(items, record._id);
-    message.success(`Added ${items.length} websites to capture queue`);
-  };
+  // Screenshot queue helpers are intentionally kept out of the UI for now.
 
   const handleVerifyAllClick = async () => {
     const numbers = [...new Set(
@@ -1249,20 +1219,6 @@ const OperationDetailPage = () => {
         <Tag color="green">⭐ {rating}</Tag>
       ) : '-',
       sorter: (a, b) => (parseFloat(a.rating) || 0) - (parseFloat(b.rating) || 0),
-    },
-    {
-      title: 'Favorite',
-      key: 'favorite',
-      width: 100,
-      render: (_, record) => (
-        <Button
-          type="text"
-          icon={record.favorite ? <MdFavorite style={{ color: '#ef4444' }} className="text-xl" /> : <MdFavoriteBorder className="text-gray-400 text-xl" />}
-          onClick={() => toggleFavorite(record.leadId, record.itemIndex, !record.favorite)}
-          className="hover:bg-red-50 transition-colors"
-        />
-      ),
-      sorter: (a, b) => (a.favorite ? 1 : 0) - (b.favorite ? 1 : 0),
     },
     {
       title: 'Reviews',
@@ -1533,10 +1489,37 @@ const OperationDetailPage = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: 120,
+      width: 190,
       fixed: 'right',
       render: (_, lead) => (
         <Space>
+          <Tooltip title={lead.favorite ? 'Remove from favorites' : 'Add to favorites'}>
+            <Button
+              type="text"
+              icon={lead.favorite ? <MdFavorite style={{ color: '#ef4444' }} className="text-lg" /> : <MdFavoriteBorder className="text-gray-400 text-lg" />}
+              onClick={() => toggleFavorite(lead.leadId, lead.itemIndex, !lead.favorite)}
+              className="hover:bg-red-50"
+            />
+          </Tooltip>
+
+          {/**
+           * LinkedIn founder/member automation temporarily disabled.
+           * Uncomment to restore the action button.
+           *
+           * <Tooltip title="LinkedIn founder/member automation">
+           *   <Button
+           *     type="text"
+           *     icon={<BsLinkedin className="text-[#0A66C2] text-lg" />}
+           *     onClick={() => {
+           *       setSelectedLeadForLinkedIn(lead);
+           *       setIsLinkedInModalOpen(true);
+           *     }}
+           *     className="hover:bg-blue-50"
+           *     disabled={!lead.website}
+           *   />
+           * </Tooltip>
+           */}
+
           <Button
             type="text"
             icon={<MdEdit className="text-blue-500 text-lg" />}
@@ -1890,7 +1873,18 @@ const OperationDetailPage = () => {
                 )}
               </div>
               <div className="text-right">
-                <Tag color="green">{city.distance_km} km away</Tag>
+                <div className="flex items-center justify-end gap-2">
+                  <Tag color="green">{city.distance_km} km away</Tag>
+                  <Tooltip title="Copy operation + location">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<MdContentCopy />}
+                      onClick={() => copyRecommendedLocation(city)}
+                      className="text-gray-500 hover:text-primary hover:bg-white"
+                    />
+                  </Tooltip>
+                </div>
               </div>
             </div>
           ))}
@@ -2122,6 +2116,15 @@ const OperationDetailPage = () => {
             toggleFavorite(item.leadId, item.itemIndex, favorite);
           }
         }}
+      />
+
+      <LinkedInInformation
+        isOpen={isLinkedInModalOpen}
+        onClose={() => {
+          setIsLinkedInModalOpen(false);
+          setSelectedLeadForLinkedIn(null);
+        }}
+        leadData={selectedLeadForLinkedIn}
       />
 
 
