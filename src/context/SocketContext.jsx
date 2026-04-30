@@ -88,9 +88,7 @@ export const SocketProvider = ({ children }) => {
                 // Auto connect
                 autoConnect: true,
                 // Response timeout for polling
-                httpCompression: true,
-                // Disable reconnection on auth errors
-                reconnectionDelayMax: 5000
+                httpCompression: true
             });
 
             socketRef.current = socketInstance;

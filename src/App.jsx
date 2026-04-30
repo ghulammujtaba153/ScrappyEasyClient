@@ -43,6 +43,8 @@ import PricingPage from "./pages/PricingPage";
 import WhoWinsPage from "./pages/WhoWinsPage";
 import AboutPage from "./pages/AboutPage";
 import TermsCondition from "./pages/TermsConditionPage";
+import DemoPresentationPage from "./pages/DemoPresentationPage";
+import GetExtensionPage from "./pages/GetExtensionPage";
 
 
 function App() {
@@ -73,6 +75,8 @@ function App() {
                                         <Route path="/lemon-squeezy" element={<LemonSqueezy />} />
                                         <Route path="/landing" element={<LandingPage />} />
                                         <Route path="/pricing" element={<PricingPage />} />
+                                        <Route path="/demo-presentation" element={<DemoPresentationPage />} />
+                                        <Route path="/get-extension" element={<GetExtensionPage />} />
 
                                         <Route path="/who-wins" element={<WhoWinsPage />} />
                                         <Route path="/about" element={<AboutPage />} />

@@ -148,7 +148,7 @@ const Navbar = () => {
                         />
                     </Link>
 
-                    {/* Desktop Menu — Home, Products, Who Wins ⭐, Our Story, Pricing */}
+                    {/* Desktop Menu — Home, Products, Who Wins ⭐, Our Story, Pricing, Demo Deck */}
                     <div className="hidden lg:flex items-center gap-5 xl:gap-7">
                         {/* Home */}
                         <Link
@@ -252,6 +252,22 @@ const Navbar = () => {
                             className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
                         >
                             Pricing
+                        </Link>
+
+                        {/* Get Extension */}
+                        <Link
+                            to="/get-extension"
+                            className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
+                        >
+                            Get Extension
+                        </Link>
+
+                        {/* Interactive Demo */}
+                        <Link
+                            to="/demo-presentation"
+                            className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
+                        >
+                            Interactive Demo
                         </Link>
                     </div>
 
@@ -372,6 +388,16 @@ const Navbar = () => {
                                 {/* Pricing */}
                                 <Link to="/pricing" className="block py-3 text-gray-900 font-black font-semibold text-base hover:text-[#0F792C] transition-colors">
                                     Pricing
+                                </Link>
+
+                                {/* Interactive Demo */}
+                                <Link to="/demo-presentation" className="block py-3 text-gray-900 font-black font-semibold text-base hover:text-[#0F792C] transition-colors">
+                                    Interactive Demo
+                                </Link>
+
+                                {/* Get Extension */}
+                                <Link to="/get-extension" className="block py-3 text-gray-900 font-black font-semibold text-base hover:text-[#0F792C] transition-colors">
+                                    Get Extension
                                 </Link>
                             </div>
 
