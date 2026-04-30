@@ -431,6 +431,24 @@ const DemoPresentationPage = () => {
                             onboarding step, interact with live simulation controls, and jump directly to the relevant
                             app screen.
                         </motion.p>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                            className="mt-12 max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-slate-100 ring-4 ring-white"
+                        >
+                            <div style={{ position: "relative", paddingBottom: "65.01809408926417%", height: 0 }}>
+                                <iframe 
+                                    src="https://www.loom.com/embed/dd91e074bfc34102bf96cdb8847d05dc" 
+                                    frameBorder="0" 
+                                    webkitallowfullscreen="true" 
+                                    mozallowfullscreen="true" 
+                                    allowFullScreen 
+                                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                                ></iframe>
+                            </div>
+                        </motion.div>
                     </div>
                 </section>
 
