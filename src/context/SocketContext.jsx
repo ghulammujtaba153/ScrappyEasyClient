@@ -82,6 +82,8 @@ export const SocketProvider = ({ children }) => {
                 timeout: 20000,
                 withCredentials: true,
                 autoConnect: true,
+                // Response timeout for polling
+                httpCompression: true
             });
 
             socketRef.current = socketInstance;

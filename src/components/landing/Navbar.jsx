@@ -99,7 +99,7 @@ const Navbar = () => {
 
     // Order: Home, Products (dropdown), Who Wins With This ⭐, Our Story, Pricing
     const navLinks = [
-        { label: "Home", href: "/landing" },
+        { label: "Home", href: "/" },
         { label: "Who Wins With This", href: "/who-wins", star: true },
         { label: "Our Story", href: "/about" },
         { label: "Pricing", href: "/pricing" },
@@ -141,19 +141,19 @@ const Navbar = () => {
                 <nav className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-full px-4 sm:px-6 md:px-10 py-2.5 sm:py-3 shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center justify-between">
                     
                     {/* Logo */}
-                    <Link to="/landing" className="flex items-center gap-3 shrink-0">
+                    <Link to="/" className="flex items-center gap-3 shrink-0">
                         <img 
                             src="/logo.png" 
                             alt="Map Harvest Logo" 
-                            className="h-8 sm:h-10 w-auto hover:scale-110 transition-transform duration-300" 
+                            className="h-7 sm:h-7 md:h-7 lg:h-9 w-auto hover:scale-110 transition-transform duration-300" 
                         />
                     </Link>
 
-                    {/* Desktop Menu — Home, Products, Who Wins ⭐, Our Story, Pricing */}
+                    {/* Desktop Menu — Home, Products, Who Wins ⭐, Our Story, Pricing, Demo Deck */}
                     <div className="hidden lg:flex items-center gap-5 xl:gap-7">
                         {/* Home */}
                         <Link
-                            to="/landing"
+                            to="/"
                             className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
                         >
                             Home
@@ -239,12 +239,12 @@ const Navbar = () => {
                             <FaStar size={11} className="text-amber-400" />
                         </Link>
 
-                        <Link
+                        {/* <Link
                             to="/extension"
                             className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
                         >
                             Get Extension
-                        </Link>
+                        </Link> */}
 
                         {/* Our Story */}
                         <Link
@@ -261,7 +261,22 @@ const Navbar = () => {
                         >
                             Pricing
                         </Link>
-                        
+
+                        {/* Get Extension */}
+                        <Link
+                            to="/get-extension"
+                            className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
+                        >
+                            Get Extension
+                        </Link>
+
+                        {/* Interactive Demo */}
+                        <Link
+                            to="/demo-presentation"
+                            className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
+                        >
+                            Interactive Demo
+                        </Link>
                     </div>
 
                     {/* Right side: Auth + Mobile hamburger */}
@@ -381,6 +396,16 @@ const Navbar = () => {
                                 {/* Pricing */}
                                 <Link to="/pricing" className="block py-3 text-gray-900 font-black font-semibold text-base hover:text-[#0F792C] transition-colors">
                                     Pricing
+                                </Link>
+
+                                {/* Interactive Demo */}
+                                <Link to="/demo-presentation" className="block py-3 text-gray-900 font-black font-semibold text-base hover:text-[#0F792C] transition-colors">
+                                    Interactive Demo
+                                </Link>
+
+                                {/* Get Extension */}
+                                <Link to="/get-extension" className="block py-3 text-gray-900 font-black font-semibold text-base hover:text-[#0F792C] transition-colors">
+                                    Get Extension
                                 </Link>
                             </div>
 

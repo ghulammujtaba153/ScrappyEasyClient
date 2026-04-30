@@ -44,8 +44,9 @@ import PricingPage from "./pages/PricingPage";
 import WhoWinsPage from "./pages/WhoWinsPage";
 import AboutPage from "./pages/AboutPage";
 import TermsCondition from "./pages/TermsConditionPage";
+import DemoPresentationPage from "./pages/DemoPresentationPage";
+import GetExtensionPage from "./pages/GetExtensionPage";
 import PendingReviewPage from "./pages/PendingReviewPage";
-import ExtensionPage from "./pages/ExtensionPage";
 
 
 function App() {
@@ -66,7 +67,8 @@ function App() {
                                 <OperationsProvider>
                                     <ScreenshotProvider>
                                         <Routes>
-                                        <Route path="/" element={<AuthRedirect />} />
+                                        {/* <Route path="/" element={<AuthRedirect />} /> */}
+                                        <Route path="/" element={<LandingPage />} />
                                         <Route path="/register" element={<RegisterPage />} />
                                         <Route path="/login" element={<LoginPage />} />
                                         <Route path="/forgot-password" element={<ForgetPassword />} />
@@ -75,9 +77,10 @@ function App() {
                                         <Route path="/lead-buddy-privacy" element={<PrivacyPage />} />
                                         <Route path="/lead-buddy-support" element={<SupportPage />} />
                                         <Route path="/lemon-squeezy" element={<LemonSqueezy />} />
-                                        <Route path="/landing" element={<LandingPage />} />
+                                        
                                         <Route path="/pricing" element={<PricingPage />} />
-                                        <Route path="/extension" element={<ExtensionPage />} />
+                                        <Route path="/demo-presentation" element={<DemoPresentationPage />} />
+                                        <Route path="/get-extension" element={<GetExtensionPage />} />
 
                                         <Route path="/who-wins" element={<WhoWinsPage />} />
                                         <Route path="/about" element={<AboutPage />} />

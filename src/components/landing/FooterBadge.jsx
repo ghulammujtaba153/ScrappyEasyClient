@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const FooterBadge = () => {
     return (
@@ -33,12 +34,12 @@ const FooterBadge = () => {
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6">
-                            <button className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto">
+                            <Link to="/get-extension" className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto text-center">
                                 Install Extension
-                            </button>
-                            <button className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto">
+                            </Link>
+                            <Link to="/pricing" className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto text-center">
                                 Get Lifetime Access
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>

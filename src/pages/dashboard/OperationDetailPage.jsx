@@ -71,10 +71,11 @@ const defaultFilters = {
   whatsappStatus: '',
   ratingMin: null,
   ratingMax: null,
-  reviewsMin: null,
   reviewsMax: null,
   hasWebsite: '',
   hasPhone: '',
+  hasEmail: '',
+  hasSocials: '',
   favorite: ''
 };
 
@@ -1032,6 +1033,21 @@ const OperationDetailPage = () => {
         return filters.hasPhone === 'yes' ? hasPhone : !hasPhone;
       });
     }
+
+    if (filters.hasEmail) {
+      filtered = filtered.filter(item => {
+        const hasEmail = item.emails && item.emails.length > 0;
+        return filters.hasEmail === 'yes' ? hasEmail : !hasEmail;
+      });
+    }
+
+    if (filters.hasSocials) {
+      filtered = filtered.filter(item => {
+        const hasSocials = item.socialMedia && Object.values(item.socialMedia).some(url => url);
+        return filters.hasSocials === 'yes' ? hasSocials : !hasSocials;
+      });
+    }
+
 
     if (filters.favorite) {
       filtered = filtered.filter(item => {
@@ -2029,6 +2045,40 @@ const OperationDetailPage = () => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Has Email
+              </label>
+              <Select
+                placeholder="Email availability"
+                style={{ width: '100%' }}
+                value={filters.hasEmail || undefined}
+                onChange={(value) => setFilters({ ...filters, hasEmail: value || '' })}
+                allowClear
+                className="custom-select-premium h-12"
+              >
+                <Option value="yes">With Email</Option>
+                <Option value="no">Missing Email</Option>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Has Socials
+              </label>
+              <Select
+                placeholder="Socials availability"
+                style={{ width: '100%' }}
+                value={filters.hasSocials || undefined}
+                onChange={(value) => setFilters({ ...filters, hasSocials: value || '' })}
+                allowClear
+                className="custom-select-premium h-12"
+              >
+                <Option value="yes">With Socials</Option>
+                <Option value="no">Missing Socials</Option>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Minimum Reviews
               </label>
               <InputNumber
@@ -2063,6 +2113,8 @@ const OperationDetailPage = () => {
           filters.reviewsMax !== null ||
           filters.hasWebsite ||
           filters.hasPhone ||
+          filters.hasEmail ||
+          filters.hasSocials ||
           filters.favorite) && (
             <div className="mt-4">
               <Button
