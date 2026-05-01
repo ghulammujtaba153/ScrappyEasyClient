@@ -112,8 +112,9 @@ export const OperationsProvider = ({ children }) => {
                 let initialScreenshotData = {};
 
                 // If leads are populated, extract status/city/screenshot from LeadData
-                if (data.leads && Array.isArray(data.leads)) {
-                    data.leads.forEach((lead, index) => {
+                const leadsArray = (data.leads && data.leads.length > 0) ? data.leads : (data.data || []);
+                if (leadsArray && Array.isArray(leadsArray)) {
+                    leadsArray.forEach((lead, index) => {
                         const leadId = lead._id;
                         const itemKey = leadId || `${data._id}-${index}`;
 

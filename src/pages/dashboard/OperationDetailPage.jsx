@@ -71,6 +71,7 @@ const defaultFilters = {
   whatsappStatus: '',
   ratingMin: null,
   ratingMax: null,
+  reviewsMin: null,
   reviewsMax: null,
   hasWebsite: '',
   hasPhone: '',
@@ -625,6 +626,8 @@ const OperationDetailPage = () => {
         leadId,
         itemIndex,
         favorite
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data.success) {
@@ -884,14 +887,16 @@ const OperationDetailPage = () => {
   };
 
   const flattenedData = useMemo(() => {
-    if (!record?.leads) {
+    const leadsArray = (record?.leads && record.leads.length > 0) ? record.leads : (record?.data || []);
+
+    if (!leadsArray || leadsArray.length === 0) {
       return [];
     }
 
-    return record.leads.map((item, index) => ({
+    return leadsArray.filter(Boolean).map((item, index) => ({
       key: item._id || `${record._id}-${index}`,
       _id: item._id,
-      leadId: item._id,
+      leadId: item._id || `${record._id}-${index}`,
       recordId: record._id,
       itemIndex: index,
       searchString: record.searchString,
@@ -901,14 +906,14 @@ const OperationDetailPage = () => {
       reviews: item.reviews || '',
       phone: item.phone || '',
       address: item.address || '',
-      city: item.city || cityData[item._id] || '', // Prefer stored city, then cached
+      city: item.city || cityData[item._id] || cityData[`${record._id}-${index}`] || '', // Prefer stored city, then cached
       website: item.website || '',
       googleMapsLink: item.googleMapsLink || '',
       whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone)] || 'not-checked',
       favorite: item.favorite || false,
-      screenshotUrl: item.screenshotUrl || screenshotData[item._id] || '',
-      emails: item.emails || emailData[item._id] || undefined,
-      socialMedia: item.socialMedia || socialData[item._id] || undefined
+      screenshotUrl: item.screenshotUrl || screenshotData[item._id] || screenshotData[`${record._id}-${index}`] || '',
+      emails: item.emails || emailData[item._id] || emailData[`${record._id}-${index}`] || undefined,
+      socialMedia: item.socialMedia || socialData[item._id] || socialData[`${record._id}-${index}`] || undefined
     }));
   }, [record, cityData, whatsappStatus, screenshotData, emailData, socialData]);
 
@@ -944,7 +949,16 @@ const OperationDetailPage = () => {
 
     let filtered = [...flattenedData];
 
-
+    if (filters.locationSearch) {
+      filtered = filtered.filter(item => {
+        const lowerSearch = filters.locationSearch.toLowerCase();
+        return (
+          (item.city && item.city.toLowerCase().includes(lowerSearch)) ||
+          (item.address && item.address.toLowerCase().includes(lowerSearch)) ||
+          (item.title && item.title.toLowerCase().includes(lowerSearch))
+        );
+      });
+    }
 
     if (filters.countries.length > 0) {
       filtered = filtered.filter(item =>
@@ -991,28 +1005,28 @@ const OperationDetailPage = () => {
       });
     }
 
-    if (filters.ratingMin !== null) {
+    if (filters.ratingMin != null) {
       filtered = filtered.filter(item => {
         const rating = parseFloat(item.rating);
         return !Number.isNaN(rating) && rating >= filters.ratingMin;
       });
     }
 
-    if (filters.ratingMax !== null) {
+    if (filters.ratingMax != null) {
       filtered = filtered.filter(item => {
         const rating = parseFloat(item.rating);
         return !Number.isNaN(rating) && rating <= filters.ratingMax;
       });
     }
 
-    if (filters.reviewsMin !== null) {
+    if (filters.reviewsMin != null) {
       filtered = filtered.filter(item => {
         const reviews = parseInt(item.reviews);
         return !Number.isNaN(reviews) && reviews >= filters.reviewsMin;
       });
     }
 
-    if (filters.reviewsMax !== null) {
+    if (filters.reviewsMax != null) {
       filtered = filtered.filter(item => {
         const reviews = parseInt(item.reviews);
         return !Number.isNaN(reviews) && reviews <= filters.reviewsMax;
