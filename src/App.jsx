@@ -1,4 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import ReactGA from "react-ga4";
 import { ConfigProvider } from "antd";
 import { AuthProvider } from "./context/authContext";
 import { SocketProvider } from "./context/SocketContext";
@@ -50,6 +52,24 @@ import PendingReviewPage from "./pages/PendingReviewPage";
 import BlogPage from "./pages/BlogPage";
 import BlogDetailPage from "./pages/BlogDetailPage";
 
+// Initialize GA4
+const TRACKING_ID = import.meta.env.VITE_GOOGLE_ANLYTICS_ID;
+if (TRACKING_ID) {
+    ReactGA.initialize(TRACKING_ID);
+}
+
+const AnalyticsTracker = () => {
+    const location = useLocation();
+
+    useEffect(() => {
+        if (TRACKING_ID) {
+            ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
+        }
+    }, [location]);
+
+    return null;
+};
+
 
 function App() {
     return (
@@ -63,6 +83,7 @@ function App() {
         >
             <div className="text-xs">
                 <Router>
+                    <AnalyticsTracker />
                     <AuthProvider>
                         <SocketProvider>
                             <NotificationProvider>
