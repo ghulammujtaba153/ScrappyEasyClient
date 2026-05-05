@@ -47,6 +47,8 @@ import TermsCondition from "./pages/TermsConditionPage";
 import DemoPresentationPage from "./pages/DemoPresentationPage";
 import GetExtensionPage from "./pages/GetExtensionPage";
 import PendingReviewPage from "./pages/PendingReviewPage";
+import BlogPage from "./pages/BlogPage";
+import BlogDetailPage from "./pages/BlogDetailPage";
 
 
 function App() {
@@ -81,6 +83,8 @@ function App() {
                                         <Route path="/pricing" element={<PricingPage />} />
                                         <Route path="/demo-presentation" element={<DemoPresentationPage />} />
                                         <Route path="/get-extension" element={<GetExtensionPage />} />
+                                        <Route path="/blogs" element={<BlogPage />} />
+                                        <Route path="/blog/:id" element={<BlogDetailPage />} />
 
                                         <Route path="/who-wins" element={<WhoWinsPage />} />
                                         <Route path="/about" element={<AboutPage />} />
