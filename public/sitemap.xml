@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Core Pages -->
+  <url>
+    <loc>https://mapharvest.live/</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://mapharvest.live/pricing</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mapharvest.live/about</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mapharvest.live/who-wins</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Product & Support -->
+  <url>
+    <loc>https://mapharvest.live/get-extension</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mapharvest.live/demo-presentation</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://mapharvest.live/lead-buddy-support</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Legal -->
+  <url>
+    <loc>https://mapharvest.live/lead-buddy-privacy</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://mapharvest.live/term-conditions</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- Auth (Optional, but helps Google find the entry points) -->
+  <url>
+    <loc>https://mapharvest.live/login</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://mapharvest.live/register</loc>
+    <lastmod>2026-05-05</lastmod>
+    <priority>0.5</priority>
+  </url>
+</urlset>
