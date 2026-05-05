@@ -56,7 +56,7 @@ const BlogDetailPage = () => {
         return (
             <div className="min-h-screen flex flex-col">
                 <Navbar />
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 min-h-screen flex items-center justify-center">
                     <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                 </div>
                 <FooterSection />
@@ -79,13 +79,13 @@ const BlogDetailPage = () => {
         <div className="min-h-screen bg-white flex flex-col">
             <Navbar />
 
-            <div className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="flex-1 max-w-7xl mx-auto mt-20 px-4 py-12 w-full grid grid-cols-1 lg:grid-cols-3 gap-12">
                 
                 {/* Main Content */}
                 <article className="lg:col-span-2">
-                    <Link to="/blogs" className="inline-flex items-center gap-2 text-gray-500 hover:text-primary mb-8 font-medium transition-colors">
+                    {/* <Link to="/blogs" className="inline-flex items-center gap-2 text-gray-500 hover:text-primary mb-8 font-medium transition-colors">
                         <FaArrowLeft size={14} /> Back to Insights
-                    </Link>
+                    </Link> */}
 
                     <div className="mb-8">
                         <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
@@ -130,35 +130,7 @@ const BlogDetailPage = () => {
                 </article>
 
                 {/* Sidebar */}
-                <aside className="space-y-10">
-                    {/* Recent Posts */}
-                    <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 sticky top-24">
-                        <h3 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">Recent Insights</h3>
-                        <div className="space-y-6">
-                            {recentBlogs.map(rb => (
-                                <Link key={rb._id} to={`/blog/${rb.slug}`} className="block group">
-                                    <h4 className="font-bold text-gray-700 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
-                                        {rb.title}
-                                    </h4>
-                                    <span className="text-xs text-gray-400 mt-2 block">
-                                        {new Date(rb.createdAt || rb.date).toLocaleDateString()}
-                                    </span>
-                                </Link>
-                            ))}
-                        </div>
-                        
-                        <div className="mt-10 pt-8 border-t border-gray-200">
-                            <div className="bg-primary rounded-2xl p-6 text-white relative overflow-hidden">
-                                <div className="relative z-10">
-                                    <h4 className="font-bold text-lg mb-2">Need Help?</h4>
-                                    <p className="text-sm opacity-90 mb-4 text-white/90">Our team can help you set up your international calling office.</p>
-                                    <Link to="/lead-buddy-support" className="text-sm font-bold underline">Contact Support</Link>
-                                </div>
-                                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-                            </div>
-                        </div>
-                    </div>
-                </aside>
+                
             </div>
 
             <FooterSection />
