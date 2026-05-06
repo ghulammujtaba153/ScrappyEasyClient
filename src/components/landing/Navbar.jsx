@@ -15,6 +15,7 @@ import {
     HiOutlineUsers,
 } from "react-icons/hi";
 import { IoChevronDown } from "react-icons/io5";
+import { useAuth } from "../../context/authContext";
 
 export const products = [
     {
@@ -96,6 +97,7 @@ const Navbar = () => {
     const dropdownRef = useRef(null);
     const timeoutRef = useRef(null);
     const location = useLocation();
+    const { user } = useAuth();
 
     // Order: Home, Products (dropdown), Who Wins With This ⭐, Our Story, Pricing
     const navLinks = [
@@ -289,18 +291,29 @@ const Navbar = () => {
 
                     {/* Right side: Auth + Mobile hamburger */}
                     <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-                        <Link 
-                            to="/register" 
-                            className="bg-black font-semibold hover:bg-gray-800 text-white px-5 sm:px-8 py-2 sm:py-2.5 rounded-full font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-black/20 hover:scale-105"
-                        >
-                            Sign Up
-                        </Link>
-                        <Link 
-                            to="/login" 
-                            className="hidden sm:block text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors"
-                        >
-                            Sign In
-                        </Link>
+                        {user ? (
+                            <Link 
+                                to="/dashboard" 
+                                className="bg-[#0F792C] font-semibold hover:bg-[#0c6123] text-white px-5 sm:px-8 py-2 sm:py-2.5 rounded-full font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-[#0F792C]/20 hover:scale-105"
+                            >
+                                Dashboard
+                            </Link>
+                        ) : (
+                            <>
+                                <Link 
+                                    to="/register" 
+                                    className="bg-black font-semibold hover:bg-gray-800 text-white px-5 sm:px-8 py-2 sm:py-2.5 rounded-full font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-black/20 hover:scale-105"
+                                >
+                                    Sign Up
+                                </Link>
+                                <Link 
+                                    to="/login" 
+                                    className="hidden sm:block text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors"
+                                >
+                                    Sign In
+                                </Link>
+                            </>
+                        )}
                         {/* Mobile hamburger */}
                         <button
                             onClick={() => setMobileOpen(true)}
@@ -424,12 +437,29 @@ const Navbar = () => {
 
                             {/* Mobile auth buttons */}
                             <div className="px-6 pb-8 pt-4 border-t border-gray-100 space-y-3">
-                                <Link to="/register" className="block w-full text-center bg-black text-white py-3 rounded-full font-black font-semibold text-sm hover:bg-gray-800 transition-colors">
-                                    Sign Up
-                                </Link>
-                                <Link to="/login" className="block w-full text-center text-gray-700 py-3 rounded-full font-black font-semibold text-sm border border-gray-200 hover:bg-gray-50 transition-colors">
-                                    Sign In
-                                </Link>
+                                {user ? (
+                                    <Link 
+                                        to="/dashboard" 
+                                        className="block w-full text-center bg-[#0F792C] text-white py-3 rounded-full font-black font-semibold text-sm hover:bg-[#0c6123] transition-colors shadow-lg"
+                                    >
+                                        Go to Dashboard
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link 
+                                            to="/register" 
+                                            className="block w-full text-center bg-black text-white py-3 rounded-full font-black font-semibold text-sm hover:bg-gray-800 transition-colors"
+                                        >
+                                            Sign Up
+                                        </Link>
+                                        <Link 
+                                            to="/login" 
+                                            className="block w-full text-center text-gray-700 py-3 rounded-full font-black font-semibold text-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+                                        >
+                                            Sign In
+                                        </Link>
+                                    </>
+                                )}
                             </div>
                         </motion.div>
                     </>
