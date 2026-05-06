@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import Navbar from "../components/landing/Navbar";
 import FooterSection from "../components/landing/FooterSection";
+import { trackMetaEvent } from "../utils/analytics";
 
 const CHROME_WEB_STORE_SEARCH_URL = "https://chromewebstore.google.com/detail/lead-buddy-business-conta/lkacglodcmpgjejflajjdcglneamnnim";
 
@@ -152,6 +153,7 @@ const GetExtensionPage = () => {
                                 href={CHROME_WEB_STORE_SEARCH_URL}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={() => trackMetaEvent('Lead', { content_category: 'Extension', content_name: 'Chrome Web Store' })}
                                 className="inline-flex items-center gap-2 rounded-full bg-[#0F792C] text-white px-4 py-2.5 text-sm font-semibold shadow-[0_18px_30px_-20px_rgba(15,121,44,0.7)]"
                             >
                                 Open Chrome Web Store <FaExternalLinkAlt size={11} />
@@ -193,6 +195,7 @@ const GetExtensionPage = () => {
                         <div className="mt-5 flex flex-wrap gap-2.5">
                             <Link
                                 to="/lead-buddy-support"
+                                onClick={() => trackMetaEvent('Lead', { content_category: 'Extension', content_name: 'Direct Package Download' })}
                                 className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
                             >
                                 <FaPlug size={12} /> Download Extension Package

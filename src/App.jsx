@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import ReactGA from "react-ga4";
+import { trackMetaEvent } from "./utils/analytics";
 import { ConfigProvider } from "antd";
 import { AuthProvider } from "./context/authContext";
 import { SocketProvider } from "./context/SocketContext";
@@ -58,13 +59,30 @@ if (TRACKING_ID) {
     ReactGA.initialize(TRACKING_ID);
 }
 
+// Initialize Meta Pixel
+const PIXEL_ID = import.meta.env.VITE_PIXEL_ID;
+if (PIXEL_ID) {
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', PIXEL_ID);
+}
+
 const AnalyticsTracker = () => {
     const location = useLocation();
 
     useEffect(() => {
+        // Track GA4
         if (TRACKING_ID) {
             ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
         }
+        // Track Meta Pixel via helper
+        trackMetaEvent('PageView');
     }, [location]);
 
     return null;

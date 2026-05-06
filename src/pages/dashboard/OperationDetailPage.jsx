@@ -5,6 +5,7 @@ import SaveNumbersModal from '../../components/dashboard/SaveNumbersModal';
 import SaveQualifiedLeadsModal from '../../components/dashboard/SaveQualifiedLeadsModal';
 import OperationCSVImport from '../../components/dashboard/OperationCSVImport';
 import EditLeadModal from '../../components/dashboard/EditLeadModal';
+import { trackMetaEvent } from '../../utils/analytics';
 import {
   Alert,
   Button,
@@ -433,6 +434,13 @@ const OperationDetailPage = () => {
           cityData: cityDataToSave
         }, { headers: { Authorization: `Bearer ${token}` } });
 
+        // Track Search Event for City Discovery
+        trackMetaEvent('Search', {
+          content_name: 'City Discovery',
+          content_category: 'Lead Enrichment',
+          value: successCount
+        });
+
         // Final update to cache
         setCityData(newCityData);
 
@@ -559,6 +567,14 @@ const OperationDetailPage = () => {
       }
 
       message.success(`Discovery complete! Found ${totalItemsFound} items.`);
+      
+      // Track Lead Enrichment (Socials/Emails)
+      trackMetaEvent('Lead', {
+        content_name: 'Social & Email Discovery',
+        content_category: 'Lead Enrichment',
+        value: totalItemsFound
+      });
+
       fetchRecord(true);
     } catch (error) {
       console.error('Bulk extraction loop error:', error);
@@ -638,6 +654,14 @@ const OperationDetailPage = () => {
         );
         updateOperationCache(operationId, { record: updatedRecord });
         message.success(favorite ? 'Added to favorites' : 'Removed from favorites');
+        
+        // Track Favorite Interaction
+        if (favorite) {
+            trackMetaEvent('Contact', { 
+                content_name: 'Lead Favorited', 
+                content_category: 'Lead Management' 
+            });
+        }
       }
     } catch (error) {
       console.error('Toggle favorite error:', error);
@@ -877,6 +901,13 @@ const OperationDetailPage = () => {
 
         // Refresh record to get updated whatsappStatus from database
         await fetchRecord();
+        
+        // Track Verification Event
+        trackMetaEvent('Contact', {
+            content_name: 'Bulk WhatsApp Verification',
+            content_category: 'Verification',
+            value: successful
+        });
       }
     } catch (error) {
       console.error('Batch verification error:', error);
@@ -1164,6 +1195,13 @@ const OperationDetailPage = () => {
     const csvContent = [header, ...rows].join('\n');
     downloadFile(`\ufeff${csvContent}`, 'text/csv;charset=utf-8;', 'csv');
     message.success('CSV export ready');
+
+    // Track Export Event
+    trackMetaEvent('Other', {
+        content_name: 'CSV Export',
+        content_category: 'Data Export',
+        value: filteredData.length
+    });
   };
 
   const escapeHtml = (value) => {
@@ -1203,6 +1241,13 @@ const OperationDetailPage = () => {
     const htmlContent = `<table><thead><tr>${headerHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
     downloadFile(`\ufeff${htmlContent}`, 'application/vnd.ms-excel', 'xls');
     message.success('XLS export ready');
+
+    // Track Export Event
+    trackMetaEvent('Other', {
+        content_name: 'XLS Export',
+        content_category: 'Data Export',
+        value: filteredData.length
+    });
   };
 
   // Screenshot queue helpers are intentionally kept out of the UI for now.

@@ -9,6 +9,7 @@ import {
 } from "react-icons/fa";
 import { useAuth } from '../../context/authContext';
 import Loader from '../../components/common/Loader';
+import { trackMetaEvent } from '../../utils/analytics';
 
 const COUNTRY_LIST = getCountries().map(c => ({ value: c.name, label: c.name }));
 
@@ -114,6 +115,7 @@ const ProfilePage = () => {
             if (res.ok) {
                 updateUser({ ...user, ...data.user });
                 setNotification({ message: "Profile updated successfully!", type: "success" });
+                trackMetaEvent('Contact', { content_name: 'Profile Info Updated' });
             } else {
                 setNotification({ message: data.message || "Failed to update profile", type: "error" });
             }
@@ -140,6 +142,12 @@ const ProfilePage = () => {
             if (res.ok) {
                 updateUser({ ...user, ...data.user, isProfileComplete: true });
                 setNotification({ message: "Interests updated successfully!", type: "success" });
+                
+                // Track Profile Completion
+                trackMetaEvent('CompleteRegistration', { 
+                    content_name: 'Profile Interests Completed',
+                    content_category: 'User Onboarding'
+                });
             } else {
                 setNotification({ message: data.message || "Failed to update interests", type: "error" });
             }

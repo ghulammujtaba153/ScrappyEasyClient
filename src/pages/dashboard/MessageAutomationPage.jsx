@@ -10,6 +10,7 @@ import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModa
 import { checkAccessStatus } from '../../api/subscriptionApi';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
 import { MdLock } from 'react-icons/md';
+import { trackMetaEvent } from '../../utils/analytics';
 import { isQualifiedLeadsCampaign, getStats } from '../../components/message-automation/utils';
 import AutomationDetailModal from '../../components/message-automation/AutomationDetailModal';
 import EditCampaignModal from '../../components/message-automation/EditCampaignModal';
@@ -220,6 +221,14 @@ const MessageAutomationPage = () => {
                 if (res.data.remainingMessages !== undefined) {
                     setRemainingMessages(res.data.remainingMessages);
                 }
+                
+                // Track Batch Message Sending
+                trackMetaEvent('Contact', { 
+                    content_name: 'Batch WhatsApp Campaign', 
+                    content_category: 'Messaging',
+                    value: res.data.successCount
+                });
+
                 fetchData(); // Refresh UI
             } else {
                 message.warning(res.data.message || 'No messages processed');
@@ -278,9 +287,16 @@ const MessageAutomationPage = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            if (res.data.success) {
+             if (res.data.success) {
                 message.success(`Message sent to ${res.data.businessName}`);
                 setRemainingMessages(res.data.remainingMessages);
+                
+                // Track Single Message Sending
+                trackMetaEvent('Contact', { 
+                    content_name: 'Single WhatsApp Message', 
+                    content_category: 'Messaging' 
+                });
+
                 fetchData();
             }
         } catch (sendError) {

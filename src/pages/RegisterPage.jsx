@@ -10,6 +10,7 @@ import { useAuth } from "../context/authContext";
 import { PLANS } from "../config/plans";
 import Navbar from "../components/landing/Navbar";
 import FooterSection from "../components/landing/FooterSection";
+import { trackMetaEvent } from "../utils/analytics";
 
 
 
@@ -153,6 +154,7 @@ const RegisterPage = () => {
 
                 if (response.ok) {
                     setNotification({ message: "OTP sent to your email!", type: "success" });
+                    trackMetaEvent('Contact', { content_name: 'OTP Request', content_category: 'Registration' });
                     setStep(2); // Move to OTP verification
                 } else {
                     setNotification({ message: data.message || "Failed to send OTP", type: "error" });
@@ -243,6 +245,14 @@ const RegisterPage = () => {
                     message: "Registration successful! Your account has been submitted for review.", 
                     type: "success" 
                 });
+
+                // Track Successful Registration
+                trackMetaEvent('CompleteRegistration', {
+                    content_name: selectedPlan?.name || 'Registration',
+                    currency: 'USD',
+                    value: parseFloat(selectedPlan?.price?.replace('$', '')) || 0
+                });
+
                 setStep(3); // Show under review message
             } else {
                 setNotification({ message: registerData.message || "Registration failed", type: "error" });

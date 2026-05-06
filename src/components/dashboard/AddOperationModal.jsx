@@ -4,6 +4,7 @@ import { FiPlus } from 'react-icons/fi';
 import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
+import { trackMetaEvent } from '../../utils/analytics';
 
 const AddOperationModal = ({ visible, onCancel, onSuccess }) => {
     const [loading, setLoading] = useState(false);
@@ -30,6 +31,13 @@ const AddOperationModal = ({ visible, onCancel, onSuccess }) => {
 
             if (res.status === 201 || res.status === 200) {
                 message.success('Operation created successfully');
+                
+                // Track Scrape/Search start
+                trackMetaEvent('Search', {
+                    search_string: values.name,
+                    content_category: 'New Scrape Operation'
+                });
+
                 form.resetFields();
                 onCancel();
                 if (onSuccess) onSuccess('create');

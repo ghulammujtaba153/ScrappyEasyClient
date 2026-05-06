@@ -3,6 +3,7 @@ import axios from 'axios';
 import { BASE_URL } from './../../config/URL';
 import { Input, Button, Table, Card, message, InputNumber, Tag, Empty, Tabs } from 'antd';
 import { FiSearch, FiMapPin, FiGlobe, FiNavigation } from 'react-icons/fi';
+import { trackMetaEvent } from '../../utils/analytics';
 
 const LocationPage = () => {
     // State search state
@@ -45,6 +46,13 @@ const LocationPage = () => {
                     count: res.data.count
                 });
                 message.success(`Found ${res.data.count} cities in ${res.data.admin_name}`);
+                
+                // Track Search Event
+                trackMetaEvent('Search', {
+                    search_string: searchName,
+                    content_category: 'Location/State Search',
+                    content_ids: [searchCountry]
+                });
             }
         } catch (err) {
             message.error(err.response?.data?.message || 'Failed to search cities');
@@ -74,6 +82,13 @@ const LocationPage = () => {
                 setNeighbors(res.data.neighbors);
                 setTargetCity(res.data.target);
                 message.success(`Found ${res.data.count} neighboring cities`);
+                
+                // Track Search Event
+                trackMetaEvent('Search', {
+                    search_string: cityName,
+                    content_category: 'Location/Neighbor Search',
+                    content_ids: [neighborCountry]
+                });
             }
         } catch (err) {
             message.error(err.response?.data?.message || 'Failed to find neighbors');

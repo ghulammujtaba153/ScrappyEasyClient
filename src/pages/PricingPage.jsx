@@ -10,6 +10,7 @@ import {
 import { Link } from "react-router-dom";
 import Navbar from "../components/landing/Navbar";
 import FooterSection from "../components/landing/FooterSection";
+import { trackMetaEvent } from "../utils/analytics";
 
 const plans = [
     {
@@ -185,6 +186,12 @@ const PricingPage = () => {
 
                                 <Link
                                     to={`/register?plan=${plan.id}`}
+                                    onClick={() => trackMetaEvent('InitiateCheckout', {
+                                        content_name: plan.name,
+                                        content_ids: [plan.id],
+                                        value: parseFloat(plan.price.replace('$', '')),
+                                        currency: 'USD'
+                                    })}
                                     className={`w-full py-4 rounded-full font-bold text-lg text-center transition-all shadow-lg hover:shadow-2xl hover:-translate-y-1 ${
                                         plan.highlight
                                             ? "bg-primary text-white hover:bg-primary/90"

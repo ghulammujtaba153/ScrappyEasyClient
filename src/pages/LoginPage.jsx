@@ -4,6 +4,7 @@ import { BASE_URL } from "../config/URL";
 import { useAuth } from "../context/authContext";
 import Notification from "../components/common/Notification";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { trackMetaEvent } from "../utils/analytics";
 
 import Navbar from "../components/landing/Navbar";
 import FooterSection from "../components/landing/FooterSection";
@@ -69,6 +70,9 @@ const LoginPage = () => {
                 // Use auth context to login
                 login(data.user, data.token);
                 setNotification({ message: data.message || "Login successful!", type: "success" });
+                
+                // Track Login
+                trackMetaEvent('Contact', { content_name: 'User Login' });
 
                 // Check if login came from Chrome extension
                 const urlParams = new URLSearchParams(window.location.search);

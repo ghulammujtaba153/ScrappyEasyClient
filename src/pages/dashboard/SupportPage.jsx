@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Input, Button, message } from 'antd';
 import { createSupportRequest } from '../../api/supportApi';
+import { trackMetaEvent } from '../../utils/analytics';
 
 const { TextArea } = Input;
 
@@ -36,6 +37,12 @@ const SupportPage = () => {
 
             if (response.success) {
                 message.success(response.message || 'Support request submitted successfully!');
+                
+                // Track Contact event
+                trackMetaEvent('Contact', { 
+                    content_name: 'Support Ticket', 
+                    content_category: 'Customer Support' 
+                });
 
                 // Reset form
                 setFormData({
