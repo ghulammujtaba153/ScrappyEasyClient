@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Spin, Tag, Empty, List, Avatar, Typography, Button, message, Alert } from 'antd';
 import { 
   MdSettingsInputComponent, MdAnalytics, MdAdsClick, MdLayers, MdExtension, 
-  MdLightbulb, MdTrendingUp, MdWarning, MdMail, MdSupportAgent, MdPayments, MdSecurity 
+  MdLightbulb, MdTrendingUp, MdWarning, MdMail, MdSupportAgent, MdPayments, MdSecurity,
+  MdBarChart
 } from 'react-icons/md';
 import { 
   SiShopify, SiWordpress, SiWix, SiSquarespace, SiMagento, SiGoogleanalytics, 
   SiGoogletagmanager, SiFacebook, SiX, SiTiktok, SiSnapchat, SiNextdotjs, 
   SiReact, SiVuedotjs, SiJquery, SiTailwindcss, SiBootstrap, SiElementor,
   SiKlaviyo, SiHubspot, SiMailchimp, SiActivecampaign, SiIntercom, SiZendesk, 
-  SiCrisp, SiStripe, SiPaypal, SiCloudflare, SiHotjar, SiMicrosoftclarity, SiVtex
+  SiCrisp, SiStripe, SiPaypal, SiCloudflare, SiHotjar, SiVtex
 } from 'react-icons/si';
 import { FaHeadset } from 'react-icons/fa';
 import axios from 'axios';
@@ -49,7 +50,7 @@ const ICON_MAP = {
   paypal: <SiPaypal className="text-[#003087]" />,
   cloudflare: <SiCloudflare className="text-[#f38020]" />,
   hotjar: <SiHotjar className="text-[#ff1c5e]" />,
-  clarity: <SiMicrosoftclarity className="text-[#0078d4]" />
+  clarity: <MdBarChart className="text-[#0078d4]" />
 };
 
 const CATEGORY_ICONS = {
