@@ -37,7 +37,7 @@ const FooterBadge = () => {
                             <Link to="/get-extension" className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto text-center">
                                 Install Extension
                             </Link>
-                            <Link to="/pricing" className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto text-center">
+                            <Link to="/register?plan=lifetime" className="bg-white hover:bg-gray-50 text-gray-900 px-10 py-4 rounded-full font-black font-semibold text-lg shadow-xl hover:scale-105 transition-all w-full sm:w-auto text-center">
                                 Get Lifetime Access
                             </Link>
                         </div>

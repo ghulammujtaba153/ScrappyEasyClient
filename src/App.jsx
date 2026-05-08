@@ -77,6 +77,9 @@ const AnalyticsTracker = () => {
     const location = useLocation();
 
     useEffect(() => {
+        // Scroll to top on route change
+        window.scrollTo(0, 0);
+
         // Track GA4
         if (TRACKING_ID) {
             ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });

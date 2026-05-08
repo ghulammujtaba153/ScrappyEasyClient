@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 const PricingSection = () => {
     const plans = [
         {
+            id: "2-year",
             name: "2-Year Plan",
             price: "$30",
             period: "/ 2 years",
@@ -24,6 +25,7 @@ const PricingSection = () => {
             highlight: false,
         },
         {
+            id: "lifetime",
             name: "Lifetime Deal",
             price: "$69",
             period: "one-time",
@@ -103,7 +105,7 @@ const PricingSection = () => {
 
                             {/* CTA */}
                             <Link
-                                to="/pricing"
+                                to={`/register?plan=${plan.id}`}
                                 className={`w-full py-4 rounded-full font-bold text-lg text-center transition-all shadow-lg hover:shadow-2xl hover:-translate-y-1 block ${plan.highlight ? "bg-primary text-white hover:bg-primary/90" : "bg-white border-2 border-primary/20 text-[#0F792C] hover:bg-gray-50"}`}
                             >
                                 {plan.btnText}

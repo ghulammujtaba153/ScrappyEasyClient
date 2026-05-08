@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { FaArrowRight, FaMapMarkedAlt, FaCoffee, FaBuilding, FaGlobe, FaSearch, FaPhoneAlt, FaStar, FaWhatsapp, FaChrome, FaFilter, FaEnvelope, FaCheckCircle, FaBullhorn } from "react-icons/fa";
 
 const HowWorkSection = () => {
@@ -10,7 +11,8 @@ const HowWorkSection = () => {
             iconColor: "text-[#0F792C]",
             title: "Install Lead Buddy",
             description: "Install our powerful Lead Buddy Chrome extension in seconds. It’s the engine that turns Google Maps listings into a stream of high-quality business leads for your agency.",
-            btnColor: "bg-[#BBF7D0]/50 hover:bg-[#BBF7D0] text-[#0F792C] border-[#BBF7D0]",
+            dashboardLink: "/get-extension",
+            btnText: "Install Extension",
             layout: "lg:flex-row",
             visual: (
                 <div className="w-full lg:w-1/2 relative group">
@@ -44,7 +46,8 @@ const HowWorkSection = () => {
             iconColor: "text-[#F97316]",
             title: "Scrape Google Maps",
             description: "Use Map Harvest to navigate any niche or location. Our advanced scrapper automatically pulls business names, verified phone numbers, addresses, and social links in real-time.",
-            btnColor: "bg-orange-50/50 hover:bg-orange-50 text-gray-900 border-orange-100",
+            dashboardLink: "/dashboard/operations",
+            btnText: "Start Scraping",
             layout: "lg:flex-row-reverse",
             visual: (
                 <div className="w-full lg:w-1/2 relative group">
@@ -70,7 +73,8 @@ const HowWorkSection = () => {
             iconColor: "text-yellow-600",
             title: "Export to CRM",
             description: "Directly sync your fresh leads into the Map Harvest CRM. Say goodbye to spreadsheets and keep your sales team organized with a centralized database of prospects and interaction history.",
-            btnColor: "bg-yellow-50/50 hover:bg-yellow-50 text-gray-900 border-yellow-200",
+            dashboardLink: "/dashboard/qualified-leads",
+            btnText: "Go to CRM",
             layout: "lg:flex-row",
             visual: (
                 <div className="w-full lg:w-1/2 relative group">
@@ -109,7 +113,8 @@ const HowWorkSection = () => {
             iconColor: "text-blue-600",
             title: "Filter & Refine Data",
             description: "Narrow down your leads using powerful filters. Sort by reviews, phone number availability, email presence, and more to focus only on the highest-value prospects worth pursuing.",
-            btnColor: "bg-blue-50/50 hover:bg-blue-50 text-gray-900 border-blue-100",
+            dashboardLink: "/dashboard/qualified-leads",
+            btnText: "Filter Leads",
             layout: "lg:flex-row-reverse",
             visual: (
                 <div className="w-full lg:w-1/2 relative group">
@@ -147,7 +152,8 @@ const HowWorkSection = () => {
             iconColor: "text-green-600",
             title: "WhatsApp Verify & Message",
             description: "Instantly verify WhatsApp availability for every phone number harvested. Then launch bulk message campaigns to reach prospects directly where they're most active.",
-            btnColor: "bg-green-50/50 hover:bg-green-50 text-gray-900 border-green-200",
+            dashboardLink: "/dashboard/operations",
+            btnText: "Verify WhatsApp",
             layout: "lg:flex-row",
             visual: (
                 <div className="w-full lg:w-1/2 relative group">
@@ -189,7 +195,8 @@ const HowWorkSection = () => {
             iconColor: "text-orange-600",
             title: "Email Extraction",
             description: "Automatically extract email addresses from business websites and listings. Build a verified email list ready for outreach campaigns — no manual research needed.",
-            btnColor: "bg-orange-50/50 hover:bg-orange-50 text-gray-900 border-orange-100",
+            dashboardLink: "/dashboard/operations",
+            btnText: "Extract Emails",
             layout: "lg:flex-row-reverse",
             visual: (
                 <div className="w-full lg:w-1/2 relative group">
@@ -206,7 +213,7 @@ const HowWorkSection = () => {
                                     { email: "hello@urbansolar.co", source: "Google" },
                                     { email: "contact@primerealty.com", source: "Website" },
                                 ].map((item, i) => (
-                                    <div key={i} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-50 shadow-sm">
+                                    <div key={i} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
                                         <div className="flex items-center gap-2">
                                             <FaEnvelope className="text-orange-300" size={10} />
                                             <span className="text-xs font-semibold text-gray-800">{item.email}</span>
@@ -227,7 +234,8 @@ const HowWorkSection = () => {
             iconColor: "text-purple-600",
             title: "Qualify Leads",
             description: "Use our built-in swiper to quickly browse business websites and qualify leads based on your own criteria. Rate, tag, and sort prospects to build a pipeline of genuinely interested buyers.",
-            btnColor: "bg-purple-50/50 hover:bg-purple-50 text-gray-900 border-purple-100",
+            dashboardLink: "/dashboard/qualified-leads",
+            btnText: "Qualify Now",
             layout: "lg:flex-row",
             visual: (
                 <div className="w-full lg:w-1/2 relative group">
@@ -265,7 +273,8 @@ const HowWorkSection = () => {
             iconColor: "text-red-600",
             title: "Launch Campaigns",
             description: "Run full outreach campaigns from one dashboard — send bulk emails, cold call via the built-in dialer, test funnels, and manage multi-channel outreach to close deals faster.",
-            btnColor: "bg-red-50/50 hover:bg-red-50 text-gray-900 border-red-100",
+            dashboardLink: "/dashboard/qualified-leads",
+            btnText: "Start Outreach",
             layout: "lg:flex-row-reverse",
             visual: (
                 <div className="w-full lg:w-1/2 relative group">
@@ -353,13 +362,13 @@ const HowWorkSection = () => {
                                     </div>
 
                                     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
-                                        <button className="bg-black hover:bg-gray-800 text-white px-7 py-3 rounded-full font-semibold flex items-center gap-3 shadow-lg transition-all hover:scale-105 group/btn">
-                                            Explore Features 
+                                        <Link 
+                                            to={card.dashboardLink}
+                                            className="bg-black hover:bg-gray-800 text-white px-8 py-3.5 rounded-full font-semibold flex items-center gap-3 shadow-lg transition-all hover:scale-105 group/btn"
+                                        >
+                                            {card.btnText}
                                             <FaArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
-                                        </button>
-                                        <button className={`${card.btnColor} border-2 px-7 py-3 rounded-full font-semibold text-sm shadow-sm transition-all hover:scale-105 text-nowrap`}>
-                                            Get Lead Buddy Free
-                                        </button>
+                                        </Link>
                                     </div>
                                 </div>
                             </div>

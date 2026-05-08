@@ -437,40 +437,50 @@ const DemoPresentationPage = () => {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.5, delay: 0.2 }}
-                                className="video-glow-wrapper"
+                                className="flex flex-col gap-6"
                             >
-                                <div className="video-glow-inner">
-                                    <div style={{ position: "relative", paddingBottom: "65.01809408926417%", height: 0 }}>
-                                        <iframe 
-                                            src="https://www.loom.com/embed/d04652b8c80845e897a20fc390ac8fcd" 
-                                            frameBorder="0" 
-                                            webkitallowfullscreen="true" 
-                                            mozallowfullscreen="true" 
-                                            allowFullScreen 
-                                            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
-                                        ></iframe>
+                                <div className="video-glow-wrapper">
+                                    <div className="video-glow-inner">
+                                        <div style={{ position: "relative", paddingBottom: "65.01809408926417%", height: 0 }}>
+                                            <iframe 
+                                                src="https://www.loom.com/embed/d04652b8c80845e897a20fc390ac8fcd" 
+                                                frameBorder="0" 
+                                                webkitallowfullscreen="true" 
+                                                mozallowfullscreen="true" 
+                                                allowFullScreen 
+                                                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                                            ></iframe>
+                                        </div>
                                     </div>
                                 </div>
+                                <h3 className="text-xs md:text-sm font-bold text-slate-800 uppercase tracking-[0.12em] leading-relaxed text-center px-2">
+                                    MAP HARVEST VID 1 - DATA EXTRACTION, WHATSAPP VERIFICATION, EMAIL, SOCIALS, GROWING LIST FOR OUTREACH AND MORE!
+                                </h3>
                             </motion.div>
 
                             <motion.div
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.5, delay: 0.3 }}
-                                className="video-glow-wrapper"
+                                className="flex flex-col gap-6"
                             >
-                                <div className="video-glow-inner">
-                                    <div style={{ position: "relative", paddingBottom: "65.01809408926417%", height: 0 }}>
-                                        <iframe 
-                                            src="https://www.loom.com/embed/aa527e4975c548d48c5ba2a8334f01da" 
-                                            frameBorder="0" 
-                                            webkitallowfullscreen="true" 
-                                            mozallowfullscreen="true" 
-                                            allowFullScreen 
-                                            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
-                                        ></iframe>
+                                <div className="video-glow-wrapper">
+                                    <div className="video-glow-inner">
+                                        <div style={{ position: "relative", paddingBottom: "65.01809408926417%", height: 0 }}>
+                                            <iframe 
+                                                src="https://www.loom.com/embed/aa527e4975c548d48c5ba2a8334f01da" 
+                                                frameBorder="0" 
+                                                webkitallowfullscreen="true" 
+                                                mozallowfullscreen="true" 
+                                                allowFullScreen 
+                                                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                                            ></iframe>
+                                        </div>
                                     </div>
                                 </div>
+                                <h3 className="text-xs md:text-sm font-bold text-slate-800 uppercase tracking-[0.12em] leading-relaxed text-center px-2">
+                                    MAP HARVEST VID 2-HOW I QUALIFY LEADS, COLD CALL, EMAIL AND COLLABORATE
+                                </h3>
                             </motion.div>
                         </div>
                     </div>
