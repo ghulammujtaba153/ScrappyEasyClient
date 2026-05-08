@@ -56,19 +56,12 @@ const CommunicationMethodsChart = ({ data = [], loading = false }) => {
             contacted: data.find(d => d.method === 'coldCall')?.contacted || 0,
             total: data.find(d => d.method === 'coldCall')?.total || 0,
             color: COLORS.coldCall
-        },
-        {
-            name: 'Messages',
-            contacted: data.find(d => d.method === 'messages')?.contacted || 0,
-            total: data.find(d => d.method === 'messages')?.total || 0,
-            color: COLORS.messages
         }
     ];
 
     // Calculate stats
     const totalCalls = chartData[0].contacted;
-    const totalMessages = chartData[1].contacted;
-    const totalContacted = totalCalls + totalMessages;
+    const totalContacted = totalCalls;
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
@@ -84,7 +77,7 @@ const CommunicationMethodsChart = ({ data = [], loading = false }) => {
                     <BarChart
                         data={chartData}
                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        barCategoryGap="30%"
+                        barCategoryGap="40%"
                     >
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis 
@@ -118,7 +111,7 @@ const CommunicationMethodsChart = ({ data = [], loading = false }) => {
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+            <div className="mt-4 pt-4 border-t border-gray-100">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${COLORS.coldCall}20` }}>
                         <svg className="w-5 h-5" style={{ color: COLORS.coldCall }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,17 +121,6 @@ const CommunicationMethodsChart = ({ data = [], loading = false }) => {
                     <div>
                         <p className="text-2xl font-bold" style={{ color: COLORS.coldCall }}>{totalCalls.toLocaleString()}</p>
                         <p className="text-xs text-gray-500">Cold Calls Made</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${COLORS.messages}20` }}>
-                        <svg className="w-5 h-5" style={{ color: COLORS.messages }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p className="text-2xl font-bold" style={{ color: COLORS.messages }}>{totalMessages.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500">Messages Sent</p>
                     </div>
                 </div>
             </div>

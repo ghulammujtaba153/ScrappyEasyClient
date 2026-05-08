@@ -265,12 +265,12 @@ const Navbar = () => {
                         </Link>
 
                         {/* Insights (Blog) */}
-                        <Link
+                        {/* <Link
                             to="/blogs"
                             className="text-gray-900 font-semibold hover:text-[#0F792C] font-black text-sm tracking-tight transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-[2px] after:bg-[#0F792C] hover:after:w-full after:transition-all"
                         >
                             Insights
-                        </Link>
+                        </Link> */}
 
                         {/* Get Extension */}
                         <Link

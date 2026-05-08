@@ -61,6 +61,8 @@ import { checkAccessStatus } from '../../api/subscriptionApi';
 import Loader from '../../components/common/Loader';
 import ExtractionLoader from '../../components/common/ExtractionLoader';
 import LinkedInInformation from '../../components/dashboard/LinkedInInformation';
+import StackAnalysisModal from '../../components/dashboard/StackAnalysisModal';
+import { MdSettingsInputComponent } from 'react-icons/md';
 
 
 const { Option } = Select;
@@ -146,6 +148,10 @@ const OperationDetailPage = () => {
   // LinkedIn Personnel State
   const [isLinkedInModalOpen, setIsLinkedInModalOpen] = useState(false);
   const [selectedLeadForLinkedIn, setSelectedLeadForLinkedIn] = useState(null);
+
+  // Stack Analysis State
+  const [isStackModalOpen, setIsStackModalOpen] = useState(false);
+  const [selectedLeadForStack, setSelectedLeadForStack] = useState(null);
 
   // Subscription/Trial State
   const [isAuthorized, setIsAuthorized] = useState(true);
@@ -738,42 +744,67 @@ const OperationDetailPage = () => {
     });
   };
 
-  const formatPhoneNumber = (phone) => {
+  const formatPhoneNumber = (phone, contextHint = '') => {
     if (!phone) return null;
-    const digits = phone.replace(/\D/g, '');
-    if (!digits) return null;
-    return `+${digits}`;
+    
+    // Remove all non-digits except +
+    let cleaned = phone.trim().replace(/[^\d+]/g, '');
+    if (!cleaned) return null;
+
+    // Handle 00 prefix
+    if (cleaned.startsWith('00')) {
+      cleaned = '+' + cleaned.slice(2);
+    }
+
+    // If it already has a +, it's E.164 ready
+    if (cleaned.startsWith('+')) {
+      return cleaned;
+    }
+
+    // DYNAMIC COUNTRY DETECTION
+    // We infer the country from the search query or address
+    const hint = contextHint.toLowerCase();
+    let countryCode = '971'; // Default to UAE as it's the primary market
+
+    if (hint.includes('australia')) countryCode = '61';
+    else if (hint.includes('uk') || hint.includes('london') || hint.includes('united kingdom')) countryCode = '44';
+    else if (hint.includes('usa') || hint.includes('america') || hint.includes('united states')) countryCode = '1';
+    else if (hint.includes('india')) countryCode = '91';
+    else if (hint.includes('pakistan')) countryCode = '92';
+    else if (hint.includes('saudi') || hint.includes('ksa')) countryCode = '966';
+    else if (hint.includes('qatar')) countryCode = '974';
+
+    // If it starts with 0 (local trunk prefix) and looks like a local number
+    if (cleaned.startsWith('0') && (cleaned.length === 9 || cleaned.length === 10)) {
+      return `+${countryCode}${cleaned.slice(1)}`;
+    }
+
+    // Fallback: just add a + if missing
+    return `+${cleaned}`;
   };
 
   const verifyWhatsAppNumber = async (phone, options = {}) => {
     const { silent = false, formattedNumber } = options;
 
     if (!phone) {
-      if (!silent) {
-        message.warning('No phone number available');
-      }
+      if (!silent) message.warning('No phone number available');
       return;
     }
+
+    const normalized = formattedNumber || formatPhoneNumber(phone, record?.searchString || '');
 
     if (!whatsappInitialized) {
-      if (!silent) {
-        message.error('Please connect WhatsApp by scanning the QR code first');
-      }
-      setWhatsappStatus(prev => ({ ...prev, [formatPhoneNumber(phone)]: 'unknown' }));
+      if (!silent) message.error('Please connect WhatsApp by scanning the QR code first');
+      if (normalized) setWhatsappStatus(prev => ({ ...prev, [normalized]: 'unknown' }));
       return;
     }
 
-    const normalized = formattedNumber || formatPhoneNumber(phone);
-
-    // Verify WhatsApp Number - use normalized phone as key
-    if (!normalized) {
-      if (!silent) {
-        message.warning('Invalid phone number format');
-      }
-      setWhatsappStatus(prev => ({ ...prev, [formatPhoneNumber(phone)]: 'unknown' }));
+    if (!normalized || normalized === '+') {
+      if (!silent) message.warning('Invalid phone number format');
       return;
     }
 
+    // START LOADING
     setWhatsappStatus(prev => ({ ...prev, [normalized]: 'checking' }));
 
     try {
@@ -793,29 +824,23 @@ const OperationDetailPage = () => {
         setWhatsappStatus(prev => ({ ...prev, [normalized]: status }));
 
         if (!silent) {
-          if (isRegistered) {
-            message.success('WhatsApp number verified!');
-          } else {
-            message.info('Number does not have WhatsApp');
-          }
+          if (isRegistered) message.success('WhatsApp number verified!');
+          else message.info('Number does not have WhatsApp');
         }
 
-        // Refresh to get updated status from DB
         fetchRecord();
       } else {
+        // STOP LOADING ON API ERROR
         const errorMessage = res.data.error || 'Failed to verify WhatsApp number';
-        setWhatsappStatus(prev => ({ ...prev, [normalized]: 'unknown' }));
-        if (!silent) {
-          message.error(errorMessage);
-        }
+        setWhatsappStatus(prev => ({ ...prev, [normalized]: 'failed' }));
+        if (!silent) message.error(errorMessage);
       }
     } catch (error) {
+      // STOP LOADING ON NETWORK ERROR
       const backendMessage = error.response?.data?.error || error.message;
       console.error('Verification error:', backendMessage);
-      setWhatsappStatus(prev => ({ ...prev, [phone]: 'failed' }));
-      if (!silent) {
-        message.error(`Failed to verify WhatsApp number: ${backendMessage}`);
-      }
+      setWhatsappStatus(prev => ({ ...prev, [normalized]: 'failed' }));
+      if (!silent) message.error(`Failed to verify WhatsApp number: ${backendMessage}`);
     }
   };
 
@@ -1355,6 +1380,25 @@ const OperationDetailPage = () => {
           </div>
         </Space>
       ) : '-',
+    },
+    {
+      title: 'Tech Stack',
+      key: 'techStack',
+      width: 130,
+      render: (_, record) => record.website ? (
+        <Button
+          size="small"
+          icon={<MdSettingsInputComponent className="text-purple-500" />}
+          onClick={() => {
+            if (!isAuthorized) { setLockedFeature('Tech Stack Analysis'); setIsLockedModalOpen(true); return; }
+            setSelectedLeadForStack(record);
+            setIsStackModalOpen(true);
+          }}
+          className="hover:border-purple-500 hover:text-purple-500 transition-colors flex items-center gap-1"
+        >
+          Analyze
+        </Button>
+      ) : <Tag color="default">N/A</Tag>,
     },
     {
       title: 'Google Maps',
@@ -2236,6 +2280,17 @@ const OperationDetailPage = () => {
           setSelectedLeadForLinkedIn(null);
         }}
         leadData={selectedLeadForLinkedIn}
+      />
+
+      <StackAnalysisModal 
+        visible={isStackModalOpen}
+        onCancel={() => {
+          setIsStackModalOpen(false);
+          setSelectedLeadForStack(null);
+        }}
+        url={selectedLeadForStack?.website}
+        leadName={selectedLeadForStack?.title}
+        token={token}
       />
 
 
