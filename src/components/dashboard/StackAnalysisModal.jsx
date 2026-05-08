@@ -3,14 +3,14 @@ import { Modal, Spin, Tag, Empty, List, Avatar, Typography, Button, message, Ale
 import { 
   MdSettingsInputComponent, MdAnalytics, MdAdsClick, MdLayers, MdExtension, 
   MdLightbulb, MdTrendingUp, MdWarning, MdMail, MdSupportAgent, MdPayments, MdSecurity,
-  MdBarChart
+  MdBarChart, MdStorefront, MdCampaign
 } from 'react-icons/md';
 import { 
-  SiShopify, SiWordpress, SiWix, SiSquarespace, SiMagento, SiGoogleanalytics, 
+  SiShopify, SiWordpress, SiWix, SiSquarespace, SiGoogleanalytics, 
   SiGoogletagmanager, SiFacebook, SiX, SiTiktok, SiSnapchat, SiNextdotjs, 
   SiReact, SiVuedotjs, SiJquery, SiTailwindcss, SiBootstrap, SiElementor,
-  SiKlaviyo, SiHubspot, SiMailchimp, SiActivecampaign, SiIntercom, SiZendesk, 
-  SiCrisp, SiStripe, SiPaypal, SiCloudflare, SiHotjar, SiVtex
+  SiHubspot, SiMailchimp, SiIntercom, SiZendesk, 
+  SiStripe, SiPaypal, SiCloudflare, SiHotjar, SiVtex
 } from 'react-icons/si';
 import { FaHeadset } from 'react-icons/fa';
 import axios from 'axios';
@@ -23,7 +23,7 @@ const ICON_MAP = {
   shopify: <SiShopify className="text-[#95bf47]" />,
   wix: <SiWix className="text-black" />,
   squarespace: <SiSquarespace className="text-black" />,
-  magento: <SiMagento className="text-[#ee672f]" />,
+  magento: <MdStorefront className="text-[#ee672f]" />,
   vtex: <SiVtex className="text-[#e31c58]" />,
   ga: <SiGoogleanalytics className="text-[#e37400]" />,
   gtm: <SiGoogletagmanager className="text-[#246FDB]" />,
@@ -38,13 +38,13 @@ const ICON_MAP = {
   tailwind: <SiTailwindcss className="text-[#06b6d4]" />,
   bootstrap: <SiBootstrap className="text-[#7952b3]" />,
   elementor: <SiElementor className="text-[#922247]" />,
-  klaviyo: <SiKlaviyo className="text-[#26ffad]" />,
+  klaviyo: <MdMail className="text-[#26ffad]" />,
   hubspot: <SiHubspot className="text-[#ff7a59]" />,
   mailchimp: <SiMailchimp className="text-[#ffe01b]" />,
-  activecampaign: <SiActivecampaign className="text-[#356ae6]" />,
+  activecampaign: <MdCampaign className="text-[#356ae6]" />,
   intercom: <SiIntercom className="text-[#0057ff]" />,
   zendesk: <SiZendesk className="text-[#03363d]" />,
-  crisp: <SiCrisp className="text-[#1972f5]" />,
+  crisp: <FaHeadset className="text-[#1972f5]" />,
   tawkto: <FaHeadset className="text-[#03a84e]" />,
   stripe: <SiStripe className="text-[#635bff]" />,
   paypal: <SiPaypal className="text-[#003087]" />,
