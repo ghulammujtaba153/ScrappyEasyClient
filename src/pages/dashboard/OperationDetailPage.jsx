@@ -995,7 +995,7 @@ const OperationDetailPage = () => {
       city: item.city || cityData[item._id] || cityData[`${record._id}-${index}`] || '', // Prefer stored city, then cached
       website: item.website || '',
       googleMapsLink: item.googleMapsLink || '',
-      whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone)] || 'not-checked',
+      whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone, record.searchString)] || 'not-checked',
       favorite: item.favorite || false,
       screenshotUrl: item.screenshotUrl || screenshotData[item._id] || screenshotData[`${record._id}-${index}`] || '',
       emails: item.emails || emailData[item._id] || emailData[`${record._id}-${index}`] || undefined,
@@ -1567,6 +1567,21 @@ const OperationDetailPage = () => {
           </Button>
         );
       }
+    },
+    {
+      title: 'Status',
+      key: 'whatsappProcessed',
+      width: 120,
+      render: (_, record) => {
+        const isProcessed = record.whatsappStatus && record.whatsappStatus !== 'not-checked';
+        return isProcessed ? (
+          <Tag color="green" className="flex items-center gap-1 w-fit rounded-full px-3">
+            <MdCheckCircle /> Processed
+          </Tag>
+        ) : (
+          <Tag color="orange" className="rounded-full px-3">Pending</Tag>
+        );
+      },
     },
     {
       title: (
