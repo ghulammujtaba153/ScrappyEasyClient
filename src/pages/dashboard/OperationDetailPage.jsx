@@ -62,7 +62,8 @@ import Loader from '../../components/common/Loader';
 import ExtractionLoader from '../../components/common/ExtractionLoader';
 import LinkedInInformation from '../../components/dashboard/LinkedInInformation';
 import StackAnalysisModal from '../../components/dashboard/StackAnalysisModal';
-import { MdSettingsInputComponent } from 'react-icons/md';
+import ExportToTeamModal from '../../components/dashboard/ExportToTeamModal';
+import { MdSettingsInputComponent, MdGroupAdd } from 'react-icons/md';
 
 
 const { Option } = Select;
@@ -126,6 +127,7 @@ const OperationDetailPage = () => {
   const [isQualifiedLeadsModalOpen, setIsQualifiedLeadsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isExportTeamModalOpen, setIsExportTeamModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   // Carousel State
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
@@ -876,12 +878,15 @@ const OperationDetailPage = () => {
       return;
     }
 
-    message.info(`Verifying ${formattedList.length} phone numbers...`);
+    const BATCH_SIZE = 10;
+    const totalBatches = Math.ceil(formattedList.length / BATCH_SIZE);
+
+    message.info(`Verifying ${formattedList.length} numbers in ${totalBatches} batches...`);
     setVerifyingAll(true);
     setBulkProgress({
       isOpen: true,
       type: 'whatsapp',
-      title: 'WhatsApp Verification',
+      title: `Verifying... (Batch 1/${totalBatches})`,
       total: formattedList.length,
       success: 0,
       failed: 0,
@@ -890,50 +895,75 @@ const OperationDetailPage = () => {
       isProcessing: true
     });
 
+    let totalSuccessful = 0;
+    let totalFailed = 0;
+
     try {
-      // Send batch request with operationId
-      const res = await axios.post(`${BASE_URL}/api/verification/check`, {
-        userId: user?._id || user?.id,
-        phoneNumbers: formattedList,
-        operationId: operationId
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      for (let i = 0; i < formattedList.length; i += BATCH_SIZE) {
+        const batch = formattedList.slice(i, i + BATCH_SIZE);
+        const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-      if (res.data.success && res.data.data) {
-        const { results, successful, failed } = res.data.data;
-
-        // Update status for all results
-        const newStatus = {};
-        results.forEach(result => {
-          const phone = result.phoneNumber;
-          if (result.success) {
-            newStatus[phone] = result.isRegistered ? 'verified' : 'not-verified';
-          } else {
-            newStatus[phone] = 'failed';
-          }
-        });
-
-        setWhatsappStatus(prev => ({ ...prev, ...newStatus }));
+        // Update progress title for each batch
         setBulkProgress(prev => ({
           ...prev,
-          success: successful,
-          failed: failed,
-          extraCount: successful,
-          isProcessing: false
+          title: `Verifying... (Batch ${currentBatchNum}/${totalBatches})`
         }));
-        message.success(`Verified ${successful} numbers successfully. ${failed} failed.`);
 
-        // Refresh record to get updated whatsappStatus from database
-        await fetchRecord();
-        
-        // Track Verification Event
-        trackMetaEvent('Contact', {
-            content_name: 'Bulk WhatsApp Verification',
-            content_category: 'Verification',
-            value: successful
+        const res = await axios.post(`${BASE_URL}/api/verification/check`, {
+          userId: user?._id || user?.id,
+          phoneNumbers: batch,
+          operationId: operationId
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
         });
+
+        if (res.data.success && res.data.data) {
+          const { results, successful, failed } = res.data.data;
+          totalSuccessful += successful;
+          totalFailed += failed;
+
+          // Update status for all results in this batch
+          const newStatus = {};
+          results.forEach(result => {
+            const phone = result.phoneNumber;
+            if (result.success) {
+              newStatus[phone] = result.isRegistered ? 'verified' : 'not-verified';
+            } else {
+              newStatus[phone] = 'failed';
+            }
+          });
+
+          setWhatsappStatus(prev => ({ ...prev, ...newStatus }));
+          setBulkProgress(prev => ({
+            ...prev,
+            success: totalSuccessful,
+            failed: totalFailed,
+            extraCount: totalSuccessful
+          }));
+        }
+
+        // Delay between batches to prevent rate limiting
+        if (i + BATCH_SIZE < formattedList.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
+
+      message.success(`Verified ${totalSuccessful} numbers successfully. ${totalFailed} failed.`);
+      setBulkProgress(prev => ({
+        ...prev,
+        title: 'WhatsApp Verification Complete',
+        isProcessing: false
+      }));
+
+      // Refresh record to get updated whatsappStatus from database
+      await fetchRecord();
+
+      // Track Verification Event
+      trackMetaEvent('Contact', {
+        content_name: 'Bulk WhatsApp Verification',
+        content_category: 'Verification',
+        value: totalSuccessful
+      });
     } catch (error) {
       console.error('Batch verification error:', error);
       message.error('Failed to verify numbers: ' + (error.response?.data?.error || error.message));
@@ -1823,6 +1853,17 @@ const OperationDetailPage = () => {
               >
                 Import CSV
               </Button>
+              <Button
+                icon={<MdGroupAdd />}
+                onClick={() => {
+                  if (!isAuthorized) { setLockedFeature('Export to Team'); setIsLockedModalOpen(true); return; }
+                  setIsExportTeamModalOpen(true);
+                }}
+                disabled={filteredData.length === 0}
+                className="rounded-xl h-10 px-4 font-bold border-primary text-primary hover:bg-primary/5"
+              >
+                Export to Team
+              </Button>
 
               <div className="flex-grow"></div>
 
@@ -2291,6 +2332,17 @@ const OperationDetailPage = () => {
         url={selectedLeadForStack?.website}
         leadName={selectedLeadForStack?.title}
         token={token}
+      />
+
+      <ExportToTeamModal
+        visible={isExportTeamModalOpen}
+        onCancel={() => setIsExportTeamModalOpen(false)}
+        leads={filteredData}
+        userId={user?._id || user?.id}
+        token={token}
+        onSuccess={() => {
+          message.success('Leads successfully exported to team');
+        }}
       />
 
 

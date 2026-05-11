@@ -3,54 +3,61 @@ import { Modal, Spin, Tag, Empty, List, Avatar, Typography, Button, message, Ale
 import { 
   MdSettingsInputComponent, MdAnalytics, MdAdsClick, MdLayers, MdExtension, 
   MdLightbulb, MdTrendingUp, MdWarning, MdMail, MdSupportAgent, MdPayments, MdSecurity,
-  MdBarChart, MdStorefront, MdCampaign
+  MdBarChart, MdStorefront, MdCampaign, MdOutlineFontDownload, MdPublic, MdComputer,
+  MdSpeed, MdAdsClick as MdAds, MdShare, MdMap, MdCode, MdLanguage
 } from 'react-icons/md';
-import { 
-  SiShopify, SiWordpress, SiWix, SiSquarespace, SiGoogleanalytics, 
-  SiGoogletagmanager, SiFacebook, SiX, SiTiktok, SiSnapchat, SiNextdotjs, 
-  SiReact, SiVuedotjs, SiJquery, SiTailwindcss, SiBootstrap, SiElementor,
-  SiHubspot, SiMailchimp, SiIntercom, SiZendesk, 
-  SiStripe, SiPaypal, SiCloudflare, SiHotjar, SiVtex
-} from 'react-icons/si';
-import { FaHeadset } from 'react-icons/fa';
+import { FaHeadset, FaFontAwesomeFlag, FaWordpress, FaShopify, FaWix, FaFacebook, FaTwitter, FaTiktok, FaSnapchat, FaStripe, FaPaypal, FaHubspot, FaMailchimp } from 'react-icons/fa';
 import axios from 'axios';
 import { BASE_URL } from '../../config/URL';
 
 const { Title, Text, Paragraph } = Typography;
 
 const ICON_MAP = {
-  wordpress: <SiWordpress className="text-[#21759b]" />,
-  shopify: <SiShopify className="text-[#95bf47]" />,
-  wix: <SiWix className="text-black" />,
-  squarespace: <SiSquarespace className="text-black" />,
+  wordpress: <FaWordpress className="text-[#21759b]" />,
+  shopify: <FaShopify className="text-[#95bf47]" />,
+  wix: <FaWix className="text-black" />,
+  squarespace: <MdLayers className="text-black" />,
   magento: <MdStorefront className="text-[#ee672f]" />,
-  vtex: <SiVtex className="text-[#e31c58]" />,
-  ga: <SiGoogleanalytics className="text-[#e37400]" />,
-  gtm: <SiGoogletagmanager className="text-[#246FDB]" />,
-  facebook: <SiFacebook className="text-[#1877f2]" />,
-  twitter: <SiX className="text-black" />,
-  tiktok: <SiTiktok className="text-black" />,
-  snapchat: <SiSnapchat className="text-[#fffc00]" />,
-  nextjs: <SiNextdotjs className="text-black" />,
-  react: <SiReact className="text-[#61dafb]" />,
-  vue: <SiVuedotjs className="text-[#4fc08d]" />,
-  jquery: <SiJquery className="text-[#0769ad]" />,
-  tailwind: <SiTailwindcss className="text-[#06b6d4]" />,
-  bootstrap: <SiBootstrap className="text-[#7952b3]" />,
-  elementor: <SiElementor className="text-[#922247]" />,
+  vtex: <MdStorefront className="text-[#e31c58]" />,
+  ga: <MdAnalytics className="text-[#e37400]" />,
+  gtm: <MdAnalytics className="text-[#246FDB]" />,
+  facebook: <FaFacebook className="text-[#1877f2]" />,
+  twitter: <FaTwitter className="text-black" />,
+  tiktok: <FaTiktok className="text-black" />,
+  snapchat: <FaSnapchat className="text-[#fffc00]" />,
+  nextjs: <MdCode className="text-black" />,
+  react: <MdCode className="text-[#61dafb]" />,
+  vue: <MdCode className="text-[#4fc08d]" />,
+  jquery: <MdCode className="text-[#0769ad]" />,
+  tailwind: <MdCode className="text-[#06b6d4]" />,
+  bootstrap: <MdCode className="text-[#7952b3]" />,
+  elementor: <MdLayers className="text-[#922247]" />,
   klaviyo: <MdMail className="text-[#26ffad]" />,
-  hubspot: <SiHubspot className="text-[#ff7a59]" />,
-  mailchimp: <SiMailchimp className="text-[#ffe01b]" />,
+  hubspot: <FaHubspot className="text-[#ff7a59]" />,
+  mailchimp: <FaMailchimp className="text-[#ffe01b]" />,
   activecampaign: <MdCampaign className="text-[#356ae6]" />,
-  intercom: <SiIntercom className="text-[#0057ff]" />,
-  zendesk: <SiZendesk className="text-[#03363d]" />,
+  intercom: <MdSupportAgent className="text-[#0057ff]" />,
+  zendesk: <MdSupportAgent className="text-[#03363d]" />,
   crisp: <FaHeadset className="text-[#1972f5]" />,
   tawkto: <FaHeadset className="text-[#03a84e]" />,
-  stripe: <SiStripe className="text-[#635bff]" />,
-  paypal: <SiPaypal className="text-[#003087]" />,
-  cloudflare: <SiCloudflare className="text-[#f38020]" />,
-  hotjar: <SiHotjar className="text-[#ff1c5e]" />,
-  clarity: <MdBarChart className="text-[#0078d4]" />
+  stripe: <FaStripe className="text-[#635bff]" />,
+  paypal: <FaPaypal className="text-[#003087]" />,
+  cloudflare: <MdSecurity className="text-[#f38020]" />,
+  hotjar: <MdBarChart className="text-[#ff1c5e]" />,
+  clarity: <MdBarChart className="text-[#0078d4]" />,
+  googleads: <MdAds className="text-[#4285F4]" />,
+  alpinejs: <MdCode className="text-[#77C1D2]" />,
+  googlefonts: <MdOutlineFontDownload className="text-[#4285F4]" />,
+  fontawesome: <FaFontAwesomeFlag className="text-[#337ab7]" />,
+  googlemaps: <MdMap className="text-[#4285F4]" />,
+  swiper: <MdLayers className="text-[#6332F6]" />,
+  axios: <MdCode className="text-[#5A29E4]" />,
+  aos: <MdSpeed className="text-[#00d1b2]" />,
+  performance: <MdSpeed className="text-[#00d1b2]" />,
+  opengraph: <MdShare className="text-[#3b5998]" />,
+  unpkg: <MdPublic className="text-[#333]" />,
+  apache: <MdComputer className="text-[#D22128]" />,
+  nginx: <MdComputer className="text-[#009639]" />
 };
 
 const CATEGORY_ICONS = {
@@ -58,15 +65,26 @@ const CATEGORY_ICONS = {
   'E-commerce': <MdExtension className="text-green-500" />,
   'Analytics': <MdAnalytics className="text-orange-500" />,
   'Marketing': <MdAdsClick className="text-red-500" />,
+  'Advertising': <MdAds className="text-blue-600" />,
   'Email Marketing': <MdMail className="text-blue-400" />,
   'CRM': <MdTrendingUp className="text-orange-400" />,
   'Customer Support': <MdSupportAgent className="text-purple-500" />,
   'Payments': <MdPayments className="text-emerald-500" />,
   'Security': <MdSecurity className="text-slate-500" />,
   'Framework': <MdSettingsInputComponent className="text-purple-500" />,
+  'JavaScript frameworks': <MdSettingsInputComponent className="text-purple-600" />,
   'Library': <MdSettingsInputComponent className="text-blue-400" />,
+  'JavaScript libraries': <MdSettingsInputComponent className="text-blue-500" />,
   'CSS Framework': <MdSettingsInputComponent className="text-cyan-500" />,
-  'Page Builder': <MdExtension className="text-pink-500" />
+  'UI frameworks': <MdCode className="text-cyan-600" />,
+  'Page Builder': <MdExtension className="text-pink-500" />,
+  'Tag managers': <MdSettingsInputComponent className="text-blue-500" />,
+  'CDN': <MdSecurity className="text-orange-500" />,
+  'Font scripts': <MdOutlineFontDownload className="text-gray-600" />,
+  'Maps': <MdMap className="text-green-600" />,
+  'Performance': <MdSpeed className="text-yellow-600" />,
+  'Miscellaneous': <MdExtension className="text-gray-400" />,
+  'Web servers': <MdComputer className="text-slate-600" />
 };
 
 const StackAnalysisModal = ({ visible, onCancel, url, leadName, token }) => {

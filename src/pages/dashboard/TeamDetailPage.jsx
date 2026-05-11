@@ -172,7 +172,11 @@ const TeamDetailPage = () => {
         try {
             const res = await axios.post(
                 `${BASE_URL}/api/verification/check`,
-                { phoneNumbers: [phoneNumber], teamDataId: dataId },
+                { 
+                    phoneNumbers: [phoneNumber], 
+                    teamDataId: dataId,
+                    userId: user?._id || user?.id 
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 

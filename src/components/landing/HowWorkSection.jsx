@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { FaArrowRight, FaMapMarkedAlt, FaCoffee, FaBuilding, FaGlobe, FaSearch, FaPhoneAlt, FaStar, FaWhatsapp, FaChrome, FaFilter, FaEnvelope, FaCheckCircle, FaBullhorn } from "react-icons/fa";
 
 const HowWorkSection = () => {
@@ -324,6 +325,61 @@ const HowWorkSection = () => {
                         Map Harvest streamlines your entire lead generation pipeline. From harvesting 
                         data with Lead Buddy to closing deals via our integrated outreach tools.
                     </p>
+                </div>
+
+                {/* Video Demo Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 mb-24">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.1 }}
+                        className="flex flex-col gap-8"
+                    >
+                        <div className="relative group p-1.5 bg-gradient-to-tr from-slate-200 via-white to-slate-200 rounded-[2.5rem] shadow-2xl transition-all duration-500 hover:scale-[1.02]">
+                            <div className="bg-slate-950 rounded-[2.3rem] overflow-hidden border border-white/10 aspect-video">
+                                <iframe 
+                                    src="https://www.loom.com/embed/d04652b8c80845e897a20fc390ac8fcd" 
+                                    frameBorder="0" 
+                                    webkitallowfullscreen="true" 
+                                    mozallowfullscreen="true" 
+                                    allowFullScreen 
+                                    className="w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div className="space-y-4 px-4">
+                            <h3 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-[0.15em] text-center leading-relaxed">
+                                MAP HARVEST VID 1 - DATA EXTRACTION, WHATSAPP VERIFICATION, EMAIL, SOCIALS, GROWING LIST FOR OUTREACH AND MORE!
+                            </h3>
+                        </div>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        className="flex flex-col gap-8"
+                    >
+                        <div className="relative group p-1.5 bg-gradient-to-tr from-slate-200 via-white to-slate-200 rounded-[2.5rem] shadow-2xl transition-all duration-500 hover:scale-[1.02]">
+                            <div className="bg-slate-950 rounded-[2.3rem] overflow-hidden border border-white/10 aspect-video">
+                                <iframe 
+                                    src="https://www.loom.com/embed/aa527e4975c548d48c5ba2a8334f01da" 
+                                    frameBorder="0" 
+                                    webkitallowfullscreen="true" 
+                                    mozallowfullscreen="true" 
+                                    allowFullScreen 
+                                    className="w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
+                                ></iframe>
+                            </div>
+                        </div>
+                        <div className="space-y-4 px-4">
+                            <h3 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-[0.15em] text-center leading-relaxed">
+                                MAP HARVEST VID 2 - HOW I QUALIFY LEADS, COLD CALL, EMAIL AND COLLABORATE
+                            </h3>
+                        </div>
+                    </motion.div>
                 </div>
 
                 {/* Stacking Cards Container */}
