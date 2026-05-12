@@ -148,3 +148,38 @@
 .custom-tabs .ant-tabs-ink-bar {
   display: none !important;
 }
+
+/* Video Glow Styling */
+.video-glow-wrapper {
+  position: relative;
+  border-radius: 16px;
+  padding: 3px;
+  background: linear-gradient(135deg, rgba(15, 121, 44, 0.5) 0%, rgba(30, 64, 175, 0.2) 100%);
+  box-shadow: 0 10px 30px -10px rgba(15, 121, 44, 0.3);
+  transition: all 0.5s ease;
+}
+
+.video-glow-wrapper:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -15px rgba(15, 121, 44, 0.4);
+  background: linear-gradient(135deg, rgba(15, 121, 44, 0.8) 0%, rgba(30, 64, 175, 0.4) 100%);
+}
+
+.video-glow-inner {
+  border-radius: 13px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .video-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

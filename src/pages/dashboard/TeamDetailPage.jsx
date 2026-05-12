@@ -6,9 +6,10 @@ import { useAuth } from '../../context/authContext';
 import { useSocket } from '../../context/SocketContext';
 import { Table, Select, message, Popconfirm, Tooltip, Tag, Button, Alert, Tabs } from 'antd';
 import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaUsers, FaPhone, FaLink, FaEye, FaFileDownload } from 'react-icons/fa';
-import { MdCheckCircle, MdClose, MdStorage, MdEventNote } from 'react-icons/md';
+import { MdCheckCircle, MdClose, MdStorage, MdEventNote, MdSchool } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import TeamNotes from './TeamNotes';
+import TeamEducation from './TeamEducation';
 import Loader from '../../components/common/Loader';
 import TeamDataModal from '../../components/dashboard/TeamDataModal';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
@@ -962,7 +963,18 @@ const TeamDetailPage = () => {
                                 ),
                                 children: <TeamNotes teamId={id} />,
                             },
-                        ]}
+                            {
+                                key: 'education',
+                                label: (
+                                    <span className="flex items-center gap-2 px-2 py-1">
+                                        <MdSchool size={18} />
+                                        Education
+                                    </span>
+                                ),
+                                children: <TeamEducation />,
+                            },
+                        ]
+}
                         className="custom-tabs"
                     />
                 </div>
