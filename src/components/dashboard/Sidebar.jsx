@@ -15,7 +15,8 @@ import {
     MdLogout,
     MdMeetingRoom,
     MdGroups,
-    MdVerified
+    MdVerified,
+    MdSchool
 } from "react-icons/md";
 import { useAuth } from "../../context/authContext";
 import { useOperations } from "../../context/operationsContext";
@@ -51,6 +52,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
             path: "/dashboard/qualified-leads",
             icon: <MdVerified className="w-5 h-5" />,
         },
+        {
+            name: "Education",
+            path: "/dashboard/education",
+            icon: <MdSchool className="w-5 h-5" />,
+        },
         // {
         //     name: "Message Automation",
         //     path: "/dashboard/message-automation",
@@ -76,6 +82,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
             path: "/dashboard/team",
             icon: <MdGroups className="w-5 h-5" />,
         },
+        
         // {
         //     name: "Call Automation",
         //     path: "/dashboard/call",

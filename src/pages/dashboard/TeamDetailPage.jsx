@@ -6,12 +6,12 @@ import { useAuth } from '../../context/authContext';
 import { useSocket } from '../../context/SocketContext';
 import { Table, Select, message, Popconfirm, Tooltip, Tag, Button, Alert, Tabs } from 'antd';
 import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaUsers, FaPhone, FaLink, FaEye, FaFileDownload } from 'react-icons/fa';
-import { MdCheckCircle, MdClose, MdStorage, MdEventNote, MdSchool } from 'react-icons/md';
+import { MdCheckCircle, MdClose, MdStorage, MdEventNote } from 'react-icons/md';
 import { BsWhatsapp } from 'react-icons/bs';
 import TeamNotes from './TeamNotes';
-import TeamEducation from './TeamEducation';
 import Loader from '../../components/common/Loader';
 import TeamDataModal from '../../components/dashboard/TeamDataModal';
+import ImportLeadsToTeamModal from '../../components/dashboard/ImportLeadsToTeamModal';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 import Dialer from '../../components/Dialer';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
@@ -47,6 +47,7 @@ const TeamDetailPage = () => {
     // WhatsApp Connection State
     const [whatsappInitialized, setWhatsappInitialized] = useState(false);
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     // Subscription State
     const [isAuthorized, setIsAuthorized] = useState(true);
@@ -773,6 +774,13 @@ const TeamDetailPage = () => {
 
                     <div className="flex items-center gap-2 flex-wrap">
                         <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors font-medium text-sm shadow-sm"
+                        >
+                            <FaFileDownload size={14} className="rotate-180" />
+                            Import
+                        </button>
+                        <button
                             onClick={handleExportCSV}
                             className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-green-50 hover:border-[#0F792C] hover:text-[#0F792C] transition-colors font-medium text-sm"
                         >
@@ -963,18 +971,7 @@ const TeamDetailPage = () => {
                                 ),
                                 children: <TeamNotes teamId={id} />,
                             },
-                            {
-                                key: 'education',
-                                label: (
-                                    <span className="flex items-center gap-2 px-2 py-1">
-                                        <MdSchool size={18} />
-                                        Education
-                                    </span>
-                                ),
-                                children: <TeamEducation />,
-                            },
-                        ]
-}
+                        ]}
                         className="custom-tabs"
                     />
                 </div>
@@ -1022,7 +1019,15 @@ const TeamDetailPage = () => {
                     }}
                 />
 
-                {/* Subscription Restricted Modal */}
+                <ImportLeadsToTeamModal
+                    visible={isImportModalOpen}
+                    onCancel={() => setIsImportModalOpen(false)}
+                    teamId={id}
+                    userId={user?._id || user?.id}
+                    token={token}
+                    onSuccess={fetchTeamData}
+                />
+
                 <SubscriptionRestrictedModal
                     open={isLockedModalOpen}
                     onClose={() => setIsLockedModalOpen(false)}

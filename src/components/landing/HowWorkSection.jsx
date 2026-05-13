@@ -328,56 +328,74 @@ const HowWorkSection = () => {
                 </div>
 
                 {/* Video Demo Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 mb-24">
+                <div className="space-y-24 mb-32">
+                    {/* First Video Section */}
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: 0.1 }}
-                        className="flex flex-col gap-8"
+                        className="flex flex-col lg:flex-row-reverse items-center gap-10 lg:gap-16"
                     >
-                        <div className="relative group p-1.5 bg-gradient-to-tr from-slate-200 via-white to-slate-200 rounded-[2.5rem] shadow-2xl transition-all duration-500 hover:scale-[1.02]">
-                            <div className="bg-slate-950 rounded-[2.3rem] overflow-hidden border border-white/10 aspect-video">
-                                <iframe 
-                                    src="https://www.loom.com/embed/d04652b8c80845e897a20fc390ac8fcd" 
-                                    frameBorder="0" 
-                                    webkitallowfullscreen="true" 
-                                    mozallowfullscreen="true" 
-                                    allowFullScreen 
-                                    className="w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
-                                ></iframe>
+                        <div className="w-full lg:w-2/5 space-y-6 text-center lg:text-left">
+                            <div className="inline-block px-4 py-1.5 bg-slate-100 rounded-full text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                                Video Walkthrough 01
                             </div>
-                        </div>
-                        <div className="space-y-4 px-4">
-                            <h3 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-[0.15em] text-center leading-relaxed">
-                                MAP HARVEST VID 1 - DATA EXTRACTION, WHATSAPP VERIFICATION, EMAIL, SOCIALS, GROWING LIST FOR OUTREACH AND MORE!
+                            <h3 className="text-2xl md:text-4xl font-black text-slate-900 leading-[1.2] tracking-tight">
+                                Data Extraction & <br className="hidden lg:block" /> Lead Verification
                             </h3>
+                            <p className="text-gray-500 text-base md:text-lg font-medium leading-relaxed">
+                                MAP HARVEST VID 1 - DATA EXTRACTION, WHATSAPP VERIFICATION, EMAIL, SOCIALS, GROWING LIST FOR OUTREACH AND MORE!
+                            </p>
+                        </div>
+                        <div className="w-full lg:w-3/5">
+                            <div className="relative group p-2 bg-gradient-to-tr from-slate-200 via-white to-slate-200 rounded-[2.5rem] shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+                                <div className="bg-slate-950 rounded-[2.3rem] overflow-hidden border border-white/10 aspect-video">
+                                    <iframe 
+                                        src="https://www.loom.com/embed/d04652b8c80845e897a20fc390ac8fcd" 
+                                        frameBorder="0" 
+                                        webkitallowfullscreen="true" 
+                                        mozallowfullscreen="true" 
+                                        allowFullScreen 
+                                        className="w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
+                                    ></iframe>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
 
+                    {/* Second Video Section */}
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: 0.2 }}
-                        className="flex flex-col gap-8"
+                        className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16"
                     >
-                        <div className="relative group p-1.5 bg-gradient-to-tr from-slate-200 via-white to-slate-200 rounded-[2.5rem] shadow-2xl transition-all duration-500 hover:scale-[1.02]">
-                            <div className="bg-slate-950 rounded-[2.3rem] overflow-hidden border border-white/10 aspect-video">
-                                <iframe 
-                                    src="https://www.loom.com/embed/aa527e4975c548d48c5ba2a8334f01da" 
-                                    frameBorder="0" 
-                                    webkitallowfullscreen="true" 
-                                    mozallowfullscreen="true" 
-                                    allowFullScreen 
-                                    className="w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
-                                ></iframe>
+                        <div className="w-full lg:w-2/5 space-y-6 text-center lg:text-left">
+                            <div className="inline-block px-4 py-1.5 bg-slate-100 rounded-full text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                                Video Walkthrough 02
                             </div>
-                        </div>
-                        <div className="space-y-4 px-4">
-                            <h3 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-[0.15em] text-center leading-relaxed">
-                                MAP HARVEST VID 2 - HOW I QUALIFY LEADS, COLD CALL, EMAIL AND COLLABORATE
+                            <h3 className="text-2xl md:text-4xl font-black text-slate-900 leading-[1.2] tracking-tight">
+                                Qualifying Leads & <br className="hidden lg:block" /> Outreach Strategy
                             </h3>
+                            <p className="text-gray-500 text-base md:text-lg font-medium leading-relaxed">
+                                MAP HARVEST VID 2 - HOW I QUALIFY LEADS, COLD CALL, EMAIL AND COLLABORATE
+                            </p>
+                        </div>
+                        <div className="w-full lg:w-3/5">
+                            <div className="relative group p-2 bg-gradient-to-tr from-slate-200 via-white to-slate-200 rounded-[2.5rem] shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+                                <div className="bg-slate-950 rounded-[2.3rem] overflow-hidden border border-white/10 aspect-video">
+                                    <iframe 
+                                        src="https://www.loom.com/embed/aa527e4975c548d48c5ba2a8334f01da" 
+                                        frameBorder="0" 
+                                        webkitallowfullscreen="true" 
+                                        mozallowfullscreen="true" 
+                                        allowFullScreen 
+                                        className="w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
+                                    ></iframe>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 </div>

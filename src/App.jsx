@@ -39,6 +39,7 @@ import QualifiedLeadsPage from "./pages/dashboard/QualifiedLeadsPage";
 import QualifiedLeadsDetailPage from "./pages/dashboard/QualifiedLeadsDetailPage";
 import TeamPage from "./pages/dashboard/TeamPage";
 import TeamDetailPage from "./pages/dashboard/TeamDetailPage";
+import TeamEducation from "./pages/dashboard/TeamEducation";
 import InviteConfirmPage from "./pages/InviteConfirmPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import LemonSqueezy from "./pages/LemonSqueezy";
@@ -169,6 +170,7 @@ function App() {
                                             <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
                                             <Route path="team" element={<TeamPage />} />
                                             <Route path="team/:id" element={<TeamDetailPage />} />
+                                            <Route path="education" element={<TeamEducation />} />
                                             <Route path="under-review" element={<PendingReviewPage />} />
 
 
