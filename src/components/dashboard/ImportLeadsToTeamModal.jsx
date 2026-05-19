@@ -65,12 +65,25 @@ const ImportLeadsToTeamModal = ({
                 const res = await axios.get(`${BASE_URL}/api/data/record/${selectedSource}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                leadIds = res.data.data.leads.map(l => l._id);
+                leadIds = (res.data.data.leads || []).map(l => l._id || l).filter(Boolean);
             } else {
                 const res = await axios.get(`${BASE_URL}/api/qualified-leads/get-by-id/${selectedSource}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                leadIds = res.data.entries.map(e => e.leadId?._id).filter(Boolean);
+                const entries = res.data.entries || [];
+                // leadId can be a populated object { _id, title, ... } or a raw ObjectId string
+                leadIds = entries.map(e => {
+                    const lid = e.leadId;
+                    if (!lid) return null;
+                    // Populated document → use ._id; raw ObjectId string/object → use directly
+                    return (typeof lid === 'object' && lid._id) ? lid._id : lid;
+                }).filter(Boolean);
+
+                if (leadIds.length === 0 && entries.length > 0) {
+                    message.warning(`Found ${entries.length} entries but none had valid lead references. The list may not be linked to lead data.`);
+                    setImporting(false);
+                    return;
+                }
             }
 
             if (leadIds.length === 0) {
