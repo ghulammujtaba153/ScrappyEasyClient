@@ -212,7 +212,9 @@ const QualifiedLeadsDetailPage = () => {
             screenshotUrl: entry.leadId?.screenshotUrl || '',
             leadStatus: entry.leadId?.status || 'not-reached',
             emails: entry.leadId?.emails || [],
-            socialMedia: entry.leadId?.socialMedia || {},
+            	socialMedia: entry.leadId?.socialMedia || {},
+                // Website ads status from LeadData (`addsRunning`)
+                addsRunning: entry.leadId?.addsRunning ?? '',
             // Status tracking from entry
             callStatus: entry.callStatus || 'not-called',
             lastCalledAt: entry.lastCalledAt,
@@ -898,6 +900,19 @@ const QualifiedLeadsDetailPage = () => {
                     <MdOpenInNew className="inline" /> Link
                 </a>
             ) : '-',
+        },
+        {
+            title: 'Website Ads',
+            dataIndex: 'addsRunning',
+            key: 'addsRunning',
+            width: 140,
+            render: (val) => {
+                if (!val || val === '' || val === 'not-checked') return <Tag color="default">Not Analyzed</Tag>;
+                if (val === 'running') return <Tag color="success" icon={<MdCheckCircle />}>Running</Tag>;
+                if (val === 'not-running') return <Tag color="error" icon={<MdClose />}>Not Running</Tag>;
+                if (val === 'not-available') return <Tag color="default">No Website</Tag>;
+                return <Tag>{String(val)}</Tag>;
+            }
         },
         {
             title: 'Maps',

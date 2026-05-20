@@ -1,23 +1,20 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { BASE_URL } from "../config/URL";
 import Notification from "../components/common/Notification";
 import OtpVerification from "../components/common/OtpVerification";
 import { FaEye, FaEyeSlash, FaWallet, FaUniversity, FaCamera, FaRocket, FaCrown, FaHourglassHalf, FaCheckCircle } from "react-icons/fa";
 import Select from "react-select";
 import countryList from "country-list";
-import { useAuth } from "../context/authContext";
 import { PLANS } from "../config/plans";
 import Navbar from "../components/landing/Navbar";
 import FooterSection from "../components/landing/FooterSection";
-import { trackMetaEvent } from "../utils/analytics";
+import { trackMetaEvent, trackMetaCustomEvent } from "../utils/analytics";
 
 
 
 const RegisterPage = () => {
-    const navigate = useNavigate();
     const location = useLocation();
-    const { login } = useAuth();
     const [step, setStep] = useState(1); // 1: Form/Details, 2: OTP Verification, 3: Success/Under Review
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [screenshot, setScreenshot] = useState(null);
@@ -87,6 +84,17 @@ const RegisterPage = () => {
         if (file) {
             setScreenshot(file);
             setScreenshotPreview(URL.createObjectURL(file));
+
+            trackMetaEvent('AddPaymentInfo', {
+                content_name: selectedPlan?.name || 'Subscription Plan',
+                content_category: 'Registration Payment Proof'
+            });
+
+            trackMetaCustomEvent('PaymentProofUploaded', {
+                user_type: form.userType,
+                plan_id: selectedPlan?.id || null,
+                plan_name: selectedPlan?.name || null
+            });
         }
     };
 
@@ -155,6 +163,11 @@ const RegisterPage = () => {
                 if (response.ok) {
                     setNotification({ message: "OTP sent to your email!", type: "success" });
                     trackMetaEvent('Contact', { content_name: 'OTP Request', content_category: 'Registration' });
+                    trackMetaCustomEvent('RegistrationStarted', {
+                        user_type: form.userType,
+                        plan_id: selectedPlan?.id || null,
+                        plan_name: selectedPlan?.name || null
+                    });
                     setStep(2); // Move to OTP verification
                 } else {
                     setNotification({ message: data.message || "Failed to send OTP", type: "error" });
@@ -165,33 +178,6 @@ const RegisterPage = () => {
             } finally {
                 setLoading(false);
             }
-        }
-    };
-
-    // Step 2: Request OTP and Move to Verification
-    const handlePlanSubmit = async () => {
-        setLoading(true);
-        try {
-            // Request OTP
-            const response = await fetch(`${BASE_URL}/api/otp/generate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: form.email, registration: true }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setNotification({ message: "OTP sent to your email!", type: "success" });
-                setStep(3); // Move to OTP verification step
-            } else {
-                setNotification({ message: data.message || "Failed to send OTP", type: "error" });
-            }
-        } catch (error) {
-            console.error("Error requesting OTP:", error);
-            setNotification({ message: "An error occurred. Please try again.", type: "error" });
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -214,6 +200,12 @@ const RegisterPage = () => {
                 setLoading(false);
                 return;
             }
+
+            trackMetaCustomEvent('OTPVerified', {
+                user_type: form.userType,
+                plan_id: selectedPlan?.id || null,
+                plan_name: selectedPlan?.name || null
+            });
 
             // OTP verified, now register with multipart/form-data for the screenshot
             const formData = new FormData();
@@ -246,11 +238,11 @@ const RegisterPage = () => {
                     type: "success" 
                 });
 
-                // Track Successful Registration
-                trackMetaEvent('CompleteRegistration', {
-                    content_name: selectedPlan?.name || 'Registration',
-                    currency: 'USD',
-                    value: parseFloat(selectedPlan?.price?.replace('$', '')) || 0
+                trackMetaCustomEvent('RegistrationSubmitted', {
+                    user_type: form.userType,
+                    plan_id: selectedPlan?.id || null,
+                    plan_name: selectedPlan?.name || null,
+                    plan_value: selectedPlan?.price || null
                 });
 
                 setStep(3); // Show under review message
@@ -280,6 +272,11 @@ const RegisterPage = () => {
 
             if (response.ok) {
                 setNotification({ message: "New OTP sent to your email!", type: "success" });
+                trackMetaCustomEvent('OTPResent', {
+                    user_type: form.userType,
+                    plan_id: selectedPlan?.id || null,
+                    plan_name: selectedPlan?.name || null
+                });
             } else {
                 setNotification({ message: data.message || "Failed to resend OTP", type: "error" });
             }

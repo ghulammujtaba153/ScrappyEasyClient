@@ -5,7 +5,7 @@ import SaveNumbersModal from '../../components/dashboard/SaveNumbersModal';
 import SaveQualifiedLeadsModal from '../../components/dashboard/SaveQualifiedLeadsModal';
 import OperationCSVImport from '../../components/dashboard/OperationCSVImport';
 import EditLeadModal from '../../components/dashboard/EditLeadModal';
-import { trackMetaEvent } from '../../utils/analytics';
+import { trackMetaEvent, trackMetaCustomEvent } from '../../utils/analytics';
 import {
   Alert,
   Button,
@@ -44,7 +44,8 @@ import {
   MdDelete,
   MdEmail,
   MdShare,
-  MdContentCopy
+  MdContentCopy,
+  MdAnalytics
 } from 'react-icons/md';
 import { BsWhatsapp, BsFacebook, BsInstagram, BsLinkedin, BsTwitterX, BsYoutube, BsTiktok } from 'react-icons/bs';
 import axios from 'axios';
@@ -81,7 +82,8 @@ const defaultFilters = {
   hasPhone: '',
   hasEmail: '',
   hasSocials: '',
-  favorite: ''
+  favorite: '',
+  addsRunning: ''
 };
 
 const EXPORT_FIELDS = [
@@ -100,6 +102,76 @@ const EXPORT_FIELDS = [
 ];
 
 const OperationDetailPage = () => {
+
+  const handleAnalyzeAllClick = async () => {
+    // Use leadId (reliable) and only include valid Mongo ObjectId-like ids
+    const websitesToAnalyze = [...new Set(
+      filteredData
+        .filter(item => item.website && item.leadId && /^[0-9a-fA-F]{24}$/.test(String(item.leadId)))
+        .map(item => item.leadId)
+    )];
+
+    if (websitesToAnalyze.length === 0) {
+      message.warning('No websites available to analyze');
+      return;
+    }
+
+    setAnalyzingAds(true);
+    setBulkProgress({
+      isOpen: true,
+      type: 'ads',
+      title: 'Analyzing websites for ads',
+      total: websitesToAnalyze.length,
+      success: 0,
+      failed: 0,
+      extraLabel: 'Analyzed',
+      extraCount: 0,
+      isProcessing: true
+    });
+
+    try {
+      const res = await axios.post(`${BASE_URL}/api/data/analyze-websites-for-ads`, {
+        leadIds: websitesToAnalyze
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.data.success) {
+        const { data } = res.data;
+        
+        // Store results in state
+        const resultsMap = {};
+        data.results.forEach(result => {
+          resultsMap[result.leadId] = result.status;
+        });
+        setAdsAnalysisResults(resultsMap);
+        
+        // Update bulk progress with results
+        setBulkProgress(prev => ({
+          ...prev,
+          total: data.total,
+          success: data.running,
+          failed: data.notRunning,
+          extraLabel: 'Running Ads',
+          extraCount: data.running,
+          isProcessing: false
+        }));
+        
+        message.success(`Analyzed ${data.total} websites - Running: ${data.running}, Not Running: ${data.notRunning}`);
+        
+        // Refresh data from database to get updated ads status
+        await fetchRecord(true);
+      } else {
+        message.error('Failed to analyze websites');
+      }
+    } catch (error) {
+      console.error('Error analyzing websites:', error);
+      message.error(error.response?.data?.message || 'Failed to analyze websites for ads');
+    } finally {
+      setAnalyzingAds(false);
+      setBulkProgress(prev => ({ ...prev, isProcessing: false }));
+    }
+  };
   const { operationId } = useParams();
   const navigate = useNavigate();
   const { token, user } = useAuth();
@@ -136,8 +208,12 @@ const OperationDetailPage = () => {
   const [extractingCities, setExtractingCities] = useState(false);
 
   const [extractingAllSocial, setExtractingAllSocial] = useState(false);
-  const [extractingSocial, setExtractingSocial] = useState({});
 
+    const [analyzingAds, setAnalyzingAds] = useState(false);
+    const [analyzingProgress, setAnalyzingProgress] = useState(0);
+    const [adsAnalysisResults, setAdsAnalysisResults] = useState({});
+
+    const [extractingSocial, setExtractingSocial] = useState({});
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -747,7 +823,7 @@ const OperationDetailPage = () => {
   };
 
   const formatPhoneNumber = (phone, contextHint = '') => {
-    if (!phone) return null;
+    const isBusy = verifyingAll || extractingCities || extractingAllSocial || analyzingAds;
     
     // Remove all non-digits except +
     let cleaned = phone.trim().replace(/[^\d+]/g, '');
@@ -996,6 +1072,7 @@ const OperationDetailPage = () => {
       website: item.website || '',
       googleMapsLink: item.googleMapsLink || '',
       whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone, record.searchString)] || 'not-checked',
+      addsRunning: item.addsRunning || '',
       favorite: item.favorite || false,
       screenshotUrl: item.screenshotUrl || screenshotData[item._id] || screenshotData[`${record._id}-${index}`] || '',
       emails: item.emails || emailData[item._id] || emailData[`${record._id}-${index}`] || undefined,
@@ -1141,6 +1218,20 @@ const OperationDetailPage = () => {
       });
     }
 
+    if (filters.addsRunning) {
+      filtered = filtered.filter(item => {
+        const adStatus = item.addsRunning;
+        if (filters.addsRunning === 'running') {
+          return adStatus === 'running';
+        } else if (filters.addsRunning === 'not-running') {
+          return adStatus === 'not-running';
+        } else if (filters.addsRunning === 'not-available') {
+          return adStatus === 'not-available';
+        }
+        return true;
+      });
+    }
+
     if (filters.hasSocials) {
       filtered = filtered.filter(item => {
         const hasSocials = item.socialMedia && Object.values(item.socialMedia).some(url => url);
@@ -1252,10 +1343,10 @@ const OperationDetailPage = () => {
     message.success('CSV export ready');
 
     // Track Export Event
-    trackMetaEvent('Other', {
-        content_name: 'CSV Export',
-        content_category: 'Data Export',
-        value: filteredData.length
+    trackMetaCustomEvent('DataExportCSV', {
+      content_name: 'CSV Export',
+      content_category: 'Data Export',
+      value: filteredData.length
     });
   };
 
@@ -1298,10 +1389,10 @@ const OperationDetailPage = () => {
     message.success('XLS export ready');
 
     // Track Export Event
-    trackMetaEvent('Other', {
-        content_name: 'XLS Export',
-        content_category: 'Data Export',
-        value: filteredData.length
+    trackMetaCustomEvent('DataExportXLS', {
+      content_name: 'XLS Export',
+      content_category: 'Data Export',
+      value: filteredData.length
     });
   };
 
@@ -1650,6 +1741,43 @@ const OperationDetailPage = () => {
       render: (date) => new Date(date).toLocaleDateString(),
       sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
     },
+      {
+        title: (
+          <div className="flex items-center justify-between group">
+            <span>Website Ads</span>
+            <Tooltip title="Analyze websites for ads">
+              <Button 
+                type="text" 
+                size="small" 
+                icon={<MdAnalytics className="text-blue-500 group-hover:scale-110 transition-transform" />} 
+                onClick={handleAnalyzeAllClick}
+                loading={analyzingAds}
+                className="p-0 h-6 w-6 flex items-center justify-center hover:bg-blue-50 rounded-full"
+              />
+            </Tooltip>
+          </div>
+        ),
+        key: 'addsRunning',
+        width: 140,
+        render: (_, record) => {
+          if (!record.website) {
+            return <Tag color="default">N/A</Tag>;
+          }
+
+          // Check analysis results first, then fall back to record data
+          const adStatus = adsAnalysisResults[record.leadId] || record.addsRunning;
+
+          if (adStatus === 'running') {
+            return <Tag color="green" className="rounded-full">🎯 Running Ads</Tag>;
+          } else if (adStatus === 'not-running') {
+            return <Tag color="gray" className="rounded-full">No Ads</Tag>;
+          } else if (adStatus === 'not-available') {
+            return <Tag color="orange" className="rounded-full">Unavailable</Tag>;
+          }
+
+          return <Tag color="default" className="rounded-full">Not Analyzed</Tag>;
+        },
+      },
     {
       title: 'Actions',
       key: 'actions',
@@ -1826,6 +1954,15 @@ const OperationDetailPage = () => {
                 className="rounded-xl h-10 px-4 font-bold border-gray-200"
               >
                 iFrame View
+              </Button>
+              <Button
+                icon={<MdAnalytics />}
+                onClick={handleAnalyzeAllClick}
+                loading={analyzingAds}
+                disabled={analyzingAds || !record || filteredData.filter(item => item.website).length === 0}
+                className="rounded-xl h-10 px-4 font-bold border-blue-200 text-blue-600 hover:border-blue-500 hover:text-blue-700"
+              >
+                Website Ads
               </Button>
             </div>
 
@@ -2238,6 +2375,24 @@ const OperationDetailPage = () => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Website Ads Status
+              </label>
+              <Select
+                placeholder="Ads availability"
+                style={{ width: '100%' }}
+                value={filters.addsRunning || undefined}
+                onChange={(value) => setFilters({ ...filters, addsRunning: value || '' })}
+                allowClear
+                className="custom-select-premium h-12"
+              >
+                <Option value="running">Running Ads</Option>
+                <Option value="not-running">No Ads</Option>
+                <Option value="not-available">Not Available</Option>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Minimum Reviews
               </label>
               <InputNumber
@@ -2274,6 +2429,7 @@ const OperationDetailPage = () => {
           filters.hasPhone ||
           filters.hasEmail ||
           filters.hasSocials ||
+          filters.addsRunning ||
           filters.favorite) && (
             <div className="mt-4">
               <Button
@@ -2375,6 +2531,7 @@ const OperationDetailPage = () => {
            {bulkProgress.type === 'mail' && <MdEmail className="text-primary text-xl" />}
            {bulkProgress.type === 'city' && <MdLocationOn className="text-primary text-xl" />}
            {bulkProgress.type === 'whatsapp' && <BsWhatsapp className="text-primary text-xl" />}
+           {bulkProgress.type === 'ads' && <MdAnalytics className="text-blue-600 text-xl" />}
            <span>{bulkProgress.title}</span>
          </div>}
          open={bulkProgress.isOpen}
@@ -2393,6 +2550,7 @@ const OperationDetailPage = () => {
          closable={!bulkProgress.isProcessing}
          maskClosable={!bulkProgress.isProcessing}
          className="rounded-2xl"
+         width={bulkProgress.type === 'ads' ? 800 : 500}
       >
         <div className="space-y-6 py-4">
            {bulkProgress.isProcessing && (
@@ -2460,6 +2618,33 @@ const OperationDetailPage = () => {
                    ></div>
                 </div>
                 <p className="text-[9px] text-gray-400 mt-3 text-right font-medium uppercase tracking-widest">Confidence Level: High (Verified)</p>
+             </div>
+           )}
+
+           {bulkProgress.type === 'ads' && !bulkProgress.isProcessing && Object.keys(adsAnalysisResults).length > 0 && (
+             <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 max-h-96 overflow-y-auto">
+               <p className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-4">Detailed Results</p>
+               <div className="space-y-2">
+                 {flattenedData
+                   .filter(item => item.website && adsAnalysisResults[item.leadId])
+                   .map(item => (
+                     <div key={item.leadId} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                       <div className="flex-1">
+                         <p className="text-sm font-semibold text-gray-800 truncate">{item.title}</p>
+                         <p className="text-xs text-gray-500 truncate">{item.website}</p>
+                       </div>
+                       <div className="ml-2 flex-shrink-0">
+                         {adsAnalysisResults[item.leadId] === 'running' ? (
+                           <Tag color="green" className="rounded-full">🎯 Running</Tag>
+                         ) : adsAnalysisResults[item.leadId] === 'not-running' ? (
+                           <Tag color="gray" className="rounded-full">No Ads</Tag>
+                         ) : (
+                           <Tag color="orange" className="rounded-full">N/A</Tag>
+                         )}
+                       </div>
+                     </div>
+                   ))}
+               </div>
              </div>
            )}
         </div>

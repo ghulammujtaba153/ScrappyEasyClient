@@ -9,7 +9,7 @@ import {
 } from "react-icons/fa";
 import { useAuth } from '../../context/authContext';
 import Loader from '../../components/common/Loader';
-import { trackMetaEvent } from '../../utils/analytics';
+import { trackMetaEvent, trackMetaCustomEvent } from '../../utils/analytics';
 
 const COUNTRY_LIST = getCountries().map(c => ({ value: c.name, label: c.name }));
 
@@ -143,10 +143,12 @@ const ProfilePage = () => {
                 updateUser({ ...user, ...data.user, isProfileComplete: true });
                 setNotification({ message: "Interests updated successfully!", type: "success" });
                 
-                // Track Profile Completion
-                trackMetaEvent('CompleteRegistration', { 
-                    content_name: 'Profile Interests Completed',
-                    content_category: 'User Onboarding'
+                // Track profile setup completion separately from account registration.
+                trackMetaCustomEvent('ProfileInterestsCompleted', {
+                    content_category: 'User Onboarding',
+                    interests_count: form.areaOfInterest.length,
+                    has_gender: !!form.gender,
+                    has_dob: !!form.dob
                 });
             } else {
                 setNotification({ message: data.message || "Failed to update interests", type: "error" });
