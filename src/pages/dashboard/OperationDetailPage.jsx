@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 import SaveNumbersModal from '../../components/dashboard/SaveNumbersModal';
@@ -104,6 +104,11 @@ const EXPORT_FIELDS = [
 const OperationDetailPage = () => {
 
   const handleAnalyzeAllClick = async () => {
+    if (analyzingAdsRef.current) {
+      return;
+    }
+    analyzingAdsRef.current = true;
+
     // Use leadId (reliable) and only include valid Mongo ObjectId-like ids
     const websitesToAnalyze = [...new Set(
       filteredData
@@ -113,6 +118,7 @@ const OperationDetailPage = () => {
 
     if (websitesToAnalyze.length === 0) {
       message.warning('No websites available to analyze');
+      analyzingAdsRef.current = false;
       return;
     }
 
@@ -124,52 +130,72 @@ const OperationDetailPage = () => {
       total: websitesToAnalyze.length,
       success: 0,
       failed: 0,
-      extraLabel: 'Analyzed',
+      extraLabel: 'Running Ads',
       extraCount: 0,
       isProcessing: true
     });
 
-    try {
-      const res = await axios.post(`${BASE_URL}/api/data/analyze-websites-for-ads`, {
-        leadIds: websitesToAnalyze
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+    const BATCH_SIZE = 10;
+    let totalRunning = 0;
+    let totalNotRunning = 0;
+    const newResultsMap = { ...adsAnalysisResults };
 
-      if (res.data.success) {
-        const { data } = res.data;
-        
-        // Store results in state
-        const resultsMap = {};
-        data.results.forEach(result => {
-          resultsMap[result.leadId] = result.status;
-        });
-        setAdsAnalysisResults(resultsMap);
-        
-        // Update bulk progress with results
+    try {
+      for (let i = 0; i < websitesToAnalyze.length; i += BATCH_SIZE) {
+        const batch = websitesToAnalyze.slice(i, i + BATCH_SIZE);
+        const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(websitesToAnalyze.length / BATCH_SIZE);
+
         setBulkProgress(prev => ({
           ...prev,
-          total: data.total,
-          success: data.running,
-          failed: data.notRunning,
-          extraLabel: 'Running Ads',
-          extraCount: data.running,
-          isProcessing: false
+          title: `Analyzing ads... (Batch ${currentBatchNum}/${totalBatches})`
         }));
-        
-        message.success(`Analyzed ${data.total} websites - Running: ${data.running}, Not Running: ${data.notRunning}`);
-        
-        // Refresh data from database to get updated ads status
-        await fetchRecord(true);
-      } else {
-        message.error('Failed to analyze websites');
+
+        const res = await axios.post(`${BASE_URL}/api/data/analyze-websites-for-ads`, {
+          leadIds: batch
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.data.success) {
+          const { data } = res.data;
+          
+          // Store results in state incrementally
+          data.results.forEach(result => {
+            newResultsMap[result.leadId] = result.status;
+          });
+          
+          totalRunning += data.running;
+          totalNotRunning += data.notRunning;
+          
+          setAdsAnalysisResults({ ...newResultsMap });
+          
+          // Update bulk progress with results
+          setBulkProgress(prev => ({
+            ...prev,
+            success: totalRunning,
+            failed: totalNotRunning,
+            extraCount: totalRunning
+          }));
+        }
+
+        // Brief delay between batches to stay safe
+        if (i + BATCH_SIZE < websitesToAnalyze.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
+
+      message.success(`Analyzed all websites - Running: ${totalRunning}, No Ads: ${totalNotRunning}`);
+      
+      // Refresh data from database to get updated ads status
+      await fetchRecord(true);
     } catch (error) {
       console.error('Error analyzing websites:', error);
       message.error(error.response?.data?.message || 'Failed to analyze websites for ads');
     } finally {
+      analyzingAdsRef.current = false;
       setAnalyzingAds(false);
-      setBulkProgress(prev => ({ ...prev, isProcessing: false }));
+      setBulkProgress(prev => ({ ...prev, isProcessing: false, title: 'Ad Analysis Complete' }));
     }
   };
   const { operationId } = useParams();
@@ -214,6 +240,7 @@ const OperationDetailPage = () => {
     const [adsAnalysisResults, setAdsAnalysisResults] = useState({});
 
     const [extractingSocial, setExtractingSocial] = useState({});
+  const analyzingAdsRef = useRef(false);
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -1912,27 +1939,38 @@ const OperationDetailPage = () => {
             )}
           </div>
 
-            {/* Action Row 1: Data Enrichment */}
-            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
+            <div className="pt-6 border-t border-gray-100">
+              <h2 className="text-sm uppercase tracking-[0.24em] text-gray-500 font-semibold mb-3">Features</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="default"
+                  icon={<MdShare />}
+                  onClick={extractAllSocials}
+                  loading={extractingAllSocial}
+                  disabled={extractingAllSocial || !record || filteredData.filter(item => item.website).length === 0}
+                  className="rounded-xl h-10 px-4 font-bold border-gray-200"
+                >
+                  Extract Emails and Socials
+                </Button>
               <Button
-                type="default"
-                icon={<MdShare />}
-                onClick={extractAllSocials}
-                loading={extractingAllSocial}
-                disabled={extractingAllSocial || !record || filteredData.filter(item => item.website).length === 0}
+                icon={<MdWeb />}
+                onClick={() => {
+                  if (!isAuthorized) { setLockedFeature('Bumble/Tinder for Websites'); setIsLockedModalOpen(true); return; }
+                  setIsCarouselOpen(true);
+                }}
+                disabled={filteredData.filter(item => item.website).length === 0}
                 className="rounded-xl h-10 px-4 font-bold border-gray-200"
               >
-                Extract Socials
+                Bumble/Tinder for Websites
               </Button>
               <Button
-                type="default"
-                icon={<MdLocationOn />}
-                onClick={extractCitiesForRecord}
-                loading={extractingCities}
-                disabled={extractingCities || !record}
-                className="rounded-xl h-10 px-4 font-bold border-gray-200"
+                icon={<MdAnalytics />}
+                onClick={handleAnalyzeAllClick}
+                loading={analyzingAds}
+                disabled={analyzingAds || !record || filteredData.filter(item => item.website).length === 0}
+                className="rounded-xl h-10 px-4 font-bold border-blue-200 text-blue-600 hover:border-blue-500 hover:text-blue-700"
               >
-                Extract Cities
+                Websites running ads
               </Button>
               <Button
                 type="primary"
@@ -1945,39 +1983,31 @@ const OperationDetailPage = () => {
                 Recommend Nearby Location
               </Button>
               <Button
-                icon={<MdWeb />}
-                onClick={() => {
-                  if (!isAuthorized) { setLockedFeature('iFrame View'); setIsLockedModalOpen(true); return; }
-                  setIsCarouselOpen(true);
-                }}
-                disabled={filteredData.filter(item => item.website).length === 0}
+                type="default"
+                icon={<MdLocationOn />}
+                onClick={extractCitiesForRecord}
+                loading={extractingCities}
+                disabled={extractingCities || !record}
                 className="rounded-xl h-10 px-4 font-bold border-gray-200"
               >
-                iFrame View
-              </Button>
-              <Button
-                icon={<MdAnalytics />}
-                onClick={handleAnalyzeAllClick}
-                loading={analyzingAds}
-                disabled={analyzingAds || !record || filteredData.filter(item => item.website).length === 0}
-                className="rounded-xl h-10 px-4 font-bold border-blue-200 text-blue-600 hover:border-blue-500 hover:text-blue-700"
-              >
-                Website Ads
+                Extract Cities
               </Button>
             </div>
+          </div>
 
-            {/* Action Row 2: Export & Verification */}
-            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-50">
-              <Button
-                icon={<MdStar />}
-                onClick={() => {
-                  if (!isAuthorized) { setLockedFeature('Save Qualified Leads'); setIsLockedModalOpen(true); return; }
-                  setIsQualifiedLeadsModalOpen(true);
-                }}
+            <div className="pt-6 border-t border-gray-50">
+              <h2 className="text-sm uppercase tracking-[0.24em] text-gray-500 font-semibold mb-3">Basic</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  icon={<MdStar />}
+                  onClick={() => {
+                    if (!isAuthorized) { setLockedFeature('Save Qualified Leads'); setIsLockedModalOpen(true); return; }
+                    setIsQualifiedLeadsModalOpen(true);
+                  }}
                 disabled={filteredData.length === 0}
                 className="text-amber-600 border-amber-500 hover:bg-amber-50 rounded-xl h-10 px-4 font-bold"
               >
-                Save Qualify Leads
+                Save to Qualified Leads
               </Button>
 
               <div className="w-px h-6 bg-gray-200 mx-1 hidden lg:block"></div>
@@ -2030,6 +2060,7 @@ const OperationDetailPage = () => {
                 WhatsApp Verification ({filteredData.length})
               </Button>
             </div>
+          </div>
         </div>
       </div>
 
@@ -2651,6 +2682,7 @@ const OperationDetailPage = () => {
       </Modal>
     </div>
   );
+
 };
 
 export default OperationDetailPage;
