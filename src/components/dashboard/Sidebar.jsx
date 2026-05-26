@@ -57,6 +57,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
             path: "/dashboard/education",
             icon: <MdSchool className="w-5 h-5" />,
         },
+        {
+            name: "My Offers",
+            path: "/dashboard/myoffers",
+            icon: <MdMessage className="w-5 h-5" />,
+        },
         // {
         //     name: "Message Automation",
         //     path: "/dashboard/message-automation",

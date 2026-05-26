@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 import { useEffect } from "react";
 import ReactGA from "react-ga4";
 import { trackMetaEvent } from "./utils/analytics";
-import { ConfigProvider } from "antd";
+import { ConfigProvider, App as AntdApp } from "antd";
 import { AuthProvider } from "./context/authContext";
 import { SocketProvider } from "./context/SocketContext";
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -53,6 +53,8 @@ import GetExtensionPage from "./pages/GetExtensionPage";
 import PendingReviewPage from "./pages/PendingReviewPage";
 import BlogPage from "./pages/BlogPage";
 import BlogDetailPage from "./pages/BlogDetailPage";
+import MyOffersPage from "./pages/dashboard/MyOffersPage";
+import MyOffersDetailPage from "./pages/dashboard/MyOffersDetailPage";
 
 // Initialize GA4
 const TRACKING_ID = import.meta.env.VITE_GOOGLE_ANLYTICS_ID;
@@ -104,9 +106,10 @@ function App() {
             }}
         >
             <div className="text-xs">
-                <Router>
-                    <AnalyticsTracker />
-                    <AuthProvider>
+                <AntdApp>
+                    <Router>
+                        <AnalyticsTracker />
+                        <AuthProvider>
                         <SocketProvider>
                             <NotificationProvider>
                                 <OperationsProvider>
@@ -172,6 +175,8 @@ function App() {
                                             <Route path="team/:id" element={<TeamDetailPage />} />
                                             <Route path="education" element={<TeamEducation />} />
                                             <Route path="under-review" element={<PendingReviewPage />} />
+                                            <Route path="myoffers" element={<MyOffersPage />} />
+                                            <Route path="myoffers/:id" element={<MyOffersDetailPage />} />
 
 
                                         </Route>
@@ -185,6 +190,7 @@ function App() {
                     </SocketProvider>
                 </AuthProvider>
             </Router>
+                </AntdApp>
             </div>
         </ConfigProvider>
     );
