@@ -207,6 +207,18 @@ export const OperationsProvider = ({ children }) => {
         }
     }, [user, operationCache]);
 
+    // Adjust the lead count for an operation in the uniqueSearches list.
+    // delta = +1 for add, -1 for delete, +N for bulk import — no extra API call needed.
+    const adjustOperationCount = useCallback((operationId, delta) => {
+        setUniqueSearches(prev =>
+            prev.map(op =>
+                (op.id === operationId || op._id === operationId || op.docId === operationId)
+                    ? { ...op, count: Math.max(0, (op.count || 0) + delta) }
+                    : op
+            )
+        );
+    }, []);
+
     // Update specific parts of the cache
     const updateOperationCache = useCallback((operationId, updates) => {
         setOperationCache(prev => {
@@ -270,6 +282,7 @@ export const OperationsProvider = ({ children }) => {
         operationCache,
         fetchOperationDetails,
         updateOperationCache,
+        adjustOperationCount,
         isBlocking,
         setIsBlocking
     };

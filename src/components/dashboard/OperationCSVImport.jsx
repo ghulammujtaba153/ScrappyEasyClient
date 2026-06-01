@@ -40,7 +40,7 @@ const OperationCSVImport = ({ visible, onCancel, onSuccess, userId, defaultSearc
       if (response.status === 201 || response.status === 200) {
         message.success(operationId ? 'Leads appended successfully' : 'CSV data imported successfully');
         setFileList([]);
-        if (onSuccess) onSuccess(response.data.data);
+        if (onSuccess) onSuccess({ data: response.data.data, imported: response.data.imported || 0 });
         onCancel();
       }
     } catch (error) {

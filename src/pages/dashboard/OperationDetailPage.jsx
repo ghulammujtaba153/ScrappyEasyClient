@@ -203,7 +203,7 @@ const OperationDetailPage = () => {
   const { token, user } = useAuth();
 
   // Use context for data persistence
-  const { fetchOperationDetails, updateOperationCache, operationCache, setIsBlocking } = useOperations();
+  const { fetchOperationDetails, updateOperationCache, operationCache, setIsBlocking, adjustOperationCount } = useOperations();
 
   const cachedData = operationCache[operationId] || {};
   const record = cachedData.record || null;
@@ -839,6 +839,8 @@ const OperationDetailPage = () => {
           });
           if (res.data.success) {
             message.success('Lead deleted successfully');
+            // Keep the operations list count in sync instantly
+            adjustOperationCount(operationId, -1);
             fetchRecord(true);
           }
         } catch (error) {
@@ -2146,8 +2148,9 @@ const OperationDetailPage = () => {
         userId={user?._id || user?.id}
         operationId={operationId}
         defaultSearchString={record?.searchString ? `${record.searchString} (Import)` : ''}
-        onSuccess={() => {
-           // Success! Force fetch to update context
+        onSuccess={({ imported }) => {
+           // Bump the count in the operations list by however many were actually imported
+           if (imported > 0) adjustOperationCount(operationId, imported);
            fetchRecord(true);
         }}
       />
