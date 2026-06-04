@@ -45,7 +45,8 @@ import {
   MdEmail,
   MdShare,
   MdContentCopy,
-  MdAnalytics
+  MdAnalytics,
+  MdCopyAll
 } from 'react-icons/md';
 import { BsWhatsapp, BsFacebook, BsInstagram, BsLinkedin, BsTwitterX, BsYoutube, BsTiktok } from 'react-icons/bs';
 import axios from 'axios';
@@ -244,6 +245,15 @@ const OperationDetailPage = () => {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [viewportHeight, setViewportHeight] = useState(
+    () => (typeof window !== 'undefined' ? window.innerHeight : 800)
+  );
+
+  useEffect(() => {
+    const onResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Recommend Cities State
   const [recommendedCities, setRecommendedCities] = useState([]);
@@ -275,6 +285,11 @@ const OperationDetailPage = () => {
     extraCount: 0,
     isProcessing: false
   });
+
+  const [isDuplicatesModalOpen, setIsDuplicatesModalOpen] = useState(false);
+  const [duplicatesLoading, setDuplicatesLoading] = useState(false);
+  const [removingDuplicates, setRemovingDuplicates] = useState(false);
+  const [duplicatePreview, setDuplicatePreview] = useState(null);
 
   // Wrapper setters to update cache (mimicking local state setters)
   const setCityData = (newData) => {
@@ -851,6 +866,71 @@ const OperationDetailPage = () => {
     });
   };
 
+  const fetchDuplicatePreview = async () => {
+    if (!operationId) return;
+    setDuplicatesLoading(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/data/record/${operationId}/duplicates`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        const data = res.data.data;
+        if (!data.totalDuplicates) {
+          message.info('No duplicate business names found in this operation');
+          return;
+        }
+        setDuplicatePreview(data);
+        setIsDuplicatesModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Duplicate preview error:', error);
+      message.error(error.response?.data?.message || 'Failed to load duplicates');
+    } finally {
+      setDuplicatesLoading(false);
+    }
+  };
+
+  const handleRemoveDuplicates = async () => {
+    if (!operationId || !duplicatePreview?.totalDuplicates) return;
+
+    setRemovingDuplicates(true);
+    try {
+      const res = await axios.delete(`${BASE_URL}/api/data/record/${operationId}/duplicates`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        const removed = res.data.removedCount || 0;
+        message.success(removed > 0 ? `Removed ${removed} duplicate lead(s)` : 'No duplicates to remove');
+        if (removed > 0) {
+          adjustOperationCount(operationId, -removed);
+          await fetchRecord(true);
+        }
+        setIsDuplicatesModalOpen(false);
+        setDuplicatePreview(null);
+      }
+    } catch (error) {
+      console.error('Remove duplicates error:', error);
+      message.error(error.response?.data?.message || 'Failed to remove duplicates');
+    } finally {
+      setRemovingDuplicates(false);
+    }
+  };
+
+  const duplicateTableRows = useMemo(() => {
+    if (!duplicatePreview?.duplicateGroups?.length) return [];
+    return duplicatePreview.duplicateGroups.flatMap((group) =>
+      group.items.map((item) => ({
+        key: item._id,
+        title: item.title,
+        phone: item.phone || '—',
+        city: item.city || '—',
+        createdAt: item.createdAt ? new Date(item.createdAt).toLocaleString() : '—',
+        status: item.willKeep ? 'keep' : 'remove',
+        groupCount: group.count,
+      }))
+    );
+  }, [duplicatePreview]);
+
   const formatPhoneNumber = (phone, contextHint = '') => {
     const isBusy = verifyingAll || extractingCities || extractingAllSocial || analyzingAds;
     
@@ -1278,6 +1358,23 @@ const OperationDetailPage = () => {
 
     return filtered;
   }, [flattenedData, filters]);
+
+  const TABLE_ROW_HEIGHT = 54;
+
+  const tableScrollY = useMemo(() => {
+    if (!filteredData.length) return undefined;
+
+    const rowsOnPage = Math.min(
+      pageSize,
+      Math.max(0, filteredData.length - (currentPage - 1) * pageSize)
+    );
+    if (!rowsOnPage) return undefined;
+
+    const bodyHeight = rowsOnPage * TABLE_ROW_HEIGHT;
+    const maxBodyHeight = Math.max(240, viewportHeight - 320);
+
+    return Math.min(bodyHeight, maxBodyHeight);
+  }, [filteredData.length, pageSize, currentPage, viewportHeight]);
 
   const getWhatsappStatusLabel = (phone, itemStatus) => {
     // Prioritize the item's stored status (from DB), fallback to local cache
@@ -2038,6 +2135,15 @@ const OperationDetailPage = () => {
                 Import CSV
               </Button>
               <Button
+                icon={<MdCopyAll />}
+                onClick={fetchDuplicatePreview}
+                loading={duplicatesLoading}
+                disabled={!record || duplicatesLoading}
+                className="rounded-xl h-10 px-4 font-bold border-orange-200 text-orange-600 hover:bg-orange-50"
+              >
+                Remove Duplicates
+              </Button>
+              <Button
                 icon={<MdGroupAdd />}
                 onClick={() => {
                   if (!isAuthorized) { setLockedFeature('Export to Team'); setIsLockedModalOpen(true); return; }
@@ -2482,7 +2588,10 @@ const OperationDetailPage = () => {
           columns={columns}
           dataSource={filteredData}
           loading={loading}
-          scroll={{ x: 1200 }}
+          scroll={{
+            x: 1200,
+            ...(tableScrollY ? { y: tableScrollY } : {}),
+          }}
           pagination={{
             current: currentPage,
             pageSize: pageSize,
@@ -2682,6 +2791,77 @@ const OperationDetailPage = () => {
              </div>
            )}
         </div>
+      </Modal>
+
+      <Modal
+        title="Duplicate Leads in This Operation"
+        open={isDuplicatesModalOpen}
+        onCancel={() => {
+          if (removingDuplicates) return;
+          setIsDuplicatesModalOpen(false);
+          setDuplicatePreview(null);
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setIsDuplicatesModalOpen(false);
+              setDuplicatePreview(null);
+            }}
+            disabled={removingDuplicates}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="remove"
+            type="primary"
+            danger
+            loading={removingDuplicates}
+            disabled={!duplicatePreview?.totalDuplicates}
+            onClick={handleRemoveDuplicates}
+          >
+            Remove {duplicatePreview?.totalDuplicates || 0} Duplicate(s)
+          </Button>,
+        ]}
+        width={900}
+        centered
+      >
+        {!duplicatePreview?.totalDuplicates ? (
+          <div className="py-8 text-center text-gray-500">
+            No duplicate business names found in this operation.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Alert
+              type="warning"
+              showIcon
+              message={`${duplicatePreview.totalGroups} duplicate name group(s) found`}
+              description={`${duplicatePreview.totalDuplicates} lead(s) will be removed from this operation only. The oldest entry for each name is kept.`}
+            />
+            <Table
+              size="small"
+              pagination={{ pageSize: 10 }}
+              dataSource={duplicateTableRows}
+              columns={[
+                { title: 'Business Name', dataIndex: 'title', key: 'title', ellipsis: true },
+                { title: 'Phone', dataIndex: 'phone', key: 'phone', width: 140 },
+                { title: 'City', dataIndex: 'city', key: 'city', width: 120, ellipsis: true },
+                { title: 'Added', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
+                {
+                  title: 'Action',
+                  dataIndex: 'status',
+                  key: 'status',
+                  width: 110,
+                  render: (status) => (
+                    status === 'keep'
+                      ? <Tag color="green">Keep</Tag>
+                      : <Tag color="red">Remove</Tag>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -55,6 +55,8 @@ import BlogPage from "./pages/BlogPage";
 import BlogDetailPage from "./pages/BlogDetailPage";
 import MyOffersPage from "./pages/dashboard/MyOffersPage";
 import MyOffersDetailPage from "./pages/dashboard/MyOffersDetailPage";
+import ColdMailPage from "./pages/dashboard/ColdMailPage";
+
 
 // Initialize GA4
 const TRACKING_ID = import.meta.env.VITE_GOOGLE_ANLYTICS_ID;
@@ -65,14 +67,17 @@ if (TRACKING_ID) {
 // Initialize Meta Pixel
 const PIXEL_ID = import.meta.env.VITE_PIXEL_ID;
 if (PIXEL_ID) {
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
+    !function (f, b, e, v, n, t, s) {
+        if (f.fbq) return; n = f.fbq = function () {
+            n.callMethod ?
+            n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+        };
+        if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+        n.queue = []; t = b.createElement(e); t.async = !0;
+        t.src = v; s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s)
+    }(window, document, 'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', PIXEL_ID);
 }
 
@@ -110,86 +115,87 @@ function App() {
                     <Router>
                         <AnalyticsTracker />
                         <AuthProvider>
-                        <SocketProvider>
-                            <NotificationProvider>
-                                <OperationsProvider>
-                                    <ScreenshotProvider>
-                                        <Routes>
-                                        {/* <Route path="/" element={<AuthRedirect />} /> */}
-                                        <Route path="/" element={<LandingPage />} />
-                                        <Route path="/register" element={<RegisterPage />} />
-                                        <Route path="/login" element={<LoginPage />} />
-                                        <Route path="/forgot-password" element={<ForgetPassword />} />
-                                        <Route path="/reset-password" element={<InviteUserResetPage />} />
-                                        <Route path="/invite/confirm" element={<InviteConfirmPage />} />
-                                        <Route path="/lead-buddy-privacy" element={<PrivacyPage />} />
-                                        <Route path="/lead-buddy-support" element={<SupportPage />} />
-                                        <Route path="/lemon-squeezy" element={<LemonSqueezy />} />
-                                        
-                                        <Route path="/pricing" element={<PricingPage />} />
-                                        <Route path="/demo-presentation" element={<DemoPresentationPage />} />
-                                        <Route path="/get-extension" element={<GetExtensionPage />} />
-                                        <Route path="/blogs" element={<BlogPage />} />
-                                        <Route path="/blog/:id" element={<BlogDetailPage />} />
+                            <SocketProvider>
+                                <NotificationProvider>
+                                    <OperationsProvider>
+                                        <ScreenshotProvider>
+                                            <Routes>
+                                                {/* <Route path="/" element={<AuthRedirect />} /> */}
+                                                <Route path="/" element={<LandingPage />} />
+                                                <Route path="/register" element={<RegisterPage />} />
+                                                <Route path="/login" element={<LoginPage />} />
+                                                <Route path="/forgot-password" element={<ForgetPassword />} />
+                                                <Route path="/reset-password" element={<InviteUserResetPage />} />
+                                                <Route path="/invite/confirm" element={<InviteConfirmPage />} />
+                                                <Route path="/lead-buddy-privacy" element={<PrivacyPage />} />
+                                                <Route path="/lead-buddy-support" element={<SupportPage />} />
+                                                <Route path="/lemon-squeezy" element={<LemonSqueezy />} />
 
-                                        <Route path="/who-wins" element={<WhoWinsPage />} />
-                                        <Route path="/about" element={<AboutPage />} />
-                                        <Route path="/term-conditions" element={<TermsCondition/>} />
-                                        <Route path="/term-conditions" element={<TermsCondition/>} />
+                                                <Route path="/pricing" element={<PricingPage />} />
+                                                <Route path="/demo-presentation" element={<DemoPresentationPage />} />
+                                                <Route path="/get-extension" element={<GetExtensionPage />} />
+                                                <Route path="/blogs" element={<BlogPage />} />
+                                                <Route path="/blog/:id" element={<BlogDetailPage />} />
 
-
-
-                                        {/* Protected Routes */}
-                                        <Route
-                                            path="/dashboard"
-                                            element={
-                                                <ProtectedRoute>
-                                                    <DashboardLayout />
-                                                </ProtectedRoute>
-                                            }
-                                        >
-                                            <Route index element={<HomePage />} />
-                                            <Route
-                                                path="location/:category/:country/:state/:city?"
-                                                element={<LocationDetails />}
-                                            />
-                                            <Route path="category" element={<CategoryPage />} />
-                                            <Route path="operations" element={<OperationsPage />} />
-                                            <Route path="operations/:operationId" element={<OperationDetailPage />} />
-                                            <Route path="heat-map" element={<HeatMapPage />} />
-                                            <Route path="cold-caller" element={<ColdCallerPage />} />
-                                            <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
-                                            <Route path="whatsapp-automation" element={<WhatsAppConnectPage />} />
-                                            <Route path="message-automation" element={<MessageAutomationPage />} />
-                                            <Route path="call" element={<CallPage />} />
-                                            <Route path="twilio-settings" element={<TwilioSettingsPage />} />
-                                            <Route path="support" element={<SupportPage />} />
-                                            <Route path="profile-settings" element={<ProfilePage />} />
-                                            <Route path="subscription" element={<SubscriptionPage />} />
-                                            <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
-                                            <Route path="location" element={<LocationPage />} />
-                                            <Route path="collaboration" element={<CollaborationPage />} />
-                                            <Route path="qualified-leads" element={<QualifiedLeadsPage />} />
-                                            <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
-                                            <Route path="team" element={<TeamPage />} />
-                                            <Route path="team/:id" element={<TeamDetailPage />} />
-                                            <Route path="education" element={<TeamEducation />} />
-                                            <Route path="under-review" element={<PendingReviewPage />} />
-                                            <Route path="myoffers" element={<MyOffersPage />} />
-                                            <Route path="myoffers/:id" element={<MyOffersDetailPage />} />
+                                                <Route path="/who-wins" element={<WhoWinsPage />} />
+                                                <Route path="/about" element={<AboutPage />} />
+                                                <Route path="/term-conditions" element={<TermsCondition />} />
+                                                <Route path="/term-conditions" element={<TermsCondition />} />
 
 
-                                        </Route>
 
-                                        {/* 404 Page - Must be last */}
-                                        <Route path="*" element={<NotFoundPage />} />
-                                    </Routes>
-                                </ScreenshotProvider>
-                            </OperationsProvider>
-                        </NotificationProvider>
-                    </SocketProvider>
-                </AuthProvider>
-            </Router>
+                                                {/* Protected Routes */}
+                                                <Route
+                                                    path="/dashboard"
+                                                    element={
+                                                        <ProtectedRoute>
+                                                            <DashboardLayout />
+                                                        </ProtectedRoute>
+                                                    }
+                                                >
+                                                    <Route index element={<HomePage />} />
+                                                    <Route
+                                                        path="location/:category/:country/:state/:city?"
+                                                        element={<LocationDetails />}
+                                                    />
+                                                    <Route path="category" element={<CategoryPage />} />
+                                                    <Route path="operations" element={<OperationsPage />} />
+                                                    <Route path="operations/:operationId" element={<OperationDetailPage />} />
+                                                    <Route path="heat-map" element={<HeatMapPage />} />
+                                                    <Route path="cold-caller" element={<ColdCallerPage />} />
+                                                    <Route path="cold-caller/:id" element={<ColdCallerDetailPage />} />
+                                                    <Route path="whatsapp-automation" element={<WhatsAppConnectPage />} />
+                                                    <Route path="message-automation" element={<MessageAutomationPage />} />
+                                                    <Route path="call" element={<CallPage />} />
+                                                    <Route path="twilio-settings" element={<TwilioSettingsPage />} />
+                                                    <Route path="support" element={<SupportPage />} />
+                                                    <Route path="profile-settings" element={<ProfilePage />} />
+                                                    <Route path="subscription" element={<SubscriptionPage />} />
+                                                    <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
+                                                    <Route path="location" element={<LocationPage />} />
+                                                    <Route path="collaboration" element={<CollaborationPage />} />
+                                                    <Route path="qualified-leads" element={<QualifiedLeadsPage />} />
+                                                    <Route path="qualified-leads/:id" element={<QualifiedLeadsDetailPage />} />
+                                                    <Route path="team" element={<TeamPage />} />
+                                                    <Route path="team/:id" element={<TeamDetailPage />} />
+                                                    <Route path="education" element={<TeamEducation />} />
+                                                    <Route path="under-review" element={<PendingReviewPage />} />
+                                                    <Route path="myoffers" element={<MyOffersPage />} />
+                                                    <Route path="myoffers/:id" element={<MyOffersDetailPage />} />
+                                                    <Route path="cold-mail/*" element={<ColdMailPage />} />
+
+
+                                                </Route>
+
+                                                {/* 404 Page - Must be last */}
+                                                <Route path="*" element={<NotFoundPage />} />
+                                            </Routes>
+                                        </ScreenshotProvider>
+                                    </OperationsProvider>
+                                </NotificationProvider>
+                            </SocketProvider>
+                        </AuthProvider>
+                    </Router>
                 </AntdApp>
             </div>
         </ConfigProvider>

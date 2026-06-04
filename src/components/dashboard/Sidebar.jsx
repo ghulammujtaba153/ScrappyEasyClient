@@ -63,6 +63,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
             icon: <MdMessage className="w-5 h-5" />,
         },
         // {
+        //     name: "Cold Mail",
+        //     path: "/dashboard/cold-mail",
+        //     icon: <MdMessage className="w-5 h-5" />,
+        // },
+        // {
         //     name: "Message Automation",
         //     path: "/dashboard/message-automation",
         //     icon: <MdMessage className="w-5 h-5" />,
@@ -87,7 +92,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
             path: "/dashboard/team",
             icon: <MdGroups className="w-5 h-5" />,
         },
-        
+
         // {
         //     name: "Call Automation",
         //     path: "/dashboard/call",
@@ -135,7 +140,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
 
     const handleNavigation = (path, e) => {
         if (e) e.preventDefault();
-        
+
         if (isBlocking) {
             Modal.confirm({
                 title: 'Operation in Progress',
@@ -158,20 +163,19 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile = false, isMobileOpen =
     const isUnderReview = user?.status === "under_review";
 
 
-    const filteredMenuItems = isUnderReview 
-        ? menuItems.filter(item => ["Support", "Profile Settings"].includes(item.name)) 
+    const filteredMenuItems = isUnderReview
+        ? menuItems.filter(item => ["Support", "Profile Settings"].includes(item.name))
         : menuItems;
 
     return (
         <aside
-            className={`text-black h-screen fixed left-0 top-0 transition-all duration-300 ${
-                isMobile
-                    ? (
-                        isCollapsed ? "hidden" : 
+            className={`text-black h-screen fixed left-0 top-0 transition-all duration-300 ${isMobile
+                ? (
+                    isCollapsed ? "hidden" :
                         isMobileOpen ? "w-64 z-50" : "-translate-x-full w-64 z-50"
-                    )
-                    : (isCollapsed ? "w-20" : "w-64")
-            } shadow-2xl overflow-y-auto overflow-x-hidden bg-gray-50 custom-scrollbar`}
+                )
+                : (isCollapsed ? "w-20" : "w-64")
+                } shadow-2xl overflow-y-auto overflow-x-hidden bg-gray-50 custom-scrollbar`}
             style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#0F792C #f3f4f6'
