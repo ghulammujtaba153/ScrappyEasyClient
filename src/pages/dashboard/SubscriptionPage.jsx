@@ -5,6 +5,7 @@ import Notification from "../../components/common/Notification";
 import { FaCamera, FaWallet, FaUniversity, FaTimes, FaSpinner, FaCheck, FaRocket, FaCalendarAlt } from "react-icons/fa";
 import axios from "axios";
 import { PLANS } from "../../config/plans";
+import { uploadToCloudinary, validatePaymentScreenshotFile } from "../../utils/cloudinaryUpload";
 
 const SubscriptionPage = () => {
     const { user, token, updateUser, accessStatus } = useAuth();
@@ -35,10 +36,19 @@ const SubscriptionPage = () => {
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setScreenshot(file);
-            setScreenshotPreview(URL.createObjectURL(file));
+        if (!file) return;
+
+        const fileError = validatePaymentScreenshotFile(file);
+        if (fileError) {
+            setScreenshot(null);
+            setScreenshotPreview(null);
+            setNotification({ message: fileError, type: "error" });
+            e.target.value = '';
+            return;
         }
+
+        setScreenshot(file);
+        setScreenshotPreview(URL.createObjectURL(file));
     };
 
     const handleSubmit = async (e) => {
@@ -50,18 +60,23 @@ const SubscriptionPage = () => {
 
         setLoading(true);
         try {
-            const formData = new FormData();
-            formData.append("planId", selectedPlan.id);
-            formData.append("planName", selectedPlan.name);
-            formData.append("planAmount", selectedPlan.price);
-            formData.append("screenshot", screenshot);
+            const paymentScreenshot = await uploadToCloudinary(screenshot);
 
-            const response = await axios.post(`${BASE_URL}/api/user/request-subscription/${user._id}`, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data",
+            const response = await axios.post(
+                `${BASE_URL}/api/user/request-subscription/${user._id}`,
+                {
+                    planId: selectedPlan.id,
+                    planName: selectedPlan.name,
+                    planAmount: selectedPlan.price,
+                    paymentScreenshot,
                 },
-            });
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
             if (response.data.success) {
                 setNotification({ 
@@ -75,8 +90,11 @@ const SubscriptionPage = () => {
             }
         } catch (error) {
             console.error("Subscription error:", error);
+            const isUploadError = !error.response;
             setNotification({ 
-                message: error.response?.data?.message || "Failed to submit request", 
+                message: isUploadError
+                    ? (error.message || "Failed to upload payment screenshot. Please try again.")
+                    : (error.response?.data?.message || "Failed to submit request"),
                 type: "error" 
             });
         } finally {

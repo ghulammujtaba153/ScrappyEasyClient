@@ -3,6 +3,7 @@ import axios from 'axios';
 import { message } from 'antd';
 import { BASE_URL } from '../config/URL';
 import { useAuth } from './authContext';
+import { formatPhoneNumber } from '../components/operationDetail/operationDetailUtils';
 
 const OperationsContext = createContext(null);
 
@@ -119,10 +120,10 @@ export const OperationsProvider = ({ children }) => {
                         const itemKey = leadId || `${data._id}-${index}`;
 
                         // Extract whatsapp status from lead
-                        if (lead.whatsappStatus) {
-                            const phone = lead.phone?.replace(/\D/g, '');
-                            if (phone) {
-                                initialWhatsappStatus[`+${phone}`] = lead.whatsappStatus;
+                        if (lead.whatsappStatus && lead.phone) {
+                            const formatted = formatPhoneNumber(lead.phone, data.searchString || '');
+                            if (formatted) {
+                                initialWhatsappStatus[formatted] = lead.whatsappStatus;
                             }
                         }
 

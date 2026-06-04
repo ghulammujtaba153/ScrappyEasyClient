@@ -10,6 +10,7 @@ import { PLANS } from "../config/plans";
 import Navbar from "../components/landing/Navbar";
 import FooterSection from "../components/landing/FooterSection";
 import { trackMetaEvent, trackMetaCustomEvent } from "../utils/analytics";
+import { uploadToCloudinary, validatePaymentScreenshotFile } from "../utils/cloudinaryUpload";
 
 
 
@@ -81,9 +82,20 @@ const RegisterPage = () => {
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setScreenshot(file);
-            setScreenshotPreview(URL.createObjectURL(file));
+        if (!file) return;
+
+        const fileError = validatePaymentScreenshotFile(file);
+        if (fileError) {
+            setScreenshot(null);
+            setScreenshotPreview(null);
+            setErrors((prev) => ({ ...prev, screenshot: fileError }));
+            e.target.value = '';
+            return;
+        }
+
+        setErrors((prev) => ({ ...prev, screenshot: '' }));
+        setScreenshot(file);
+        setScreenshotPreview(URL.createObjectURL(file));
 
             trackMetaEvent('AddPaymentInfo', {
                 content_name: selectedPlan?.name || 'Subscription Plan',
@@ -95,7 +107,6 @@ const RegisterPage = () => {
                 plan_id: selectedPlan?.id || null,
                 plan_name: selectedPlan?.name || null
             });
-        }
     };
 
     const handlePlanDropdownChange = (selectedOption) => {
@@ -207,27 +218,41 @@ const RegisterPage = () => {
                 plan_name: selectedPlan?.name || null
             });
 
-            // OTP verified, now register with multipart/form-data for the screenshot
-            const formData = new FormData();
-            formData.append("name", form.name);
-            formData.append("email", form.email);
-            formData.append("country", form.country);
-            formData.append("aboutUser", form.aboutUser);
-            formData.append("password", form.password);
-            formData.append("userType", form.userType);
-            
+            let paymentScreenshotUrl = null;
+            if (selectedPlan && form.userType === 'local' && screenshot) {
+                try {
+                    paymentScreenshotUrl = await uploadToCloudinary(screenshot);
+                } catch (uploadErr) {
+                    console.error('Cloudinary upload failed:', uploadErr);
+                    const msg = uploadErr?.message || 'Failed to upload payment screenshot. Please try again.';
+                    setNotification({ message: msg, type: 'error' });
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            const registerPayload = {
+                name: form.name,
+                email: form.email,
+                country: form.country,
+                aboutUser: form.aboutUser,
+                password: form.password,
+                userType: form.userType,
+            };
+
             if (selectedPlan) {
-                formData.append("planId", selectedPlan.id);
-                formData.append("planName", selectedPlan.name);
-                formData.append("planAmount", selectedPlan.price);
-                if (form.userType === 'local' && screenshot) {
-                    formData.append("screenshot", screenshot);
+                registerPayload.planId = selectedPlan.id;
+                registerPayload.planName = selectedPlan.name;
+                registerPayload.planAmount = selectedPlan.price;
+                if (paymentScreenshotUrl) {
+                    registerPayload.paymentScreenshot = paymentScreenshotUrl;
                 }
             }
 
             const registerResponse = await fetch(`${BASE_URL}/api/auth/register`, {
                 method: "POST",
-                body: formData, // No Content-Type header needed for FormData
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(registerPayload),
             });
 
             const registerData = await registerResponse.json();

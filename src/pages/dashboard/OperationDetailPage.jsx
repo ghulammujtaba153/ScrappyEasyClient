@@ -1,106 +1,50 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Modal, message } from 'antd';
+import axios from 'axios';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 import SaveNumbersModal from '../../components/dashboard/SaveNumbersModal';
 import SaveQualifiedLeadsModal from '../../components/dashboard/SaveQualifiedLeadsModal';
 import OperationCSVImport from '../../components/dashboard/OperationCSVImport';
 import EditLeadModal from '../../components/dashboard/EditLeadModal';
-import { trackMetaEvent, trackMetaCustomEvent } from '../../utils/analytics';
-import {
-  Alert,
-  Button,
-  InputNumber,
-  Input,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Modal,
-  Spin,
-  Tooltip,
-  message
-} from 'antd';
-import {
-  MdArrowBack,
-  MdCheckCircle,
-  MdDownload,
-  MdOpenInNew,
-  MdDescription,
-  MdRefresh,
-  MdClose,
-  MdSave,
-  MdPhone,
-  MdCameraAlt,
-  MdImage,
-  MdSearch,
-  MdWeb,
-  MdLocationOn,
-  MdFavorite,
-  MdFavoriteBorder,
-  MdStar,
-  MdLock,
-  MdCloudUpload,
-  MdEdit,
-  MdDelete,
-  MdEmail,
-  MdShare,
-  MdContentCopy,
-  MdAnalytics,
-  MdCopyAll
-} from 'react-icons/md';
-import { BsWhatsapp, BsFacebook, BsInstagram, BsLinkedin, BsTwitterX, BsYoutube, BsTiktok } from 'react-icons/bs';
-import axios from 'axios';
-import { QRCodeCanvas } from 'qrcode.react';
-import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
-import { BASE_URL } from '../../config/URL';
-import { useAuth } from '../../context/authContext';
-import { useOperations } from '../../context/operationsContext';
-import Notes from '../../components/dashboard/Notes';
 import SaveColdCallsModal from '../../components/dashboard/SaveColdCallsModal';
-import ScreenshotViewer from '../../components/dashboard/ScreenshotViewer';
 import WebsiteCarouselViewer from '../../components/dashboard/WebsiteCarouselViewer';
-import { checkAccessStatus } from '../../api/subscriptionApi';
-import Loader from '../../components/common/Loader';
-import ExtractionLoader from '../../components/common/ExtractionLoader';
 import LinkedInInformation from '../../components/dashboard/LinkedInInformation';
 import StackAnalysisModal from '../../components/dashboard/StackAnalysisModal';
 import ExportToTeamModal from '../../components/dashboard/ExportToTeamModal';
-import { MdSettingsInputComponent, MdGroupAdd } from 'react-icons/md';
-
-
-const { Option } = Select;
-
-const defaultFilters = {
-  countries: [],
-  states: [],
-  cities: [],
-  whatsappStatus: '',
-  ratingMin: null,
-  ratingMax: null,
-  reviewsMin: null,
-  reviewsMax: null,
-  hasWebsite: '',
-  hasPhone: '',
-  hasEmail: '',
-  hasSocials: '',
-  favorite: '',
-  addsRunning: ''
-};
-
-const EXPORT_FIELDS = [
-  { key: 'searchString', label: 'Search Query' },
-  { key: 'title', label: 'Business Name' },
-  { key: 'rating', label: 'Rating' },
-  { key: 'reviews', label: 'Reviews' },
-  { key: 'phone', label: 'Phone' },
-  { key: 'address', label: 'Address' },
-  { key: 'city', label: 'City/Location' },
-  { key: 'website', label: 'Website' },
-  { key: 'googleMapsLink', label: 'Google Maps' },
-  { key: 'createdAt', label: 'Scraped Date' },
-  { key: 'whatsappStatus', label: 'WhatsApp Status' },
-  { key: 'emails', label: 'Emails' }
-];
+import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
+import Notes from '../../components/dashboard/Notes';
+import Loader from '../../components/common/Loader';
+import OperationNotFound from '../../components/operationDetail/OperationNotFound';
+import OperationDetailHeader from '../../components/operationDetail/OperationDetailHeader';
+import OperationDetailToolbar from '../../components/operationDetail/OperationDetailToolbar';
+import OperationWhatsAppBanner from '../../components/operationDetail/OperationWhatsAppBanner';
+import OperationDetailFilters from '../../components/operationDetail/OperationDetailFilters';
+import OperationLeadsTable from '../../components/operationDetail/OperationLeadsTable';
+import OperationRecommendCitiesModal from '../../components/operationDetail/OperationRecommendCitiesModal';
+import OperationBulkProgressModal from '../../components/operationDetail/OperationBulkProgressModal';
+import OperationDuplicatesModal from '../../components/operationDetail/OperationDuplicatesModal';
+import { useLeadsTableColumns } from '../../components/operationDetail/useLeadsTableColumns';
+import { DEFAULT_FILTERS, EXPORT_FIELDS } from '../../components/operationDetail/constants';
+import { trackMetaCustomEvent } from '../../utils/analytics';
+import { filterLeads, computeVerificationStats } from '../../components/operationDetail/leadFilters';
+import {
+  formatPhoneNumber as formatPhoneUtil,
+  isMongoLeadId,
+  flattenLeads,
+  extractCoordinates,
+  extractCityFromUrl,
+  getFileBaseName,
+  buildExportRows,
+  downloadFile,
+  escapeHtml,
+  calcTableScrollY,
+} from '../../components/operationDetail/operationDetailUtils';
+import { trackMetaEvent } from '../../utils/analytics';
+import { BASE_URL } from '../../config/URL';
+import { useAuth } from '../../context/authContext';
+import { useOperations } from '../../context/operationsContext';
+import { checkAccessStatus } from '../../api/subscriptionApi';
 
 const OperationDetailPage = () => {
 
@@ -216,10 +160,11 @@ const OperationDetailPage = () => {
   const socialData = useMemo(() => cachedData.socialData || {}, [cachedData.socialData]);
 
   const [loading, setLoading] = useState(!record);
-  const [filters, setFilters] = useState({ ...defaultFilters });
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
 
   // WhatsApp Connection State
   const [whatsappInitialized, setWhatsappInitialized] = useState(false);
+  const [verifyingPhone, setVerifyingPhone] = useState(null);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isColdCallModalOpen, setIsColdCallModalOpen] = useState(false);
@@ -245,9 +190,15 @@ const OperationDetailPage = () => {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(
     () => (typeof window !== 'undefined' ? window.innerHeight : 800)
   );
+
+  useEffect(() => {
+    setSelectedRowKeys([]);
+  }, [operationId]);
 
   useEffect(() => {
     const onResize = () => setViewportHeight(window.innerHeight);
@@ -310,79 +261,6 @@ const OperationDetailPage = () => {
   const setSocialData = (newData) => {
     const data = typeof newData === 'function' ? newData(socialData) : newData;
     updateOperationCache(operationId, { socialData: data });
-  };
-
-  // Extract coordinates from Google Maps URL
-  const extractCoordinates = (url) => {
-    if (!url) return null;
-
-    const patterns = [
-      /@(-?\d+\.\d+),(-?\d+\.\d+)/,
-      /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/
-    ];
-
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) {
-        return {
-          lat: parseFloat(match[1]),
-          lon: parseFloat(match[2])
-        };
-      }
-    }
-
-    return null;
-  };
-
-  // Get city name from coordinates using OpenStreetMap Nominatim
-  const getCityFromCoordinates = async (lat, lon) => {
-    const apiUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-
-    console.log(`   📍 Querying OpenStreetMap for coordinates: ${lat}, ${lon}`);
-
-    try {
-      const response = await fetch(apiUrl, {
-        headers: {
-          'User-Agent': 'GoldScraper/1.0'
-        }
-      });
-
-      if (!response.ok) {
-        console.log(`   ⚠️ API returned status ${response.status}`);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data && data.address) {
-        const address = data.address;
-        const city = address.city ||
-          address.town ||
-          address.county ||
-          address.state_district ||
-          address.state ||
-          address.country ||
-          'Unknown';
-
-        console.log(`   ✓ Resolved to: ${city} (from ${address.city ? 'city' : address.town ? 'town' : address.county ? 'county' : address.state_district ? 'state' : address.state ? 'state' : 'country'})`);
-        return city;
-      }
-
-      console.log(`   ⚠️ No address data in response`);
-      return 'Unknown';
-    } catch (error) {
-      console.error(`   ❌ City lookup error for ${lat}, ${lon}:`, error.message);
-      return 'Unknown';
-    }
-  };
-
-  // Extract city from Google Maps URL
-  const extractCityFromUrl = async (url) => {
-    const coords = extractCoordinates(url);
-    if (!coords) return null;
-
-    const city = await getCityFromCoordinates(coords.lat, coords.lon);
-    return city;
   };
 
   // Get recommended nearby cities based on Google Maps coordinates in data
@@ -854,7 +732,7 @@ const OperationDetailPage = () => {
           });
           if (res.data.success) {
             message.success('Lead deleted successfully');
-            // Keep the operations list count in sync instantly
+            setSelectedRowKeys((prev) => prev.filter((id) => id !== lead.leadId));
             adjustOperationCount(operationId, -1);
             fetchRecord(true);
           }
@@ -931,47 +809,49 @@ const OperationDetailPage = () => {
     );
   }, [duplicatePreview]);
 
-  const formatPhoneNumber = (phone, contextHint = '') => {
-    const isBusy = verifyingAll || extractingCities || extractingAllSocial || analyzingAds;
-    
-    // Remove all non-digits except +
-    let cleaned = phone.trim().replace(/[^\d+]/g, '');
-    if (!cleaned) return null;
+  const formatPhoneNumber = (phone, contextHint) =>
+    formatPhoneUtil(phone, contextHint ?? record?.searchString ?? '');
 
-    // Handle 00 prefix
-    if (cleaned.startsWith('00')) {
-      cleaned = '+' + cleaned.slice(2);
+  const persistLeadWhatsAppStatus = async (leadId, normalizedPhone, status) => {
+    if (!isMongoLeadId(leadId)) {
+      throw new Error('Cannot save verification: lead ID is missing. Try refreshing the operation.');
     }
 
-    // If it already has a +, it's E.164 ready
-    if (cleaned.startsWith('+')) {
-      return cleaned;
+    const saveRes = await axios.post(
+      `${BASE_URL}/api/data/update-whatsapp-status`,
+      { leadId, whatsappStatus: status },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (!saveRes.data?.success) {
+      throw new Error(saveRes.data?.message || 'Failed to save WhatsApp status');
     }
 
-    // DYNAMIC COUNTRY DETECTION
-    // We infer the country from the search query or address
-    const hint = contextHint.toLowerCase();
-    let countryCode = '971'; // Default to UAE as it's the primary market
+    setWhatsappStatus((prev) => ({ ...prev, [normalizedPhone]: status }));
 
-    if (hint.includes('australia')) countryCode = '61';
-    else if (hint.includes('uk') || hint.includes('london') || hint.includes('united kingdom')) countryCode = '44';
-    else if (hint.includes('usa') || hint.includes('america') || hint.includes('united states')) countryCode = '1';
-    else if (hint.includes('india')) countryCode = '91';
-    else if (hint.includes('pakistan')) countryCode = '92';
-    else if (hint.includes('saudi') || hint.includes('ksa')) countryCode = '966';
-    else if (hint.includes('qatar')) countryCode = '974';
-
-    // If it starts with 0 (local trunk prefix) and looks like a local number
-    if (cleaned.startsWith('0') && (cleaned.length === 9 || cleaned.length === 10)) {
-      return `+${countryCode}${cleaned.slice(1)}`;
+    if (record?.leads?.length) {
+      const leadIdStr = String(leadId);
+      const updatedRecord = {
+        ...record,
+        leads: record.leads.map((lead) =>
+          String(lead._id) === leadIdStr ? { ...lead, whatsappStatus: status } : lead
+        ),
+      };
+      updateOperationCache(operationId, { record: updatedRecord });
     }
+  };
 
-    // Fallback: just add a + if missing
-    return `+${cleaned}`;
+  const handleVerifyPhoneClick = (phone, leadId) => {
+    if (!whatsappInitialized) {
+      message.error('Please connect WhatsApp by scanning the QR code first');
+      setIsConnectModalOpen(true);
+      return;
+    }
+    verifyWhatsAppNumber(phone, { leadId });
   };
 
   const verifyWhatsAppNumber = async (phone, options = {}) => {
-    const { silent = false, formattedNumber } = options;
+    const { silent = false, formattedNumber, leadId } = options;
 
     if (!phone) {
       if (!silent) message.warning('No phone number available');
@@ -982,7 +862,6 @@ const OperationDetailPage = () => {
 
     if (!whatsappInitialized) {
       if (!silent) message.error('Please connect WhatsApp by scanning the QR code first');
-      if (normalized) setWhatsappStatus(prev => ({ ...prev, [normalized]: 'unknown' }));
       return;
     }
 
@@ -991,8 +870,9 @@ const OperationDetailPage = () => {
       return;
     }
 
-    // START LOADING
-    setWhatsappStatus(prev => ({ ...prev, [normalized]: 'checking' }));
+    if (verifyingPhone === normalized) return;
+
+    setVerifyingPhone(normalized);
 
     try {
       const res = await axios.post(`${BASE_URL}/api/verification/check`, {
@@ -1005,29 +885,32 @@ const OperationDetailPage = () => {
 
       if (res.data.success && res.data.data) {
         const result = res.data.data.results[0];
-        const isRegistered = result?.isRegistered;
+
+        if (!result?.success) {
+          const errMsg = result?.error || 'Verification failed';
+          if (!silent) message.error(errMsg);
+          return;
+        }
+
+        const isRegistered = result.isRegistered;
         const status = isRegistered ? 'verified' : 'not-verified';
 
-        setWhatsappStatus(prev => ({ ...prev, [normalized]: status }));
+        await persistLeadWhatsAppStatus(leadId, normalized, status);
 
         if (!silent) {
           if (isRegistered) message.success('WhatsApp number verified!');
           else message.info('Number does not have WhatsApp');
         }
-
-        fetchRecord();
       } else {
-        // STOP LOADING ON API ERROR
         const errorMessage = res.data.error || 'Failed to verify WhatsApp number';
-        setWhatsappStatus(prev => ({ ...prev, [normalized]: 'failed' }));
         if (!silent) message.error(errorMessage);
       }
     } catch (error) {
-      // STOP LOADING ON NETWORK ERROR
       const backendMessage = error.response?.data?.error || error.message;
       console.error('Verification error:', backendMessage);
-      setWhatsappStatus(prev => ({ ...prev, [normalized]: 'failed' }));
       if (!silent) message.error(`Failed to verify WhatsApp number: ${backendMessage}`);
+    } finally {
+      setVerifyingPhone((current) => (current === normalized ? null : current));
     }
   };
 
@@ -1062,6 +945,14 @@ const OperationDetailPage = () => {
       message.info('All numbers already verified');
       return;
     }
+
+    const phoneToLeadId = new Map();
+    filteredData.forEach((row) => {
+      if (!row.phone || !isMongoLeadId(row.leadId)) return;
+      const formatted = formatPhoneNumber(row.phone);
+      if (formatted) phoneToLeadId.set(formatted, row.leadId);
+      phoneToLeadId.set(row.phone, row.leadId);
+    });
 
     const BATCH_SIZE = 10;
     const totalBatches = Math.ceil(formattedList.length / BATCH_SIZE);
@@ -1107,18 +998,27 @@ const OperationDetailPage = () => {
           totalSuccessful += successful;
           totalFailed += failed;
 
-          // Update status for all results in this batch
           const newStatus = {};
-          results.forEach(result => {
+          for (const result of results) {
             const phone = result.phoneNumber;
-            if (result.success) {
-              newStatus[phone] = result.isRegistered ? 'verified' : 'not-verified';
-            } else {
-              newStatus[phone] = 'failed';
-            }
-          });
+            if (!result.success) continue;
 
-          setWhatsappStatus(prev => ({ ...prev, ...newStatus }));
+            const status = result.isRegistered ? 'verified' : 'not-verified';
+            newStatus[phone] = status;
+
+            const leadId = phoneToLeadId.get(phone);
+            if (leadId) {
+              try {
+                await persistLeadWhatsAppStatus(leadId, phone, status);
+              } catch (saveErr) {
+                console.error(`Failed to save status for ${phone}:`, saveErr);
+              }
+            }
+          }
+
+          if (Object.keys(newStatus).length > 0) {
+            setWhatsappStatus((prev) => ({ ...prev, ...newStatus }));
+          }
           setBulkProgress(prev => ({
             ...prev,
             success: totalSuccessful,
@@ -1157,289 +1057,103 @@ const OperationDetailPage = () => {
     }
   };
 
-  const flattenedData = useMemo(() => {
-    const leadsArray = (record?.leads && record.leads.length > 0) ? record.leads : (record?.data || []);
+  const flattenedData = useMemo(
+    () =>
+      record
+        ? flattenLeads(record, {
+            cityData,
+            whatsappStatus,
+            screenshotData,
+            emailData,
+            socialData,
+            formatPhone: (phone) => formatPhoneNumber(phone, record.searchString),
+          })
+        : [],
+    [record, cityData, whatsappStatus, screenshotData, emailData, socialData]
+  );
 
-    if (!leadsArray || leadsArray.length === 0) {
-      return [];
+  const verificationStats = useMemo(() => computeVerificationStats(flattenedData), [flattenedData]);
+
+  const filteredData = useMemo(() => filterLeads(flattenedData, filters), [flattenedData, filters]);
+
+  const selectableLeadIds = useMemo(
+    () => filteredData.filter((row) => isMongoLeadId(row.leadId)).map((row) => row.leadId),
+    [filteredData]
+  );
+
+  const rowSelection = useMemo(
+    () => ({
+      selectedRowKeys,
+      onChange: (keys) => setSelectedRowKeys(keys),
+      preserveSelectedRowKeys: true,
+      getCheckboxProps: (record) => ({
+        disabled: !isMongoLeadId(record.leadId),
+      }),
+    }),
+    [selectedRowKeys]
+  );
+
+  const handleSelectAllFiltered = () => {
+    setSelectedRowKeys(selectableLeadIds);
+  };
+
+  const handleBulkDelete = () => {
+    const leadIds = selectedRowKeys.filter((id) => isMongoLeadId(id));
+    if (leadIds.length === 0) {
+      message.warning('Select at least one lead to delete');
+      return;
     }
 
-    return leadsArray.filter(Boolean).map((item, index) => ({
-      key: item._id || `${record._id}-${index}`,
-      _id: item._id,
-      leadId: item._id || `${record._id}-${index}`,
-      recordId: record._id,
-      itemIndex: index,
-      searchString: record.searchString,
-      createdAt: item.createdAt || record.createdAt,
-      title: item.title || '',
-      rating: item.rating || '',
-      reviews: item.reviews || '',
-      phone: item.phone || '',
-      address: item.address || '',
-      city: item.city || cityData[item._id] || cityData[`${record._id}-${index}`] || '', // Prefer stored city, then cached
-      website: item.website || '',
-      googleMapsLink: item.googleMapsLink || '',
-      whatsappStatus: item.whatsappStatus || whatsappStatus[formatPhoneNumber(item.phone, record.searchString)] || 'not-checked',
-      addsRunning: item.addsRunning || '',
-      favorite: item.favorite || false,
-      screenshotUrl: item.screenshotUrl || screenshotData[item._id] || screenshotData[`${record._id}-${index}`] || '',
-      emails: item.emails || emailData[item._id] || emailData[`${record._id}-${index}`] || undefined,
-      socialMedia: item.socialMedia || socialData[item._id] || socialData[`${record._id}-${index}`] || undefined
-    }));
-  }, [record, cityData, whatsappStatus, screenshotData, emailData, socialData]);
-
-  // Calculate verification statistics - use item.whatsappStatus from new schema
-  const verificationStats = useMemo(() => {
-    const phonesWithNumbers = flattenedData.filter(item => item.phone);
-
-    let verified = 0;
-    let notVerified = 0;
-    let notChecked = 0;
-
-    phonesWithNumbers.forEach(item => {
-      const status = item.whatsappStatus;
-      if (status === 'verified') verified++;
-      else if (status === 'not-verified') notVerified++;
-      else notChecked++;
+    Modal.confirm({
+      title: `Delete ${leadIds.length} selected lead${leadIds.length !== 1 ? 's' : ''}?`,
+      content: 'This action cannot be undone.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      centered: true,
+      onOk: async () => {
+        setBulkDeleting(true);
+        try {
+          const res = await axios.post(
+            `${BASE_URL}/api/data/leads/bulk-delete`,
+            { leadIds },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (res.data.success) {
+            const removed = res.data.deletedCount ?? leadIds.length;
+            message.success(res.data.message || `Deleted ${removed} lead(s)`);
+            setSelectedRowKeys([]);
+            adjustOperationCount(operationId, -removed);
+            await fetchRecord(true);
+          }
+        } catch (error) {
+          console.error('Bulk delete error:', error);
+          message.error(error.response?.data?.message || 'Failed to delete selected leads');
+        } finally {
+          setBulkDeleting(false);
+        }
+      },
     });
-
-    return {
-      total: phonesWithNumbers.length,
-      verified,
-      notVerified,
-      notChecked
-    };
-  }, [flattenedData]);
-
-
-
-  const filteredData = useMemo(() => {
-    if (!flattenedData.length) {
-      return [];
-    }
-
-    let filtered = [...flattenedData];
-
-    if (filters.locationSearch) {
-      filtered = filtered.filter(item => {
-        const lowerSearch = filters.locationSearch.toLowerCase();
-        return (
-          (item.city && item.city.toLowerCase().includes(lowerSearch)) ||
-          (item.address && item.address.toLowerCase().includes(lowerSearch)) ||
-          (item.title && item.title.toLowerCase().includes(lowerSearch))
-        );
-      });
-    }
-
-    if (filters.countries.length > 0) {
-      filtered = filtered.filter(item =>
-        filters.countries.some(country => {
-          const lowerCountry = country.toLowerCase();
-          return item.searchString?.toLowerCase().includes(lowerCountry) ||
-            item.address?.toLowerCase().includes(lowerCountry);
-        })
-      );
-    }
-
-    if (filters.states.length > 0) {
-      filtered = filtered.filter(item =>
-        filters.states.some(state => {
-          const lowerState = state.toLowerCase();
-          return item.searchString?.toLowerCase().includes(lowerState) ||
-            item.address?.toLowerCase().includes(lowerState);
-        })
-      );
-    }
-
-    if (filters.cities.length > 0) {
-      filtered = filtered.filter(item =>
-        filters.cities.some(city => {
-          const lowerCity = city.toLowerCase();
-          return item.searchString?.toLowerCase().includes(lowerCity) ||
-            item.address?.toLowerCase().includes(lowerCity);
-        })
-      );
-    }
-
-    if (filters.whatsappStatus) {
-      filtered = filtered.filter(item => {
-        // Use item.whatsappStatus directly from the lead document (new schema)
-        const status = item.whatsappStatus;
-        if (filters.whatsappStatus === 'verified') {
-          return status === 'verified';
-        } else if (filters.whatsappStatus === 'not-verified') {
-          return status === 'not-verified';
-        } else if (filters.whatsappStatus === 'not-checked') {
-          return !status || status === 'not-checked' || status === '';
-        }
-        return true;
-      });
-    }
-
-    if (filters.ratingMin != null) {
-      filtered = filtered.filter(item => {
-        const rating = parseFloat(item.rating);
-        return !Number.isNaN(rating) && rating >= filters.ratingMin;
-      });
-    }
-
-    if (filters.ratingMax != null) {
-      filtered = filtered.filter(item => {
-        const rating = parseFloat(item.rating);
-        return !Number.isNaN(rating) && rating <= filters.ratingMax;
-      });
-    }
-
-    if (filters.reviewsMin != null) {
-      filtered = filtered.filter(item => {
-        const reviews = parseInt(item.reviews);
-        return !Number.isNaN(reviews) && reviews >= filters.reviewsMin;
-      });
-    }
-
-    if (filters.reviewsMax != null) {
-      filtered = filtered.filter(item => {
-        const reviews = parseInt(item.reviews);
-        return !Number.isNaN(reviews) && reviews <= filters.reviewsMax;
-      });
-    }
-
-    if (filters.hasWebsite) {
-      filtered = filtered.filter(item => {
-        const hasWebsite = item.website && item.website.trim() !== '';
-        return filters.hasWebsite === 'yes' ? hasWebsite : !hasWebsite;
-      });
-    }
-
-    if (filters.hasPhone) {
-      filtered = filtered.filter(item => {
-        // Check if phone field has a non-empty value
-        const hasPhone = item.phone && item.phone.trim() !== '';
-        return filters.hasPhone === 'yes' ? hasPhone : !hasPhone;
-      });
-    }
-
-    if (filters.hasEmail) {
-      filtered = filtered.filter(item => {
-        const hasEmail = item.emails && item.emails.length > 0;
-        return filters.hasEmail === 'yes' ? hasEmail : !hasEmail;
-      });
-    }
-
-    if (filters.addsRunning) {
-      filtered = filtered.filter(item => {
-        const adStatus = item.addsRunning;
-        if (filters.addsRunning === 'running') {
-          return adStatus === 'running';
-        } else if (filters.addsRunning === 'not-running') {
-          return adStatus === 'not-running';
-        } else if (filters.addsRunning === 'not-available') {
-          return adStatus === 'not-available';
-        }
-        return true;
-      });
-    }
-
-    if (filters.hasSocials) {
-      filtered = filtered.filter(item => {
-        const hasSocials = item.socialMedia && Object.values(item.socialMedia).some(url => url);
-        return filters.hasSocials === 'yes' ? hasSocials : !hasSocials;
-      });
-    }
-
-
-    if (filters.favorite) {
-      filtered = filtered.filter(item => {
-        const isFavorite = !!item.favorite;
-        return filters.favorite === 'yes' ? isFavorite : !isFavorite;
-      });
-    }
-
-    return filtered;
-  }, [flattenedData, filters]);
-
-  const TABLE_ROW_HEIGHT = 54;
-
-  const tableScrollY = useMemo(() => {
-    if (!filteredData.length) return undefined;
-
-    const rowsOnPage = Math.min(
-      pageSize,
-      Math.max(0, filteredData.length - (currentPage - 1) * pageSize)
-    );
-    if (!rowsOnPage) return undefined;
-
-    const bodyHeight = rowsOnPage * TABLE_ROW_HEIGHT;
-    const maxBodyHeight = Math.max(240, viewportHeight - 320);
-
-    return Math.min(bodyHeight, maxBodyHeight);
-  }, [filteredData.length, pageSize, currentPage, viewportHeight]);
-
-  const getWhatsappStatusLabel = (phone, itemStatus) => {
-    // Prioritize the item's stored status (from DB), fallback to local cache
-    const status = itemStatus || whatsappStatus[formatPhoneNumber(phone)];
-    if (status === 'verified') return 'Verified';
-    if (status === 'not-verified') return 'Not Verified';
-    if (status === 'failed') return 'Failed';
-    if (status === 'checking') return 'Checking';
-    return 'Not Checked';
   };
 
-  const getFileBaseName = () => {
-    const raw = (record?.searchString || 'operation-data').toString().trim();
-    const sanitized = raw
-      .replace(/[^\x20-\x7E]+/g, '')
-      .replace(/[^A-Za-z0-9\-\s_]/g, '')
-      .replace(/\s+/g, '-')
-      .toLowerCase();
-    return sanitized || 'operation-data';
-  };
+  const tableScrollY = useMemo(
+    () => calcTableScrollY(filteredData.length, pageSize, currentPage, viewportHeight),
+    [filteredData.length, pageSize, currentPage, viewportHeight]
+  );
 
-  const getRawFieldValue = (field, item) => {
-    if (field.key === 'whatsappStatus') {
-      return getWhatsappStatusLabel(item.phone);
-    }
-
-    if (field.key === 'city') {
-      return cityData[item.key] || '';
-    }
-
-    if (field.key === 'emails') {
-      const emails = item.emails || emailData[item.key] || [];
-      return Array.isArray(emails) ? emails.join(', ') : emails;
-    }
-
-    const value = item[field.key];
-    if ((field.key === 'createdAt' || field.key === 'updatedAt') && value) {
-      const date = new Date(value);
-      if (!Number.isNaN(date.getTime())) {
-        return date.toLocaleString();
-      }
-    }
-    return value;
-  };
+  const exportContext = useMemo(
+    () => buildExportRows(filteredData, { record, cityData, emailData, whatsappStatus, formatPhone: formatPhoneNumber }),
+    [filteredData, record, cityData, emailData, whatsappStatus]
+  );
 
   const normalizeFieldValue = (field, item) => {
-    const value = getRawFieldValue(field, item);
-    if (value === null || value === undefined) {
-      return '';
+    const value = exportContext.normalizeFieldValue(field, item);
+    if (value === null || value === undefined) return '';
+    if ((field.key === 'createdAt' || field.key === 'updatedAt') && value) {
+      const date = new Date(value);
+      if (!Number.isNaN(date.getTime())) return date.toLocaleString();
     }
     return String(value);
-  };
-
-  const downloadFile = (content, mimeType, extension) => {
-    const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
-    const fileName = `${getFileBaseName()}-${timestamp}.${extension}`;
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const exportToCSV = () => {
@@ -1465,7 +1179,8 @@ const OperationDetailPage = () => {
     );
 
     const csvContent = [header, ...rows].join('\n');
-    downloadFile(`\ufeff${csvContent}`, 'text/csv;charset=utf-8;', 'csv');
+    const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
+    downloadFile(`\ufeff${csvContent}`, 'text/csv;charset=utf-8;', `csv`, `${getFileBaseName(record)}-${timestamp}`);
     message.success('CSV export ready');
 
     // Track Export Event
@@ -1474,16 +1189,6 @@ const OperationDetailPage = () => {
       content_category: 'Data Export',
       value: filteredData.length
     });
-  };
-
-  const escapeHtml = (value) => {
-    const stringValue = value === null || value === undefined ? '' : String(value);
-    return stringValue
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
   };
 
   const exportToXLS = () => {
@@ -1511,7 +1216,8 @@ const OperationDetailPage = () => {
       .join('');
 
     const htmlContent = `<table><thead><tr>${headerHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
-    downloadFile(`\ufeff${htmlContent}`, 'application/vnd.ms-excel', 'xls');
+    const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
+    downloadFile(`\ufeff${htmlContent}`, 'application/vnd.ms-excel', `xls`, `${getFileBaseName(record)}-${timestamp}`);
     message.success('XLS export ready');
 
     // Track Export Event
@@ -1544,677 +1250,91 @@ const OperationDetailPage = () => {
     }
   };
 
-  const columns = [
-    {
-      title: '#',
-      width: 60,
-      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
-    },
-    {
-      title: 'Business Name',
-      dataIndex: 'title',
-      key: 'title',
-      width: 260,
-      sorter: (a, b) => (a.title || '').localeCompare(b.title || ''),
-    },
-    {
-      title: 'Rating',
-      dataIndex: 'rating',
-      key: 'rating',
-      width: 140,
-      render: (rating) => rating ? (
-        <Tag color="green">⭐ {rating}</Tag>
-      ) : '-',
-      sorter: (a, b) => (parseFloat(a.rating) || 0) - (parseFloat(b.rating) || 0),
-    },
-    {
-      title: 'Reviews',
-      dataIndex: 'reviews',
-      key: 'reviews',
-      width: 140,
-      sorter: (a, b) => (parseInt(a.reviews) || 0) - (parseInt(b.reviews) || 0),
-    },
-    {
-      title: 'Phone',
-      dataIndex: 'phone',
-      key: 'phone',
-      width: 150,
-      render: (phone) => phone || '-',
-    },
-    {
-      title: 'Address',
-      dataIndex: 'address',
-      key: 'address',
-      width: 250,
-      ellipsis: true,
-      render: (address) => address || '-',
-    },
-    {
-      title: 'City/Location',
-      key: 'city',
-      width: 150,
-      render: (_, record) => {
-        if (record.city) {
-          return <Tag color="green">{record.city}</Tag>;
-        }
-        return <span className="text-gray-400">-</span>;
-      },
-    },
-    {
-      title: 'Website',
-      dataIndex: 'website',
-      key: 'website',
-      width: 200,
-      render: (website, record) => website ? (
-        <Space orientation="vertical" size={2}>
-          <a href={website} target="_blank" rel="noopener noreferrer" className="text-[#0F792C] hover:text-[#0a5a20] whitespace-nowrap">
-            <MdOpenInNew className="inline" /> Link
-          </a>
-          <div className="flex items-center gap-2">
-            {(record.screenshotUrl || screenshotData[record.key]) && (
-              <ScreenshotViewer url={record.screenshotUrl || screenshotData[record.key]} title={record.title} />
-            )}
-            {/* <Button
-              size="small"
-              type="text"
-              icon={<MdCameraAlt className="text-blue-500" />}
-              onClick={() => handleCapture(website, record.key)}
-              loading={queue.some(i => i.key === record.key && (i.status === 'pending' || i.status === 'processing'))}
-              className="flex items-center gap-1 hover:bg-blue-50 transition-colors"
-            >
-              {(record.screenshotUrl || screenshotData[record.key]) ? 'Recapture' : 'Capture'}
-            </Button> */}
-          </div>
-        </Space>
-      ) : '-',
-    },
-    {
-      title: 'Tech Stack',
-      key: 'techStack',
-      width: 130,
-      render: (_, record) => record.website ? (
-        <Button
-          size="small"
-          icon={<MdSettingsInputComponent className="text-purple-500" />}
-          onClick={() => {
-            if (!isAuthorized) { setLockedFeature('Tech Stack Analysis'); setIsLockedModalOpen(true); return; }
-            setSelectedLeadForStack(record);
-            setIsStackModalOpen(true);
-          }}
-          className="hover:border-purple-500 hover:text-purple-500 transition-colors flex items-center gap-1"
-        >
-          Analyze
-        </Button>
-      ) : <Tag color="default">N/A</Tag>,
-    },
-    {
-      title: 'Google Maps',
-      dataIndex: 'googleMapsLink',
-      key: 'googleMapsLink',
-      width: 120,
-      render: (link) => link ? (
-        <a href={link} target="_blank" rel="noopener noreferrer" className="text-[#0F792C] hover:text-[#0a5a20]">
-          <MdOpenInNew className="inline" /> View
-        </a>
-      ) : '-',
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between group">
-          <span>Email</span>
-          <Tooltip title="Verify Visible List">
-            <Button 
-              type="text" 
-              size="small" 
-              icon={<MdEmail className="text-primary group-hover:scale-110 transition-transform" />} 
-              onClick={extractAllSocials}
-              loading={extractingAllSocial}
-              className="p-0 h-6 w-6 flex items-center justify-center hover:bg-primary/10 rounded-full"
-            />
-          </Tooltip>
-        </div>
-      ),
-      dataIndex: 'emails',
-      key: 'emails',
-      width: 180,
-      render: (emails, record) => {
-        if (!record.website) return <Tag color="default">N/A</Tag>;
-        
-        const isExtracting = extractingSocial[record.leadId];
-        
-        if (isExtracting) {
-          return <Spin size="small" />;
-        }
-        
-        if (emails && emails.length > 0) {
-          return (
-            <div className="flex flex-col gap-1">
-              {emails.map((e, idx) => (
-                <Tooltip key={idx} title={`Click to email ${e}`}>
-                  <a href={`mailto:${e}`} className="text-blue-500 hover:underline text-xs truncate max-w-[150px] flex items-center gap-1">
-                    <MdEmail size={10} /> {e}
-                  </a>
-                </Tooltip>
-              ))}
-            </div>
-          );
-        }
-        
-        if (emails && Array.isArray(emails) && emails.length === 0) {
-             return <Tag color="error">Not Found</Tag>;
-        }
-
-        return (
-          <Button
-            size="small"
-            icon={<MdEmail />}
-            onClick={() => extractSocialsForLead(record.leadId, record.website)}
-            className="hover:border-primary hover:text-primary transition-colors"
-          >
-            Extract
-          </Button>
-        );
-      }
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between group">
-          <span>Social Media</span>
-          <Tooltip title="Batch Extract Socials">
-            <Button 
-              type="text" 
-              size="small" 
-              icon={<MdShare className="text-primary group-hover:scale-110 transition-transform" />} 
-              onClick={extractAllSocials}
-              loading={extractingAllSocial}
-              className="p-0 h-6 w-6 flex items-center justify-center hover:bg-primary/10 rounded-full"
-            />
-          </Tooltip>
-        </div>
-      ),
-      dataIndex: 'socialMedia',
-      key: 'socialMedia',
-      width: 200,
-      render: (socialMedia, record) => {
-        if (!record.website) return <Tag color="default">N/A</Tag>;
-
-        const isExtracting = extractingSocial[record.leadId];
-        if (isExtracting) return <Spin size="small" />;
-
-        const platforms = {
-          facebook: { icon: <BsFacebook className="text-[#1877F2]" />, label: 'Facebook' },
-          instagram: { icon: <BsInstagram className="text-[#E4405F]" />, label: 'Instagram' },
-          linkedin: { icon: <BsLinkedin className="text-[#0A66C2]" />, label: 'LinkedIn' },
-          twitter: { icon: <BsTwitterX className="text-black" />, label: 'X/Twitter' },
-          youtube: { icon: <BsYoutube className="text-[#FF0000]" />, label: 'YouTube' },
-          tiktok: { icon: <BsTiktok className="text-black" />, label: 'TikTok' },
-        };
-
-        if (socialMedia && typeof socialMedia === 'object') {
-          const found = Object.entries(socialMedia).filter(([, url]) => url);
-          if (found.length > 0) {
-            return (
-              <div className="flex flex-wrap gap-2">
-                {found.map(([platform, url]) => (
-                  <Tooltip key={platform} title={`${platforms[platform]?.label}: ${url}`}>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xl hover:scale-125 hover:-translate-y-0.5 transition-all inline-flex p-1 bg-gray-50 rounded-lg hover:shadow-sm"
-                    >
-                      {platforms[platform]?.icon}
-                    </a>
-                  </Tooltip>
-                ))}
-              </div>
-            );
-          }
-          return <Tag color="error" className="rounded-full border-none px-3 bg-red-50 text-red-500 font-medium">Not Found</Tag>;
-        }
-
-        return (
-          <Button
-            size="small"
-            icon={<MdShare />}
-            onClick={() => extractSocialsForLead(record.leadId, record.website)}
-            className="hover:border-primary hover:text-primary transition-colors rounded-lg"
-          >
-            Extract
-          </Button>
-        );
-      }
-    },
-    {
-      title: 'Status',
-      key: 'whatsappProcessed',
-      width: 120,
-      render: (_, record) => {
-        const isProcessed = record.whatsappStatus && record.whatsappStatus !== 'not-checked';
-        return isProcessed ? (
-          <Tag color="green" className="flex items-center gap-1 w-fit rounded-full px-3">
-            <MdCheckCircle /> Processed
-          </Tag>
-        ) : (
-          <Tag color="orange" className="rounded-full px-3">Pending</Tag>
-        );
-      },
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between group">
-          <span>WhatsApp</span>
-          <Tooltip title="Verify Visible List">
-            <Button 
-              type="text" 
-              size="small" 
-              icon={<BsWhatsapp className="text-[#0F792C] group-hover:scale-110 transition-transform" />} 
-              onClick={handleVerifyAllClick}
-              loading={verifyingAll}
-              className="p-0 h-6 w-6 flex items-center justify-center hover:bg-green-50 rounded-full"
-            />
-          </Tooltip>
-        </div>
-      ),
-      key: 'whatsapp',
-      width: 140,
-      render: (_, record) => {
-        const phone = record.phone;
-        if (!phone) return <Tag color="default">N/A</Tag>;
-
-        const formattedPhone = formatPhoneNumber(phone);
-        if (!formattedPhone) return <Tag color="default">Invalid</Tag>;
-
-        // Use item.whatsappStatus from DB, fallback to local cache for real-time updates
-        const status = record.whatsappStatus || whatsappStatus[formattedPhone];
-
-        if (status === 'checking') {
-          return <Spin size="small" />;
-        }
-
-        if (status === 'verified') {
-          return (
-            <Space>
-              <Tag color="success" icon={<MdCheckCircle />}>Verified</Tag>
-            </Space>
-          );
-        }
-
-        if (status === 'not-verified') {
-          return (
-            <Space>
-              <Tag color="error" icon={<MdClose />}>No WhatsApp</Tag>
-            </Space>
-          );
-        }
-
-        return (
-          <Button
-            size="small"
-            icon={<BsWhatsapp />}
-            onClick={() => verifyWhatsAppNumber(phone)}
-          >
-            Check
-          </Button>
-        );
-      },
-    },
-    {
-      title: 'Scraped Date',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 140,
-      render: (date) => new Date(date).toLocaleDateString(),
-      sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-    },
-      {
-        title: (
-          <div className="flex items-center justify-between group">
-            <span>Website Ads</span>
-            <Tooltip title="Analyze websites for ads">
-              <Button 
-                type="text" 
-                size="small" 
-                icon={<MdAnalytics className="text-blue-500 group-hover:scale-110 transition-transform" />} 
-                onClick={handleAnalyzeAllClick}
-                loading={analyzingAds}
-                className="p-0 h-6 w-6 flex items-center justify-center hover:bg-blue-50 rounded-full"
-              />
-            </Tooltip>
-          </div>
-        ),
-        key: 'addsRunning',
-        width: 140,
-        render: (_, record) => {
-          if (!record.website) {
-            return <Tag color="default">N/A</Tag>;
-          }
-
-          // Check analysis results first, then fall back to record data
-          const adStatus = adsAnalysisResults[record.leadId] || record.addsRunning;
-
-          if (adStatus === 'running') {
-            return <Tag color="green" className="rounded-full">🎯 Running Ads</Tag>;
-          } else if (adStatus === 'not-running') {
-            return <Tag color="gray" className="rounded-full">No Ads</Tag>;
-          } else if (adStatus === 'not-available') {
-            return <Tag color="orange" className="rounded-full">Unavailable</Tag>;
-          }
-
-          return <Tag color="default" className="rounded-full">Not Analyzed</Tag>;
-        },
-      },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 190,
-      fixed: 'right',
-      render: (_, lead) => (
-        <Space>
-          <Tooltip title={lead.favorite ? 'Remove from favorites' : 'Add to favorites'}>
-            <Button
-              type="text"
-              icon={lead.favorite ? <MdFavorite style={{ color: '#ef4444' }} className="text-lg" /> : <MdFavoriteBorder className="text-gray-400 text-lg" />}
-              onClick={() => toggleFavorite(lead.leadId, lead.itemIndex, !lead.favorite)}
-              className="hover:bg-red-50"
-            />
-          </Tooltip>
-
-          {/**
-           * LinkedIn founder/member automation temporarily disabled.
-           * Uncomment to restore the action button.
-           *
-           * <Tooltip title="LinkedIn founder/member automation">
-           *   <Button
-           *     type="text"
-           *     icon={<BsLinkedin className="text-[#0A66C2] text-lg" />}
-           *     onClick={() => {
-           *       setSelectedLeadForLinkedIn(lead);
-           *       setIsLinkedInModalOpen(true);
-           *     }}
-           *     className="hover:bg-blue-50"
-           *     disabled={!lead.website}
-           *   />
-           * </Tooltip>
-           */}
-
-          <Button
-            type="text"
-            icon={<MdEdit className="text-blue-500 text-lg" />}
-            onClick={() => handleEditClick(lead)}
-            className="hover:bg-blue-50"
-          />
-          <Button
-            type="text"
-            icon={<MdDelete className="text-red-500 text-lg" />}
-            onClick={() => handleDeleteClick(lead)}
-            className="hover:bg-red-50"
-          />
-        </Space>
-      ),
-    },
-  ];
+  const columns = useLeadsTableColumns({
+    currentPage,
+    pageSize,
+    screenshotData,
+    extractingSocial,
+    extractSocialsForLead,
+    extractAllSocials,
+    extractingAllSocial,
+    isAuthorized,
+    setLockedFeature,
+    setIsLockedModalOpen,
+    setSelectedLeadForStack,
+    setIsStackModalOpen,
+    formatPhoneNumber,
+    whatsappStatus,
+    handleVerifyPhoneClick,
+    verifyingPhone,
+    whatsappInitialized,
+    handleVerifyAllClick,
+    verifyingAll,
+    adsAnalysisResults,
+    handleAnalyzeAllClick,
+    analyzingAds,
+    toggleFavorite,
+    handleEditClick,
+    handleDeleteClick,
+  });
 
   if (loading) {
     return <Loader />;
   }
 
   if (!record) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="text-center max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MdClose size={32} />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Operation Not Found</h2>
-          <p className="text-sm text-gray-500 mb-6">The operation data you're looking for could not be found or has been removed.</p>
-          <Button 
-            type="primary" 
-            onClick={() => navigate('/dashboard/operations')}
-            className="h-11 px-8 rounded-xl font-bold border-none bg-primary"
-          >
-            Back to Operations
-          </Button>
-        </div>
-      </div>
-    );
+    return <OperationNotFound onBack={() => navigate('/dashboard/operations')} />;
   }
+
+  const lockFeature = (name) => {
+    setLockedFeature(name);
+    setIsLockedModalOpen(true);
+  };
   return (
     <div className="space-y-6">
       {/* Premium Header Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-primary/5 to-transparent p-6 md:p-8">
-          <div className="flex flex-col gap-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <Button
-                  type="text"
-                  icon={<MdArrowBack />}
-                  onClick={() => navigate('/dashboard/operations')}
-                  className="mb-2 p-0 text-gray-400 hover:text-primary flex items-center gap-1 transition-colors"
-                >
-                  Back to Operations
-                </Button>
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">
-                  {record?.searchString || 'Operation Detail'}
-                </h1>
-                <div className="flex items-center gap-2 mt-2 text-gray-500">
-                  <MdRefresh className="animate-spin-slow" />
-                  <span>
-                    {record?.leads?.length || 0} leads discovered • {record?.updatedAt ? `Last Updated ${new Date(record.updatedAt).toLocaleDateString()}` : 'Not synced'}
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                icon={<MdRefresh />}
-                onClick={fetchRecord}
-                loading={loading}
-                className="rounded-xl h-10 px-4 bg-gray-50 border-gray-200 hover:bg-gray-100 transition-all font-medium"
-              >
-                Refresh
-              </Button>
-            </div>
-
-            {verificationStats.total > 0 && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-24">
-                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-black">Total Leads</p>
-                  <p className="text-2xl font-black text-gray-900 mt-auto">{verificationStats.total}</p>
-                </div>
-                <div className="bg-green-50/50 backdrop-blur-sm p-4 rounded-2xl border border-green-100 shadow-sm flex flex-col justify-between h-24">
-                  <p className="text-[10px] uppercase tracking-wider text-green-600 font-black">Verified</p>
-                  <p className="text-2xl font-black text-green-700 mt-auto">{verificationStats.verified}</p>
-                </div>
-                <div className="bg-red-50/50 backdrop-blur-sm p-4 rounded-2xl border border-red-100 shadow-sm flex flex-col justify-between h-24">
-                  <p className="text-[10px] uppercase tracking-wider text-red-600 font-black">No WhatsApp</p>
-                  <p className="text-2xl font-black text-red-700 mt-auto">{verificationStats.notVerified}</p>
-                </div>
-                <div className="bg-orange-50/50 backdrop-blur-sm p-4 rounded-2xl border border-orange-100 shadow-sm flex flex-col justify-between h-24">
-                  <p className="text-[10px] uppercase tracking-wider text-orange-600 font-black">Pending</p>
-                  <p className="text-2xl font-black text-orange-700 mt-auto">{verificationStats.notChecked}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-            <div className="pt-6 border-t border-gray-100">
-              <h2 className="text-sm uppercase tracking-[0.24em] text-gray-500 font-semibold mb-3">Features</h2>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  type="default"
-                  icon={<MdShare />}
-                  onClick={extractAllSocials}
-                  loading={extractingAllSocial}
-                  disabled={extractingAllSocial || !record || filteredData.filter(item => item.website).length === 0}
-                  className="rounded-xl h-10 px-4 font-bold border-gray-200"
-                >
-                  Extract Emails and Socials
-                </Button>
-              <Button
-                icon={<MdWeb />}
-                onClick={() => {
-                  if (!isAuthorized) { setLockedFeature('Bumble/Tinder for Websites'); setIsLockedModalOpen(true); return; }
-                  setIsCarouselOpen(true);
-                }}
-                disabled={filteredData.filter(item => item.website).length === 0}
-                className="rounded-xl h-10 px-4 font-bold border-gray-200"
-              >
-                Bumble/Tinder for Websites
-              </Button>
-              <Button
-                icon={<MdAnalytics />}
-                onClick={handleAnalyzeAllClick}
-                loading={analyzingAds}
-                disabled={analyzingAds || !record || filteredData.filter(item => item.website).length === 0}
-                className="rounded-xl h-10 px-4 font-bold border-blue-200 text-blue-600 hover:border-blue-500 hover:text-blue-700"
-              >
-                Websites running ads
-              </Button>
-              <Button
-                type="primary"
-                icon={<MdLocationOn />}
-                onClick={getRecommendedCities}
-                loading={loadingRecommendations}
-                disabled={loadingRecommendations || !record}
-                className="bg-[#0F792C] hover:bg-[#0a5a20] border-none rounded-xl h-10 px-4 font-bold"
-              >
-                Recommend Nearby Location
-              </Button>
-              <Button
-                type="default"
-                icon={<MdLocationOn />}
-                onClick={extractCitiesForRecord}
-                loading={extractingCities}
-                disabled={extractingCities || !record}
-                className="rounded-xl h-10 px-4 font-bold border-gray-200"
-              >
-                Extract Cities
-              </Button>
-            </div>
-          </div>
-
-            <div className="pt-6 border-t border-gray-50">
-              <h2 className="text-sm uppercase tracking-[0.24em] text-gray-500 font-semibold mb-3">Basic</h2>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  icon={<MdStar />}
-                  onClick={() => {
-                    if (!isAuthorized) { setLockedFeature('Save Qualified Leads'); setIsLockedModalOpen(true); return; }
-                    setIsQualifiedLeadsModalOpen(true);
-                  }}
-                disabled={filteredData.length === 0}
-                className="text-amber-600 border-amber-500 hover:bg-amber-50 rounded-xl h-10 px-4 font-bold"
-              >
-                Save to Qualified Leads
-              </Button>
-
-              <div className="w-px h-6 bg-gray-200 mx-1 hidden lg:block"></div>
-
-              <Button
-                icon={<MdDownload />}
-                onClick={exportToCSV}
-                disabled={filteredData.length === 0}
-                className="rounded-xl h-10 px-4 font-bold border-gray-200"
-              >
-                CSV
-              </Button>
-              <Button
-                icon={<MdDescription />}
-                onClick={exportToXLS}
-                disabled={filteredData.length === 0}
-                className="rounded-xl h-10 px-4 font-bold border-gray-200"
-              >
-                XLS
-              </Button>
-              <Button
-                icon={<MdCloudUpload />}
-                onClick={() => setIsImportModalOpen(true)}
-                className="rounded-xl h-10 px-4 bg-primary text-white border-none font-black shadow-lg shadow-primary/20 hover:scale-105 transition-all"
-              >
-                Import CSV
-              </Button>
-              <Button
-                icon={<MdCopyAll />}
-                onClick={fetchDuplicatePreview}
-                loading={duplicatesLoading}
-                disabled={!record || duplicatesLoading}
-                className="rounded-xl h-10 px-4 font-bold border-orange-200 text-orange-600 hover:bg-orange-50"
-              >
-                Remove Duplicates
-              </Button>
-              <Button
-                icon={<MdGroupAdd />}
-                onClick={() => {
-                  if (!isAuthorized) { setLockedFeature('Export to Team'); setIsLockedModalOpen(true); return; }
-                  setIsExportTeamModalOpen(true);
-                }}
-                disabled={filteredData.length === 0}
-                className="rounded-xl h-10 px-4 font-bold border-primary text-primary hover:bg-primary/5"
-              >
-                Export to Team
-              </Button>
-
-              <div className="flex-grow"></div>
-
-              <Button
-                className="bg-[#0F792C] hover:bg-[#0a5a20] text-white border-none rounded-xl h-10 px-6 font-black shadow-lg shadow-green-100/40"
-                type="primary"
-                icon={<BsWhatsapp />}
-                onClick={handleVerifyAllClick}
-                loading={verifyingAll}
-                disabled={verifyingAll || filteredData.length === 0}
-              >
-                WhatsApp Verification ({filteredData.length})
-              </Button>
-            </div>
-          </div>
+      <OperationDetailHeader
+        record={record}
+        verificationStats={verificationStats}
+        loading={loading}
+        onBack={() => navigate('/dashboard/operations')}
+        onRefresh={fetchRecord}
+      >
+        <div className="p-6 md:p-8 pt-0">
+          <OperationDetailToolbar
+            record={record}
+            filteredData={filteredData}
+            isAuthorized={isAuthorized}
+            onLockFeature={lockFeature}
+            onExtractAllSocials={extractAllSocials}
+            extractingAllSocial={extractingAllSocial}
+            onOpenCarousel={() => setIsCarouselOpen(true)}
+            onAnalyzeAds={handleAnalyzeAllClick}
+            analyzingAds={analyzingAds}
+            onRecommendCities={getRecommendedCities}
+            loadingRecommendations={loadingRecommendations}
+            onExtractCities={extractCitiesForRecord}
+            extractingCities={extractingCities}
+            onSaveQualified={() => setIsQualifiedLeadsModalOpen(true)}
+            onExportCsv={exportToCSV}
+            onExportXls={exportToXLS}
+            onImportCsv={() => setIsImportModalOpen(true)}
+            onRemoveDuplicates={fetchDuplicatePreview}
+            duplicatesLoading={duplicatesLoading}
+            onExportTeam={() => setIsExportTeamModalOpen(true)}
+            onVerifyAll={handleVerifyAllClick}
+            verifyingAll={verifyingAll}
+          />
         </div>
-      </div>
+      </OperationDetailHeader>
 
-      {whatsappInitialized ? (
-        <div className="bg-white rounded-lg shadow-md p-6 border border-green-100">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <Alert
-              type="success"
-              showIcon
-              message="WhatsApp Connected"
-              description="You can verify phone numbers directly from this table."
-              className="bg-green-50 border-green-100 text-green-800 flex-1"
-            />
-            <Button
-              danger
-              icon={<MdClose />}
-              onClick={disconnectWhatsApp}
-            >
-              Disconnect WhatsApp
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-md p-6 border border-yellow-100">
-          <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-800">Connect WhatsApp</h3>
-              <p className="text-gray-600 mt-2">
-                Link your WhatsApp account to verify phone numbers.
-              </p>
-            </div>
-            <Button
-              type="primary"
-              icon={<BsWhatsapp />}
-              onClick={() => {
-                if (!isAuthorized) { setLockedFeature('WhatsApp Connect'); setIsLockedModalOpen(true); return; }
-                setIsConnectModalOpen(true);
-              }}
-              size="large"
-              className="bg-[#0F792C] hover:bg-[#0a5a20] border-none"
-            >
-              Connect WhatsApp
-            </Button>
-          </div>
-        </div>
-      )}
+      <OperationWhatsAppBanner
+        connected={whatsappInitialized}
+        onDisconnect={disconnectWhatsApp}
+        onConnect={() => setIsConnectModalOpen(true)}
+        isAuthorized={isAuthorized}
+        onLockFeature={lockFeature}
+      />
 
       <WhatsAppConnectModal
         visible={isConnectModalOpen}
@@ -2285,325 +1405,34 @@ const OperationDetailPage = () => {
         formatPhoneNumber={formatPhoneNumber}
       />
 
-      {/* Recommended Cities Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <MdLocationOn className="text-blue-600 text-xl" />
-            <span>Recommended Cities to Explore</span>
-          </div>
-        }
+      <OperationRecommendCitiesModal
         open={isRecommendModalOpen}
-        onCancel={() => setIsRecommendModalOpen(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsRecommendModalOpen(false)}>
-            Close
-          </Button>
-        ]}
-        width={600}
-      >
-        <p className="text-gray-600 mb-4">
-          Based on your current data locations, here are 5 nearby cities you should consider searching for more leads:
-        </p>
-        <div className="space-y-3">
-          {recommendedCities.map((city, index) => (
-            <div
-              key={city.id || index}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors"
-            >
-              <div className="flex-1">
-                <div className="font-semibold text-gray-800">
-                  {index + 1}. {city.city}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {city.admin_name && `${city.admin_name}, `}{city.country}
-                </div>
-                {city.population && (
-                  <div className="text-xs text-gray-500">
-                    Population: {city.population.toLocaleString()}
-                  </div>
-                )}
-              </div>
-              <div className="text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <Tag color="green">{city.distance_km} km away</Tag>
-                  <Tooltip title="Copy operation + location">
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<MdContentCopy />}
-                      onClick={() => copyRecommendedLocation(city)}
-                      className="text-gray-500 hover:text-primary hover:bg-white"
-                    />
-                  </Tooltip>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-800">
-            💡 <strong>Tip:</strong> Search for businesses in these cities using the same keywords to expand your reach!
-          </p>
-        </div>
-      </Modal>
+        onClose={() => setIsRecommendModalOpen(false)}
+        recommendedCities={recommendedCities}
+        onCopyLocation={copyRecommendedLocation}
+      />
 
-      <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-gray-100 table-container">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-3">
-          <div className="bg-primary/10 p-2 rounded-lg"><MdSearch className="text-primary text-xl" /></div>
-          Smart Filters
-        </h3>
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-3">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Search Location
-              </label>
-              <Input
-                placeholder="Search City, State or Country..."
-                value={filters.locationSearch}
-                onChange={(e) => setFilters({ ...filters, locationSearch: e.target.value })}
-                prefix={<MdSearch className="text-gray-400" />}
-                allowClear
-                className="h-12 border-gray-200 rounded-xl hover:border-primary focus:border-primary transition-all shadow-sm"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                WhatsApp Availability
-              </label>
-              <Select
-                placeholder="Choose status"
-                style={{ width: '100%' }}
-                value={filters.whatsappStatus || undefined}
-                onChange={(value) => setFilters({ ...filters, whatsappStatus: value || '' })}
-                allowClear
-                className="custom-select-premium h-12"
-                classNames={{ popup: { root: "bg-white rounded-xl shadow-lg border-gray-100" } }}
-              >
-                <Option value="verified">Authorized WhatsApp</Option>
-                <Option value="not-verified">Unavailable</Option>
-                <Option value="not-checked">Pending Check</Option>
-              </Select>
-            </div>
+      <OperationDetailFilters filters={filters} setFilters={setFilters} />
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Website
-              </label>
-              <Select
-                placeholder="Website status"
-                style={{ width: '100%' }}
-                value={filters.hasWebsite || undefined}
-                onChange={(value) => setFilters({ ...filters, hasWebsite: value || '' })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                <Option value="yes">Has Website</Option>
-                <Option value="no">No Website</Option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Favorites
-              </label>
-              <Select
-                placeholder="Collection status"
-                style={{ width: '100%' }}
-                value={filters.favorite || undefined}
-                onChange={(value) => setFilters({ ...filters, favorite: value || '' })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                <Option value="yes">
-                  <span className="flex items-center gap-2">
-                    <MdFavorite className="text-red-500" /> Favorites Only
-                  </span>
-                </Option>
-                <Option value="no">All Leads</Option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Minimum Rating
-              </label>
-              <Select
-                placeholder="Choose rating"
-                style={{ width: '100%' }}
-                value={filters.ratingMin !== null ? filters.ratingMin : undefined}
-                onChange={(value) => setFilters({ ...filters, ratingMin: value ?? null })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                {[0, 1, 2, 3, 4, 5].map(val => (
-                  <Option key={val} value={val}>{val}.0+</Option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Maximum Rating
-              </label>
-              <Select
-                placeholder="Choose rating"
-                style={{ width: '100%' }}
-                value={filters.ratingMax !== null ? filters.ratingMax : undefined}
-                onChange={(value) => setFilters({ ...filters, ratingMax: value ?? null })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                {[0, 1, 2, 3, 4, 5].map(val => (
-                  <Option key={val} value={val}>{val}.0</Option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Contact Discovery
-              </label>
-              <Select
-                placeholder="Phone availability"
-                style={{ width: '100%' }}
-                value={filters.hasPhone || undefined}
-                onChange={(value) => setFilters({ ...filters, hasPhone: value || '' })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                <Option value="yes">With Phone</Option>
-                <Option value="no">Missing Phone</Option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Has Email
-              </label>
-              <Select
-                placeholder="Email availability"
-                style={{ width: '100%' }}
-                value={filters.hasEmail || undefined}
-                onChange={(value) => setFilters({ ...filters, hasEmail: value || '' })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                <Option value="yes">With Email</Option>
-                <Option value="no">Missing Email</Option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Has Socials
-              </label>
-              <Select
-                placeholder="Socials availability"
-                style={{ width: '100%' }}
-                value={filters.hasSocials || undefined}
-                onChange={(value) => setFilters({ ...filters, hasSocials: value || '' })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                <Option value="yes">With Socials</Option>
-                <Option value="no">Missing Socials</Option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Website Ads Status
-              </label>
-              <Select
-                placeholder="Ads availability"
-                style={{ width: '100%' }}
-                value={filters.addsRunning || undefined}
-                onChange={(value) => setFilters({ ...filters, addsRunning: value || '' })}
-                allowClear
-                className="custom-select-premium h-12"
-              >
-                <Option value="running">Running Ads</Option>
-                <Option value="not-running">No Ads</Option>
-                <Option value="not-available">Not Available</Option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Minimum Reviews
-              </label>
-              <InputNumber
-                placeholder="Min reviews"
-                className="w-full h-12 border-gray-200 rounded-xl hover:border-primary focus:border-primary transition-all shadow-sm flex items-center"
-                value={filters.reviewsMin}
-                onChange={(val) => setFilters({ ...filters, reviewsMin: val })}
-                min={0}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Maximum Reviews
-              </label>
-              <InputNumber
-                placeholder="Max reviews"
-                className="w-full h-12 border-gray-200 rounded-xl hover:border-primary focus:border-primary transition-all shadow-sm flex items-center"
-                value={filters.reviewsMax}
-                onChange={(val) => setFilters({ ...filters, reviewsMax: val })}
-                min={0}
-              />
-            </div>
-          </div>
-        </div>
-
-        {(filters.locationSearch ||
-          filters.whatsappStatus ||
-          filters.ratingMin !== null ||
-          filters.ratingMax !== null ||
-          filters.reviewsMin !== null ||
-          filters.reviewsMax !== null ||
-          filters.hasWebsite ||
-          filters.hasPhone ||
-          filters.hasEmail ||
-          filters.hasSocials ||
-          filters.addsRunning ||
-          filters.favorite) && (
-            <div className="mt-4">
-              <Button
-                onClick={() => setFilters({ ...defaultFilters })}
-                size="small"
-                className="bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-              >
-                Clear All Filters
-              </Button>
-            </div>
-          )}
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <Table
-          columns={columns}
-          dataSource={filteredData}
-          loading={loading}
-          scroll={{
-            x: 1200,
-            ...(tableScrollY ? { y: tableScrollY } : {}),
-          }}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} records`,
-            onChange: (page, size) => {
-              setCurrentPage(page);
-              setPageSize(size);
-            },
-          }}
-        />
-      </div>
+      <OperationLeadsTable
+        columns={columns}
+        dataSource={filteredData}
+        loading={loading}
+        tableScrollY={tableScrollY}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={(page, size) => {
+          setCurrentPage(page);
+          setPageSize(size);
+        }}
+        rowSelection={rowSelection}
+        selectedCount={selectedRowKeys.length}
+        totalSelectable={selectableLeadIds.length}
+        onSelectAllFiltered={handleSelectAllFiltered}
+        onClearSelection={() => setSelectedRowKeys([])}
+        onBulkDelete={handleBulkDelete}
+        bulkDeleting={bulkDeleting}
+      />
 
       <WebsiteCarouselViewer
         isOpen={isCarouselOpen}
@@ -2669,200 +1498,25 @@ const OperationDetailPage = () => {
 
       />
 
-      <Modal
-         title={<div className="flex items-center gap-2">
-           {bulkProgress.type === 'mail' && <MdEmail className="text-primary text-xl" />}
-           {bulkProgress.type === 'city' && <MdLocationOn className="text-primary text-xl" />}
-           {bulkProgress.type === 'whatsapp' && <BsWhatsapp className="text-primary text-xl" />}
-           {bulkProgress.type === 'ads' && <MdAnalytics className="text-blue-600 text-xl" />}
-           <span>{bulkProgress.title}</span>
-         </div>}
-         open={bulkProgress.isOpen}
-         onCancel={() => !bulkProgress.isProcessing && setBulkProgress(prev => ({ ...prev, isOpen: false }))}
-         footer={[
-           <Button 
-             key="close" 
-             type="primary" 
-             onClick={() => setBulkProgress(prev => ({ ...prev, isOpen: false }))}
-             disabled={bulkProgress.isProcessing}
-           >
-             {bulkProgress.isProcessing ? 'Processing...' : 'Done'}
-           </Button>
-         ]}
-         centered
-         closable={!bulkProgress.isProcessing}
-         maskClosable={!bulkProgress.isProcessing}
-         className="rounded-2xl"
-         width={bulkProgress.type === 'ads' ? 800 : 500}
-      >
-        <div className="space-y-6 py-4">
-           {bulkProgress.isProcessing && (
-             <div className="flex flex-col items-center justify-center space-y-4">
-                <ExtractionLoader 
-                  count={bulkProgress.success + bulkProgress.failed} 
-                  total={bulkProgress.total} 
-                  isLoading={bulkProgress.isProcessing}
-                  label={bulkProgress.type === 'whatsapp' ? 'Verified' : 'Scanned'} 
-                />
-                <p className="text-gray-500 font-medium animate-pulse">
-                  {bulkProgress.type === 'social' ? 'Performing deep exploration...' : 
-                   bulkProgress.type === 'mail' ? 'Analyzing domains...' : 
-                   bulkProgress.type === 'city' ? 'Mapping coordinates...' : 
-                   'Verifying credentials...'}
-                </p>
-                {bulkProgress.total > 0 && (
-                  <p className="text-xs text-gray-400 font-bold bg-gray-100 px-3 py-1 rounded-full">
-                    Estimated time: ~{(() => {
-                      const remaining = bulkProgress.total - (bulkProgress.success + bulkProgress.failed);
-                      const seconds = remaining * 5;
-                      const m = Math.floor(seconds / 60);
-                      const s = seconds % 60;
-                      return m > 0 ? `${m}m ${s}s` : `${s}s`;
-                    })()} remaining
-                  </p>
-                )}
-             </div>
-           )}
+      <OperationBulkProgressModal
+        bulkProgress={bulkProgress}
+        setBulkProgress={setBulkProgress}
+        adsAnalysisResults={adsAnalysisResults}
+        flattenedData={flattenedData}
+      />
 
-           {!bulkProgress.isProcessing && (
-             <div className="flex items-center justify-center mb-4">
-               <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
-                 <MdCheckCircle size={40} />
-               </div>
-             </div>
-           )}
-
-           <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 p-5 rounded-2xl text-center border border-blue-100 shadow-sm">
-                 <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-2">Processed</p>
-                 <p className="text-3xl font-black text-blue-900 leading-none">{bulkProgress.total}</p>
-                 <p className="text-[10px] text-blue-400 mt-2 font-bold uppercase tracking-tighter">Total Leads Scanned</p>
-              </div>
-              <div className="bg-green-50 p-5 rounded-2xl text-center border border-green-100 shadow-sm relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-2 opacity-10">
-                    <MdCheckCircle size={40} className="text-green-600" />
-                 </div>
-                 <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em] mb-2">{bulkProgress.type === 'whatsapp' ? 'Verified' : 'Extracted'}</p>
-                 <p className="text-3xl font-black text-green-900 leading-none">{bulkProgress.success}</p>
-                 <p className="text-[10px] text-green-400 mt-2 font-bold uppercase tracking-tighter">Successfully Captured</p>
-              </div>
-           </div>
-
-           {bulkProgress.extraLabel && (
-             <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                   <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">{bulkProgress.extraLabel}</p>
-                   <Tag color="purple" className="font-bold border-none bg-purple-100 text-purple-600 rounded-full px-3">+{bulkProgress.extraCount} Found</Tag>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                   <div 
-                     className="bg-primary h-2 rounded-full transition-all duration-1000 ease-out" 
-                     style={{ width: `${(bulkProgress.success / bulkProgress.total) * 100}%` }}
-                   ></div>
-                </div>
-                <p className="text-[9px] text-gray-400 mt-3 text-right font-medium uppercase tracking-widest">Confidence Level: High (Verified)</p>
-             </div>
-           )}
-
-           {bulkProgress.type === 'ads' && !bulkProgress.isProcessing && Object.keys(adsAnalysisResults).length > 0 && (
-             <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 max-h-96 overflow-y-auto">
-               <p className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-4">Detailed Results</p>
-               <div className="space-y-2">
-                 {flattenedData
-                   .filter(item => item.website && adsAnalysisResults[item.leadId])
-                   .map(item => (
-                     <div key={item.leadId} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                       <div className="flex-1">
-                         <p className="text-sm font-semibold text-gray-800 truncate">{item.title}</p>
-                         <p className="text-xs text-gray-500 truncate">{item.website}</p>
-                       </div>
-                       <div className="ml-2 flex-shrink-0">
-                         {adsAnalysisResults[item.leadId] === 'running' ? (
-                           <Tag color="green" className="rounded-full">🎯 Running</Tag>
-                         ) : adsAnalysisResults[item.leadId] === 'not-running' ? (
-                           <Tag color="gray" className="rounded-full">No Ads</Tag>
-                         ) : (
-                           <Tag color="orange" className="rounded-full">N/A</Tag>
-                         )}
-                       </div>
-                     </div>
-                   ))}
-               </div>
-             </div>
-           )}
-        </div>
-      </Modal>
-
-      <Modal
-        title="Duplicate Leads in This Operation"
+      <OperationDuplicatesModal
         open={isDuplicatesModalOpen}
-        onCancel={() => {
+        onClose={() => {
           if (removingDuplicates) return;
           setIsDuplicatesModalOpen(false);
           setDuplicatePreview(null);
         }}
-        footer={[
-          <Button
-            key="cancel"
-            onClick={() => {
-              setIsDuplicatesModalOpen(false);
-              setDuplicatePreview(null);
-            }}
-            disabled={removingDuplicates}
-          >
-            Cancel
-          </Button>,
-          <Button
-            key="remove"
-            type="primary"
-            danger
-            loading={removingDuplicates}
-            disabled={!duplicatePreview?.totalDuplicates}
-            onClick={handleRemoveDuplicates}
-          >
-            Remove {duplicatePreview?.totalDuplicates || 0} Duplicate(s)
-          </Button>,
-        ]}
-        width={900}
-        centered
-      >
-        {!duplicatePreview?.totalDuplicates ? (
-          <div className="py-8 text-center text-gray-500">
-            No duplicate business names found in this operation.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Alert
-              type="warning"
-              showIcon
-              message={`${duplicatePreview.totalGroups} duplicate name group(s) found`}
-              description={`${duplicatePreview.totalDuplicates} lead(s) will be removed from this operation only. The oldest entry for each name is kept.`}
-            />
-            <Table
-              size="small"
-              pagination={{ pageSize: 10 }}
-              dataSource={duplicateTableRows}
-              columns={[
-                { title: 'Business Name', dataIndex: 'title', key: 'title', ellipsis: true },
-                { title: 'Phone', dataIndex: 'phone', key: 'phone', width: 140 },
-                { title: 'City', dataIndex: 'city', key: 'city', width: 120, ellipsis: true },
-                { title: 'Added', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-                {
-                  title: 'Action',
-                  dataIndex: 'status',
-                  key: 'status',
-                  width: 110,
-                  render: (status) => (
-                    status === 'keep'
-                      ? <Tag color="green">Keep</Tag>
-                      : <Tag color="red">Remove</Tag>
-                  ),
-                },
-              ]}
-            />
-          </div>
-        )}
-      </Modal>
+        duplicatePreview={duplicatePreview}
+        duplicateTableRows={duplicateTableRows}
+        removingDuplicates={removingDuplicates}
+        onRemove={handleRemoveDuplicates}
+      />
     </div>
   );
 
