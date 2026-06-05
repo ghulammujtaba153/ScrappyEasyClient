@@ -13,7 +13,7 @@ import { FiPlus } from 'react-icons/fi';
 const { Search } = Input;
 
 const OperationsPage = () => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const navigate = useNavigate();
 
     const {
@@ -26,8 +26,6 @@ const OperationsPage = () => {
         isDataLoaded
     } = useOperations();
 
-    const { token } = useAuth();
-
     // Modal state
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [addModalVisible, setAddModalVisible] = useState(false);
@@ -36,10 +34,10 @@ const OperationsPage = () => {
 
     // Initial Fetch if not loaded
     useEffect(() => {
-        if (user && !isDataLoaded) {
+        if (user && token && !isDataLoaded) {
             fetchUniqueSearches();
         }
-    }, [user, isDataLoaded, fetchUniqueSearches]);
+    }, [user, token, isDataLoaded, fetchUniqueSearches]);
 
     // Handle Table Change (Pagination)
     const handleTableChange = (newPagination) => {

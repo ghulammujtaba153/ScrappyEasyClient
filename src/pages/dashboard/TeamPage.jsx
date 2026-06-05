@@ -21,6 +21,7 @@ const TeamPage = () => {
 
     // Subscription State
     const isAuthorized = accessStatus.isAuthorized;
+    const canCreateTeam = accessStatus.canCreateTeam !== false;
     const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
     const [lockedFeature, setLockedFeature] = useState('');
 
@@ -54,6 +55,10 @@ const TeamPage = () => {
     }, [user, token, fetchTeams]);
 
     const handleOpenModal = (team = null) => {
+        if (!canCreateTeam) {
+            message.warning('Invited members cannot create or manage their own team.');
+            return;
+        }
         if (!isAuthorized) {
             setLockedFeature('Team Management');
             setIsLockedModalOpen(true);
@@ -193,12 +198,14 @@ const TeamPage = () => {
                     <h1 className="text-xl font-bold text-gray-900">Team Workspace</h1>
                     <p className="text-sm text-gray-600">Collaborate with your professionals in real-time</p>
                 </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                >
-                    <FaPlus /> Create New Team
-                </button>
+                {canCreateTeam && (
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                    >
+                        <FaPlus /> Create New Team
+                    </button>
+                )}
             </div>
 
                 {/* My Teams */}
@@ -258,7 +265,7 @@ const TeamPage = () => {
                                         </div>
                                     </div>
                                     <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-100">
-                                        <span className="text-xs font-medium text-gray-500">{team.members?.length || 0}/2 Members</span>
+                                        <span className="text-xs font-medium text-gray-500">{team.members?.length || 0}/1 Member</span>
                                         <button onClick={() => handleViewTeam(team._id)} className="text-primary hover:text-primary/80 font-medium text-sm transition-colors">Open Workspace</button>
                                     </div>
                                 </div>
@@ -272,7 +279,7 @@ const TeamPage = () => {
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
                             <h2 className="text-lg font-bold text-gray-800">
-                                Shared Workspaces
+                                Invited Team
                             </h2>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

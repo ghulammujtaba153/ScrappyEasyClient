@@ -2,42 +2,34 @@ import axios from 'axios';
 import { BASE_URL } from '../config/URL';
 
 /**
- * Checks the user's access status (Trial or Subscription)
- * @param {string} userId 
- * @param {string} token 
- * @returns {Promise<{isAuthorized: boolean, type: 'trial'|'subscription', trial?: any, subscription?: any}>}
+ * Resolves premium access for the logged-in user:
+ * own subscription OR coverage via a team owner's active plan.
  */
-export const checkAccessStatus = async (userId, token) => {
+export const checkAccessStatus = async (_userId, token) => {
     try {
-        if (!userId || !token) return { isAuthorized: false };
+        if (!token) return { isAuthorized: false, canCreateTeam: false, isTeamMember: false };
 
-        const res = await axios.get(`${BASE_URL}/api/user/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` }
+        const res = await axios.get(`${BASE_URL}/api/user/access-status/me`, {
+            headers: { Authorization: `Bearer ${token}` },
         });
 
-        const user = res.data.data;
-        if (user && user.status === 'active' && user.planId) {
+        if (res.data?.success) {
             return {
-                isAuthorized: true,
-                type: 'subscription',
-                subscription: user
+                isAuthorized: res.data.isAuthorized,
+                canCreateTeam: res.data.canCreateTeam ?? false,
+                isTeamMember: res.data.isTeamMember ?? false,
+                type: res.data.type || 'none',
+                subscription: res.data.subscription,
+                teamId: res.data.teamId,
+                teamName: res.data.teamName,
             };
         }
-        return { isAuthorized: false };
+
+        return { isAuthorized: false, canCreateTeam: false, isTeamMember: false };
     } catch (error) {
         console.error('Error checking access status:', error);
-        return { isAuthorized: false };
+        return { isAuthorized: false, canCreateTeam: false, isTeamMember: false };
     }
 };
 
-/**
- * Helper to show restriction message or block feature
- * @param {boolean} isAuthorized 
- * @param {string} featureName 
- */
-export const handleFeatureRestriction = (isAuthorized) => {
-    if (!isAuthorized) {
-        return false;
-    }
-    return true;
-};
+export const handleFeatureRestriction = (isAuthorized) => Boolean(isAuthorized);

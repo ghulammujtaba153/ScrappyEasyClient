@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../config/URL";
 import { checkAccessStatus } from "../api/subscriptionApi";
-import axios from "axios";
 
 const AuthContext = createContext(null);
 
@@ -17,30 +16,27 @@ export const AuthProvider = ({ children }) => {
         }
     });
     const [token, setToken] = useState(() => localStorage.getItem("token"));
-    const [accessStatus, setAccessStatus] = useState({ isAuthorized: false, type: 'subscription' });
+    const [accessStatus, setAccessStatus] = useState({
+        isAuthorized: false,
+        canCreateTeam: false,
+        isTeamMember: false,
+        type: 'none',
+    });
     const [loading, setLoading] = useState(true);
-    const [activeTeam, setActiveTeam] = useState(null);
     const navigate = useNavigate();
 
-    // Derived effective user state based on active team
-    const effectiveUser = activeTeam ? (activeTeam.owner?._id ? activeTeam.owner : { _id: activeTeam.owner }) : user;
+    const refreshAccessStatus = useCallback(async () => {
+        if (!token) {
+            setAccessStatus({ isAuthorized: false, canCreateTeam: false, isTeamMember: false, type: 'none' });
+            return;
+        }
+        const status = await checkAccessStatus(null, token);
+        setAccessStatus(status);
+    }, [token]);
 
-    // Axios interceptor for active team context
     useEffect(() => {
-        const interceptor = axios.interceptors.request.use((config) => {
-            if (activeTeam && activeTeam._id) {
-                config.headers['x-active-team'] = activeTeam._id;
-            }
-            return config;
-        });
+        sessionStorage.removeItem('activeTeam');
 
-        return () => {
-            axios.interceptors.request.eject(interceptor);
-        };
-    }, [activeTeam]);
-
-    // Verify token with backend on mount
-    useEffect(() => {
         const verifyToken = async () => {
             const storedToken = localStorage.getItem("token");
             const storedUserStr = localStorage.getItem("user");
@@ -48,7 +44,6 @@ export const AuthProvider = ({ children }) => {
             if (storedToken && storedUserStr) {
                 try {
                     const storedUser = JSON.parse(storedUserStr);
-                    // Verify token with backend
                     const response = await fetch(`${BASE_URL}/api/auth/verifyToken`, {
                         method: "GET",
                         headers: {
@@ -58,19 +53,14 @@ export const AuthProvider = ({ children }) => {
 
                     if (response.ok) {
                         const data = await response.json();
-                        // Use FRESH user data from server (not stale localStorage)
-                        // This ensures status changes (e.g. under_review → active) reflect immediately
                         const freshUser = data.user || storedUser;
                         setToken(storedToken);
                         setUser(freshUser);
-                        // Update localStorage with fresh data
                         localStorage.setItem("user", JSON.stringify(freshUser));
 
-                        // Also fetch access status
-                        const status = await checkAccessStatus(freshUser._id || freshUser.id, storedToken);
+                        const status = await checkAccessStatus(null, storedToken);
                         setAccessStatus(status);
                     } else {
-                        // Token is invalid, clear localStorage
                         localStorage.removeItem("token");
                         localStorage.removeItem("user");
                         setToken(null);
@@ -78,7 +68,6 @@ export const AuthProvider = ({ children }) => {
                     }
                 } catch (error) {
                     console.error("Token verification error:", error);
-                    // Clear invalid token
                     localStorage.removeItem("token");
                     localStorage.removeItem("user");
                     setToken(null);
@@ -86,31 +75,26 @@ export const AuthProvider = ({ children }) => {
                 }
             }
             setLoading(false);
-
         };
 
         verifyToken();
     }, []);
 
-    // Login function
     const login = useCallback(async (userData, authToken) => {
         setUser(userData);
         setToken(authToken);
         localStorage.setItem("token", authToken);
         localStorage.setItem("user", JSON.stringify(userData));
 
-        // Fetch access status on login
         try {
-            const status = await checkAccessStatus(userData._id || userData.id, authToken);
+            const status = await checkAccessStatus(null, authToken);
             setAccessStatus(status);
         } catch (error) {
             console.error("Error fetching access status on login:", error);
         }
     }, []);
 
-    // Logout function
     const logout = useCallback(async () => {
-        // Disconnect WhatsApp session before logging out
         const currentToken = token || localStorage.getItem("token");
         if (currentToken && user) {
             try {
@@ -124,64 +108,39 @@ export const AuthProvider = ({ children }) => {
                 });
             } catch (error) {
                 console.error("Failed to disconnect WhatsApp:", error);
-                // Continue with logout even if disconnect fails
             }
         }
 
         setUser(null);
         setToken(null);
-        setAccessStatus({ isAuthorized: false, type: 'subscription' });
+        setAccessStatus({ isAuthorized: false, canCreateTeam: false, isTeamMember: false, type: 'none' });
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
     }, [token, user, navigate]);
 
-    // Check if user is authenticated
-    const isAuthenticated = useCallback(() => {
-        return !!token && !!user;
-    }, [token, user]);
+    const isAuthenticated = useCallback(() => !!token && !!user, [token, user]);
 
-    // Update user data
     const updateUser = useCallback((updatedUserData) => {
         setUser(updatedUserData);
         localStorage.setItem("user", JSON.stringify(updatedUserData));
     }, []);
-
-    const refreshAccessStatus = useCallback(async () => {
-        if (activeTeam && activeTeam.owner) {
-            const ownerId = activeTeam.owner._id || activeTeam.owner;
-            const status = await checkAccessStatus(ownerId, token);
-            setAccessStatus(status);
-        } else if (user && token) {
-            const status = await checkAccessStatus(user._id || user.id, token);
-            setAccessStatus(status);
-        }
-    }, [activeTeam, user, token]);
-
-    // React to activeTeam changes
-    useEffect(() => {
-        refreshAccessStatus();
-    }, [refreshAccessStatus]);
 
     const value = useMemo(() => ({
         user,
         token,
         accessStatus,
         loading,
-        activeTeam,
-        setActiveTeam,
-        effectiveUser,
         login,
         logout,
         isAuthenticated,
         updateUser,
         refreshAccessStatus,
-    }), [user, token, accessStatus, loading, activeTeam, effectiveUser, login, logout, isAuthenticated, updateUser, refreshAccessStatus]);
+    }), [user, token, accessStatus, loading, login, logout, isAuthenticated, updateUser, refreshAccessStatus]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {

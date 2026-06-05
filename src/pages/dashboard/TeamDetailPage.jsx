@@ -15,20 +15,11 @@ import ImportLeadsToTeamModal from '../../components/dashboard/ImportLeadsToTeam
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
 import Dialer from '../../components/Dialer';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
-import { checkAccessStatus } from '../../api/subscriptionApi';
-
 const TeamDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user, token, setActiveTeam } = useAuth();
+    const { user, token, accessStatus } = useAuth();
     const { onlineUsers } = useSocket();
-
-    // Effect to clear activeTeam on unmount
-    useEffect(() => {
-        return () => {
-            setActiveTeam(null);
-        };
-    }, [setActiveTeam]);
 
     const [team, setTeam] = useState(null);
     const [teamData, setTeamData] = useState([]);
@@ -49,8 +40,7 @@ const TeamDetailPage = () => {
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-    // Subscription State
-    const [isAuthorized, setIsAuthorized] = useState(true);
+    const isAuthorized = accessStatus.isAuthorized;
     const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
     const [lockedFeature, setLockedFeature] = useState('');
 
@@ -62,21 +52,20 @@ const TeamDetailPage = () => {
         status: 'new'
     });
 
-    // Helper to gate premium actions
     const requireSubscription = (featureName) => {
-        if (!isAuthorized) {
-            setLockedFeature(featureName);
-            setIsLockedModalOpen(true);
-            return false;
+        if (isAuthorized) {
+            return true;
         }
-        return true;
+        setLockedFeature(featureName);
+        setIsLockedModalOpen(true);
+        return false;
     };
 
-    // Check if user has access to this team
     const hasAccess = () => {
         if (!team || !user) return false;
-        const isOwner = team.owner?._id === user._id;
-        const isMember = team.members?.some(m => m._id === user._id);
+        const userId = String(user?._id || user?.id || '');
+        const isOwner = String(team.owner?._id || team.owner) === userId;
+        const isMember = team.members?.some((m) => String(m._id || m) === userId);
         return isOwner || isMember;
     };
 
@@ -130,15 +119,9 @@ const TeamDetailPage = () => {
             ]);
 
             setTeam(teamRes.data);
-            setActiveTeam(teamRes.data);
             setTeamData(dataRes.data);
 
-            // Check WhatsApp status
             checkWhatsAppStatus();
-            
-            // Check subscription status
-            const status = await checkAccessStatus(user?._id || user?.id, token);
-            setIsAuthorized(status.isAuthorized);
 
         } catch (error) {
             console.error('Initialization error:', error);

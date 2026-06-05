@@ -12,7 +12,7 @@ const TeamModal = ({
     const [name, setName] = useState('');
     const [emails, setEmails] = useState([]);
     const [currentEmail, setCurrentEmail] = useState('');
-    const MAX_MEMBERS = 2;
+    const MAX_MEMBERS = 1;
 
     useEffect(() => {
         if (initialData) {

@@ -8,11 +8,16 @@ import { formatPhoneNumber } from '../components/operationDetail/operationDetail
 const OperationsContext = createContext(null);
 
 export const OperationsProvider = ({ children }) => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
+
+    const getDataUserId = useCallback(() => {
+        const id = user?._id || user?.id;
+        return id ? String(id) : null;
+    }, [user]);
+
     const [uniqueSearches, setUniqueSearches] = useState([]);
     const [uniqueCities, setUniqueCities] = useState([]);
     const [loading, setLoading] = useState(false);
-    const token = localStorage.getItem('token');
 
     // Pagination & Search States
     const [keyword, setKeyword] = useState('');
@@ -30,7 +35,8 @@ export const OperationsProvider = ({ children }) => {
     const [operationCache, setOperationCache] = useState({});
 
     const fetchUniqueSearches = useCallback(async (page, pageSize, search) => {
-        if (!user?._id && !user?.id) return;
+        const dataUserId = getDataUserId();
+        if (!dataUserId || !token) return;
 
         // Use provided arguments or fall back to current state
         const targetPage = page !== undefined ? page : pagination.current;
@@ -40,7 +46,7 @@ export const OperationsProvider = ({ children }) => {
         setLoading(true);
         try {
             // Fetch paginated searches
-            const response = await axios.get(`${BASE_URL}/api/data/unique/${user._id || user.id}`, {
+            const response = await axios.get(`${BASE_URL}/api/data/unique/${dataUserId}`, {
                 params: {
                     page: targetPage,
                     limit: targetPageSize,
@@ -71,7 +77,7 @@ export const OperationsProvider = ({ children }) => {
 
             // Fetch global stats (Cities)
             if (uniqueCities.length === 0) {
-                const dataResponse = await axios.get(`${BASE_URL}/api/data/${user._id || user.id}?limit=1000`, {
+                const dataResponse = await axios.get(`${BASE_URL}/api/data/${dataUserId}?limit=1000`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -86,11 +92,11 @@ export const OperationsProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, [user, pagination.current, pagination.pageSize, keyword, uniqueCities.length]);
+    }, [getDataUserId, token, pagination.current, pagination.pageSize, keyword, uniqueCities.length]);
 
     // Fetch operation details with caching
     const fetchOperationDetails = useCallback(async (operationId, forceRefresh = false) => {
-        if (!operationId || (!user?._id && !user?.id)) return null;
+        if (!operationId || !getDataUserId() || !token) return null;
 
         // Return cached data if exists and we're not forcing a refresh
         if (!forceRefresh && operationCache[operationId]) {
@@ -206,7 +212,7 @@ export const OperationsProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, [user, operationCache]);
+    }, [getDataUserId, token, operationCache]);
 
     // Adjust the lead count for an operation in the uniqueSearches list.
     // delta = +1 for add, -1 for delete, +N for bulk import — no extra API call needed.
@@ -259,7 +265,6 @@ export const OperationsProvider = ({ children }) => {
         });
     }, []);
 
-    // Cleanup or reset if user logout/change
     useEffect(() => {
         if (!user) {
             setUniqueSearches([]);

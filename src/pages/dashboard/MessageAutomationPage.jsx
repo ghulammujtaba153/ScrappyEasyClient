@@ -7,7 +7,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/authContext';
 import { BASE_URL } from '../../config/URL';
 import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
-import { checkAccessStatus } from '../../api/subscriptionApi';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
 import { MdLock } from 'react-icons/md';
 import { trackMetaEvent } from '../../utils/analytics';
@@ -17,6 +17,7 @@ import EditCampaignModal from '../../components/message-automation/EditCampaignM
 
 const MessageAutomationPage = () => {
     const { user, token } = useAuth();
+    const { isAuthorized } = useFeatureAccess();
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState([]);
 
@@ -34,9 +35,6 @@ const MessageAutomationPage = () => {
     const [selectedEntryIds, setSelectedEntryIds] = useState([]);
     const [sendingEntryId, setSendingEntryId] = useState(null);
 
-    // Subscription/Trial State
-    const [isAuthorized, setIsAuthorized] = useState(true);
-    const [checkingAuth, setCheckingAuth] = useState(true);
     const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
     const [lockedFeature, setLockedFeature] = useState('');
 
@@ -129,21 +127,13 @@ const MessageAutomationPage = () => {
     useEffect(() => {
         if (!user || !token) return;
 
-        const init = async () => {
-            setCheckingAuth(true);
-            const status = await checkAccessStatus(user?._id || user?.id, token);
-            setIsAuthorized(status.isAuthorized);
-            setCheckingAuth(false);
-
-            fetchData();
-            fetchRemainingMessages();
-            if (status.isAuthorized) {
-                checkWhatsAppStatus();
-            }
-        };
-        init();
+        fetchData();
+        fetchRemainingMessages();
+        if (isAuthorized) {
+            checkWhatsAppStatus();
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, token]);
+    }, [user, token, isAuthorized]);
 
     const handleOpenDetail = (list) => {
         setCurrentList(list);
@@ -552,16 +542,6 @@ const MessageAutomationPage = () => {
                 featureName={lockedFeature}
 
             />
-
-            {/* Auth Checking Overlay */}
-            {checkingAuth && (
-                <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
-                    <div className="text-center">
-                        <Spin size="large" />
-                        <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

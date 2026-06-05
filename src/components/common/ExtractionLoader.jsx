@@ -26,21 +26,18 @@ const ExtractionLoader = ({ count = 0, total = 0, label = "Items Extracted", isL
     return () => clearInterval(timer);
   }, [count, displayCount]);
 
-  const showProcessing = isLoading && count === 0;
+  const showStarting = isLoading && count === 0 && total === 0;
 
   return (
     <div className="flex flex-col items-center justify-center py-4">
       <div className="relative w-[160px] h-[160px] flex items-center justify-center mx-auto my-[10px]">
-        {/* Single Premium Dashed Border Loader */}
         <div className="absolute inset-0 rounded-full border-[6px] border-dashed border-primary animate-[spinDash_6s_linear_infinite]"></div>
-        
-        {/* Inner glassmorphism content */}
-        <div className="flex flex-col items-center justify-center z-[2] relative overflow-hidden">
-          
-          <div className="flex items-center justify-center w-full ">
-            {showProcessing ? (
+
+        <div className="flex flex-col items-center justify-center z-[2] relative gap-1">
+          <div className="flex items-center justify-center w-full">
+            {showStarting ? (
               <span className="text-primary font-black text-lg tracking-tight animate-pulse uppercase">
-                Processing
+                Starting
               </span>
             ) : (
               <div className="flex items-baseline gap-0.5">
@@ -53,7 +50,11 @@ const ExtractionLoader = ({ count = 0, total = 0, label = "Items Extracted", isL
               </div>
             )}
           </div>
-          
+          {label && total > 0 && (
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide text-center px-3">
+              {label}
+            </span>
+          )}
         </div>
       </div>
       

@@ -10,7 +10,7 @@ import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import Dialer from '../../components/Dialer';
 // import WhatsAppConnectModal from '../../components/dashboard/WhatsAppConnectModal';
-import { checkAccessStatus } from '../../api/subscriptionApi';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
 
 // Import QualifiedLeads components
@@ -44,6 +44,7 @@ const QualifiedLeadsDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { token, user } = useAuth();
+    const { isAuthorized } = useFeatureAccess();
 
     const [loading, setLoading] = useState(false);
     const [leadData, setLeadData] = useState(null);
@@ -95,8 +96,6 @@ const QualifiedLeadsDetailPage = () => {
     };
     */
 
-    // Subscription/Trial State
-    const [isAuthorized, setIsAuthorized] = useState(true);
     const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
     const [lockedFeature, setLockedFeature] = useState('');
 
@@ -177,17 +176,7 @@ const QualifiedLeadsDetailPage = () => {
     useEffect(() => {
         if (!user || !token) return;
 
-        const init = async () => {
-            const status = await checkAccessStatus(user?._id || user?.id, token);
-            setIsAuthorized(status.isAuthorized);
-
-            fetchLeadDetails();
-            // fetchRemainingMessages();
-            if (status.isAuthorized) {
-                // checkWhatsAppStatus();
-            }
-        };
-        init();
+        fetchLeadDetails();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, user, token]);
 

@@ -44,7 +44,7 @@ import { trackMetaEvent } from '../../utils/analytics';
 import { BASE_URL } from '../../config/URL';
 import { useAuth } from '../../context/authContext';
 import { useOperations } from '../../context/operationsContext';
-import { checkAccessStatus } from '../../api/subscriptionApi';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 
 const OperationDetailPage = () => {
 
@@ -146,6 +146,7 @@ const OperationDetailPage = () => {
   const { operationId } = useParams();
   const navigate = useNavigate();
   const { token, user } = useAuth();
+  const { isAuthorized } = useFeatureAccess();
 
   // Use context for data persistence
   const { fetchOperationDetails, updateOperationCache, operationCache, setIsBlocking, adjustOperationCount } = useOperations();
@@ -219,8 +220,6 @@ const OperationDetailPage = () => {
   const [isStackModalOpen, setIsStackModalOpen] = useState(false);
   const [selectedLeadForStack, setSelectedLeadForStack] = useState(null);
 
-  // Subscription/Trial State
-  const [isAuthorized, setIsAuthorized] = useState(true);
   const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
   const [lockedFeature, setLockedFeature] = useState('');
 
@@ -676,18 +675,12 @@ const OperationDetailPage = () => {
   useEffect(() => {
     if (!user || !token) return;
 
-    const init = async () => {
-      const status = await checkAccessStatus(user?._id || user?.id, token);
-      setIsAuthorized(status.isAuthorized);
-
-      fetchRecord();
-      if (status.isAuthorized) {
-        checkWhatsAppStatus();
-      }
-    };
-    init();
+    fetchRecord();
+    if (isAuthorized) {
+      checkWhatsAppStatus();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operationId, user, token]);
+  }, [operationId, user, token, isAuthorized]);
   
   // Navigation blocking logic
   useEffect(() => {

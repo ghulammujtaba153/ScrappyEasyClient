@@ -7,7 +7,7 @@ import { useAuth } from '../../context/authContext';
 import { BASE_URL } from '../../config/URL';
 import Dialer from '../../components/Dialer';
 import Loader from '../../components/common/Loader';
-import { checkAccessStatus } from '../../api/subscriptionApi';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 import SubscriptionRestrictedModal from '../../components/SubscriptionRestrictedModal';
 import { MdLock } from 'react-icons/md';
 
@@ -15,6 +15,7 @@ const ColdCallerDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { token, user } = useAuth();
+  const { isAuthorized } = useFeatureAccess();
   const [loading, setLoading] = useState(true);
   const [campaign, setCampaign] = useState(null);
 
@@ -27,9 +28,6 @@ const ColdCallerDetailPage = () => {
   const [selectedStatus, setSelectedStatus] = useState("successful");
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Subscription/Trial State
-  const [isAuthorized, setIsAuthorized] = useState(true);
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
   const [lockedFeature, setLockedFeature] = useState('');
 
@@ -96,15 +94,7 @@ const ColdCallerDetailPage = () => {
   useEffect(() => {
     if (!user || !token || !id) return;
 
-    const init = async () => {
-      setCheckingAuth(true);
-      const status = await checkAccessStatus(user?._id || user?.id, token);
-      setIsAuthorized(status.isAuthorized);
-      setCheckingAuth(false);
-
-      fetchCampaignData();
-    };
-    init();
+    fetchCampaignData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user, token]);
 
@@ -575,15 +565,6 @@ const ColdCallerDetailPage = () => {
 
       />
 
-      {/* Auth Checking Overlay */}
-      {checkingAuth && (
-        <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
-          <div className="text-center">
-            <Spin size="large" />
-            <p className="mt-4 font-medium text-gray-600">Verifying access...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
