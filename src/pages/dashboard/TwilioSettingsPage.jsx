@@ -136,6 +136,18 @@ const TwilioSettingsPage = () => {
 
     return (
         <div className="space-y-6">
+            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                <div className="relative w-full" style={{ paddingBottom: "56.25%", height: 0 }}>
+                    <iframe
+                        src="https://www.loom.com/embed/29c87031cbab41c79d76cd811d62dd44"
+                        frameBorder="0"
+                        allowFullScreen
+                        title="Twilio setup walkthrough"
+                        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                    />
+                </div>
+            </div>
+
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
