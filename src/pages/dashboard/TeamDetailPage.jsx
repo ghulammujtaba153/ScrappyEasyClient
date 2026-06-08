@@ -730,7 +730,7 @@ const TeamDetailPage = () => {
 
     return (
         <div className="space-y-6">
-            <div className="max-w-7xl mx-auto space-y-6">
+            <div className=" mx-auto space-y-6">
                 
 
                 {/* Header Section */}

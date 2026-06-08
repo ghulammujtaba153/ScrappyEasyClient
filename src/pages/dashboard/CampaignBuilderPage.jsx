@@ -79,8 +79,8 @@ export default function CampaignBuilderPage() {
       }
       
       if (launch) {
-        await api.post(`/cold-campaigns/${campaign._id}/launch`);
-        toast.success('🚀 Campaign launched!');
+        const launchRes = await api.post(`/cold-campaigns/${campaign._id}/launch`);
+        toast.success(launchRes.data?.message || 'Campaign launch started');
       } else {
         toast.success('Campaign saved as draft');
       }

@@ -42,7 +42,7 @@ const FAQSection = () => {
         },
         {
             question: "How does the lead extraction process work?",
-            answer: "Our tool automates the manual effort of searching and copying data. It visits public search results on Google Maps or Yellow Pages and structures the information into an easy-to-use table format, which you can then export to your CRM or excel files."
+            answer: "Our tool automates the manual effort of searching and copying data. It visits public search results on Google Maps and structures the information into an easy-to-use table format, which you can then export to your CRM or excel files."
         },
         {
             question: "Can I use Map Harvest for team collaboration?",
@@ -50,7 +50,7 @@ const FAQSection = () => {
         },
         {
             question: "What outreach tools are included?",
-            answer: "Map Harvest comes with built-in tools for bulk messaging via WhatsApp and cold calling directly from your dashboard. It streamlines the entire pipeline from finding a lead to closing the deal."
+            answer: "Map Harvest comes with built-in tools for cold calling directly from your dashboard. It streamlines the entire pipeline from finding a lead to closing the deal."
         },
         {
             question: "Is there a limit to how many leads I can store?",

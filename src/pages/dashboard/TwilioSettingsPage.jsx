@@ -155,7 +155,7 @@ const TwilioSettingsPage = () => {
                 </button>
             </div>
 
-            <div className="max-w-4xl space-y-6">
+            <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="bg-gray-50 p-4 border-b border-gray-100">
                         <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">

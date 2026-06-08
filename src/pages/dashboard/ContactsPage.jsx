@@ -142,7 +142,7 @@ export default function ContactsPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ margin: '0 auto' }}>
       <Toaster position="top-right" />
 
       {/* Header */}

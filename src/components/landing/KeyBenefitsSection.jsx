@@ -10,37 +10,37 @@ const KeyBenefitsSection = () => {
     const benefits = [
         {
             title: "Harvest leads faster than manual copy-paste",
-            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search, Yellow Pages and more making it faster and efficient to generate leads.",
+            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search and more making it faster and efficient to generate leads.",
             bgColor: "bg-[#DCFCE7]",
             headingColor: "#16a34a",
         },
         {
             title: "Unlimited lead storage in CRM (Lifetime)",
-            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search, Yellow Pages and more making it faster and efficient to generate leads.",
+            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search and more making it faster and efficient to generate leads.",
             bgColor: "bg-[#DBEAFE]",
             headingColor: "#2563eb",
         },
         {
             title: "Team collaboration (invite coordinators and members)",
-            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search, Yellow Pages and more making it faster and efficient to generate leads.",
+            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search and more making it faster and efficient to generate leads.",
             bgColor: "bg-[#EDE9FE]",
             headingColor: "#7c3aed",
         },
         {
             title: "WhatsApp availability verification",
-            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search, Yellow Pages and more making it faster and efficient to generate leads.",
+            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search and more making it faster and efficient to generate leads.",
             bgColor: "bg-[#FEF9C3]",
             headingColor: "#ca8a04",
         },
         {
             title: "Built-in outreach tools: bulk messaging and cold calling",
-            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search, Yellow Pages and more making it faster and efficient to generate leads.",
+            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search and more making it faster and efficient to generate leads.",
             bgColor: "bg-[#E0F2FE]",
             headingColor: "#0284c7",
         },
         {
             title: "Nearby cities recommendations so you don't miss suburbs",
-            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search, Yellow Pages and more making it faster and efficient to generate leads.",
+            description: "Map Harvest automates the process of data scraping from Google Maps, Google Search and more making it faster and efficient to generate leads.",
             bgColor: "bg-[#FFF1F2]",
             headingColor: "#f9a8b4",
         }

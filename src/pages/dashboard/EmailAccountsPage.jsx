@@ -65,7 +65,7 @@ export default function EmailAccountsPage() {
   };
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <div style={{ margin: '0 auto' }}>
       <Toaster position="top-right" />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>

@@ -104,7 +104,7 @@ const VerifyMailsPage = () => {
   const riskyCount    = results.filter(r => r.status === 'risky').length;
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <div style={{ margin: '0 auto' }}>
       <Title level={3}>Verify Email Addresses</Title>
       <Text type="secondary">Enter a list of emails to verify their deliverability. Separated by comma or new line.</Text>
 

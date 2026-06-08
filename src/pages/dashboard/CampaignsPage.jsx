@@ -31,8 +31,9 @@ export default function CampaignsPage() {
 
   const launch = async (id) => {
     try {
-      await api.post(`/cold-campaigns/${id}/launch`);
-      toast.success('Campaign launched 🚀');
+      const res = await api.post(`/cold-campaigns/${id}/launch`);
+      const msg = res.data?.message || 'Campaign launch started';
+      toast.success(msg);
       setCampaigns(c => c.map(x => x._id === id ? { ...x, status: 'active' } : x));
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to launch'); }
   };
@@ -64,7 +65,7 @@ export default function CampaignsPage() {
   const rate = (num, den) => den ? `${Math.round((num / den) * 100)}%` : '—';
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ margin: '0 auto' }}>
       <Toaster position="top-right" />
 
       {/* Header */}

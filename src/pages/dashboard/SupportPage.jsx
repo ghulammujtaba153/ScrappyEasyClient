@@ -79,7 +79,7 @@ const SupportPage = () => {
                     }
                 `}
             </style>
-            <div className="p-6 max-w-3xl mx-auto">
+            <div className="p-6 mx-auto">
                 <div className="bg-white rounded-lg shadow-md p-8">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">Support</h1>
                     <p className="text-gray-600 mb-6">Need help? Send us a message and we'll get back to you soon.</p>
