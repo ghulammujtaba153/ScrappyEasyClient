@@ -177,7 +177,7 @@ const AboutPage = () => {
             </section>
 
             {/* Meet the Founder */}
-            <section className="py-20 md:py-28 px-4 bg-white">
+            <section className="py-20 md:py-28 px-4 bg-white ">
                 <div className="max-w-4xl mx-auto">
                     <motion.div
                         initial="hidden"
@@ -225,13 +225,76 @@ const AboutPage = () => {
                                     </p>
                                 </div>
 
-                                <p className="text-gray-500 font-medium text-base leading-relaxed">
+                                <p className="text-gray-500 font-medium text-base leading-relaxed text-justify">
                                     Business development guy with a Software Engineering degree who's spent the last 5 years in the trenches — selling websites, running ads, building apps, designing brands, and closing deals with international clients across dozens of projects. I didn't build Map Harvest from a boardroom. I built it from the same desk where I was cold calling, scraping leads, and trying to figure out how to make freelancing actually sustainable. This tool is everything I needed and couldn't find anywhere else.
                                 </p>
 
                                 <div className="flex items-center justify-center md:justify-start gap-4 pt-2">
                                     <a
                                         href="#"
+                                        className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all"
+                                    >
+                                        <FaLinkedinIn size={16} />
+                                    </a>
+                                    <a
+                                        href="#"
+                                        className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all"
+                                    >
+                                        <FaGlobe size={16} />
+                                    </a>
+                                </div>
+                            </div>
+
+                            
+
+                        </div>
+
+                        
+                    </motion.div>
+                </div>
+            </section>
+
+            <section className="pb-20 md:pb-28 px-4 bg-white ">
+                <div className="max-w-4xl mx-auto">
+                    
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.7 }}
+                        className="bg-[#DCFCE7]/40 rounded-[2.5rem] p-10 md:p-16 border border-green-100/60"
+                    >
+                        <div className="flex flex-col md:flex-row items-center gap-10 md:gap-14">
+                            <motion.div
+                                whileHover={{ scale: 1.03 }}
+                                transition={{ type: "spring", stiffness: 300 }}
+                                className="w-48 h-48 md:w-56 md:h-56 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0 shadow-lg overflow-hidden"
+                            >
+                                <img
+                                    src="/moazam.jpeg"
+                                    alt="Moazzam — Partner of Map Harvest"
+                                    className="w-full h-full object-cover object-top"
+                                />
+                            </motion.div>
+
+                            <div className="flex-1 space-y-5 text-center md:text-left">
+                                <div>
+                                    <h3 className="text-3xl md:text-4xl font-black font-semibold text-gray-900">
+                                        Moazzam
+                                    </h3>
+                                    <p className="text-primary font-bold text-base mt-1">
+                                        Partner
+                                    </p>
+                                </div>
+
+                                <p className="text-gray-500 font-medium text-base leading-relaxed text-justify">
+                                    Over the years, I worked with clients from around the world through different freelance platforms, delivering projects and building long term relationships. But after facing multiple account suspensions, I realized how difficult it was to rely entirely on third party platforms. That's when I teamed up with Ibraheem. Having experienced the same challenges firsthand, we decided to build something of our own. Together, we created Map Harvest — a software designed to give freelancers, agencies, and business owners a more sustainable way to find opportunities and grow without depending on platforms they don't control.
+                                </p>
+
+                                <div className="flex items-center justify-center md:justify-start gap-4 pt-2">
+                                    <a
+                                        href="https://www.linkedin.com/in/moazzam-ali-b34053242/"
                                         className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all"
                                     >
                                         <FaLinkedinIn size={16} />
